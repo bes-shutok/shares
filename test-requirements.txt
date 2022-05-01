@@ -1,0 +1,12 @@
+coverage
+pytest
+pytest-cov
+pytest-flakes
+pytest-pep8
+pytest-pythonpath
+docker
+bs4
+requests
+pathlib
+typing
+openpyxl

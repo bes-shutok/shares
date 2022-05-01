@@ -1,0 +1,10 @@
+version: '3.1'
+services:
+  test:
+    build: .
+    volumes:
+      - type: bind
+        source: .
+        target: /pytest_project
+    stdin_open: true
+    tty: true
