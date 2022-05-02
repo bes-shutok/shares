@@ -44,10 +44,33 @@ class TradeAction:
             print("Sold " + postfix)
 
 
+class AllTradesPerCompany:
+    sells = []
+    buys = []
+
+    def __init__(self, symbol):
+        self.symbol = symbol
+
+    def add_trade(self, ta: TradeAction):
+        if ta.type == TradeType.SELL:
+            self.sells.append(ta)
+        else:
+            self.buys.append(ta)
+
+    def print(self):
+        print("The company " + self.symbol + "has the following sells: ")
+        for sell in self.sells:
+            sell.print()
+        print("The company " + self.symbol + "has the following buys: ")
+        for buy in self.buys:
+            buy.print()
+
+
 def parse_data():
     print("This line will be printed.")
     print(source_path)
 
+    companies = {}
     trade_actions = {}
     share_trade_actions = []
     # open file in read mode
@@ -55,19 +78,26 @@ def parse_data():
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
             if row["Date/Time"] != "":
-                key = row["Symbol"]
-                if key in trade_actions.keys():
-                    share_trade_actions = trade_actions[key]
+                company = row["Symbol"]
+                if company in trade_actions.keys():
+                    share_trade_actions = trade_actions[company]
 
-                print(row["Currency"], row["Symbol"], row["Date/Time"], row["Quantity"], row["T. Price"],
-                      row["Comm/Fee"])
-                t = TradeAction(row["Symbol"], row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
+                t = TradeAction(company, row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
                                 row["Comm/Fee"])
                 t.print()
                 share_trade_actions.append(t)
-                trade_actions[key] = share_trade_actions
+                trade_actions[company] = share_trade_actions
 
-    print(trade_actions)
+                if company in companies.keys():
+                    trades = companies[company]
+                else:
+                    trades = AllTradesPerCompany(company)
+                trades.add_trade(t)
+                companies[company] = trades
+
+    for k, v in companies.items():
+        print("Printing trades for " + k)
+        v.print()
 
     return trade_actions
 
@@ -107,9 +137,25 @@ def vest_on():
     print(dl + str(fee_decimal * 80 / 370))
 
 
+def get_sell_actions(trade_actions):
+    print("Get sell actions")
+    sell_actions_by_symbol = {}
+    sell_actions_by_year = {}
+    for k, v in trade_actions.items():
+        for action in v:
+            action.print()
+            if action.type == TradeType.SELL:
+                sell_actions_by_month = sell_actions_by_year[action.date_time.year]
+                sell_actions = sell_actions_by_month[action.date_time.year]
+                sell_actions.append(action)
+    return sell_actions_by_symbol
+
+
 def main():
     print("Starting conversion.")
-    persist_data(parse_data())
+    trade_actions = parse_data()
+    # sell_actions = get_sell_actions(trade_actions)
+    persist_data(trade_actions)
     # test()
 
 
