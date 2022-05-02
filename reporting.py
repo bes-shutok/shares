@@ -11,6 +11,13 @@ class TradeType(Enum):
     SELL = 2
 
 
+work_dir: str = "E:\\tests"
+source_file = "shares.csv"
+source_path = os.path.join(work_dir, source_file)
+result_file = "trades.csv"
+result_path = os.path.join(work_dir, result_file)
+
+
 class TradeAction:
     def __init__(self, symbol, date_time, currency, quantity, price, fee):
         # self.keys = ["time", "Quantity", "Price", "Fee"]
@@ -27,14 +34,10 @@ class TradeAction:
         self.price = Decimal(price)
         self.fee = Decimal(fee).copy_abs()
 
-    @staticmethod
-    def keys():
-        return ["time", "Quantity", "Price", "Fee"]
-
     def print(self):
         postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
-               str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " +\
-               str(self.fee) + " " + self.currency
+                  str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
+                  str(self.fee) + " " + self.currency
         if self.type == TradeType.BUY:
             print("Bought " + postfix)
         else:
@@ -43,17 +46,10 @@ class TradeAction:
 
 def parse_data():
     print("This line will be printed.")
-    work_dir = "E:\\tests"
-    source_file = "shares.csv"
-    source_path = os.path.join(work_dir, source_file)
     print(source_path)
-    result_file = "trades.csv"
-    result_path = os.path.join(work_dir, result_file)
-    print(result_path)
 
     trade_actions = {}
     share_trade_actions = []
-    trades = {}
     # open file in read mode
     with open(source_path, 'r') as read_obj:
         csv_dict_reader = csv.DictReader(read_obj)
@@ -73,6 +69,12 @@ def parse_data():
 
     print(trade_actions)
 
+    return trade_actions
+
+
+def persist_data(trade_actions: {}):
+    print(result_path)
+    trades = {}
     for k, v in trade_actions.items():
         actions = trade_actions[k]
         share_trades = []
@@ -107,7 +109,7 @@ def vest_on():
 
 def main():
     print("Starting conversion.")
-    parse_data()
+    persist_data(parse_data())
     # test()
 
 
