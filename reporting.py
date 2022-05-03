@@ -18,6 +18,7 @@ result_file = "trades.csv"
 result_path = os.path.join(work_dir, result_file)
 
 
+# noinspection DuplicatedCode
 class TradeAction:
     def __init__(self, symbol, date_time, currency, quantity, price, fee):
         # self.keys = ["time", "Quantity", "Price", "Fee"]
@@ -44,18 +45,72 @@ class TradeAction:
             print("Sold " + postfix)
 
 
+# noinspection DuplicatedCode
+def get_ym_pair(date_time: datetime):
+    return date_time.strftime("%Y"), date_time.strftime("%B")
+
+
+# noinspection DuplicatedCode
+class TradeActionsPerMonth:
+    def __init__(self, ta: TradeAction):
+        self.trades = [ta]
+        self.symbol = ta.symbol
+        self.year_month_pair = get_ym_pair(ta.date_time)
+        self.currency = ta.currency
+        self.trade_type = ta.type
+        self.quantity = ta.quantity
+        self.price = ta.price
+        self.fee = ta.fee
+
+    def add_trade(self, ta: TradeAction):
+        if ta.type == self.trade_type:
+            if self.year_month_pair == get_ym_pair(ta.date_time):
+                self.trades.append(ta)
+                self.quantity += ta.quantity
+                self.price += ta.price
+                self.fee += ta.fee
+            else:
+                print(
+                    "Incompatible trade date! expected " + str(self.year_month_pair) + " and got " + str(ta.date_time))
+        else:
+            print("Incompatible trade type! expected " + str(self.trade_type) + " and got " + str(ta.type))
+
+    def print(self):
+        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
+                  str(self.price) + " " + self.currency + " at " + str(self.year_month_pair) + " with fee " + \
+                  str(self.fee) + " " + self.currency + "\n" + "trades:"
+        if self.trade_type == TradeType.BUY:
+            print("\nBought " + postfix)
+        else:
+            print("\nSold " + postfix)
+        for trade in self.trades:
+            trade.print()
+
+
+# noinspection DuplicatedCode
 class AllTradesPerCompany:
     sells = []
     buys = []
+    sell_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
+    buy_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
 
     def __init__(self, symbol):
         self.symbol = symbol
 
     def add_trade(self, ta: TradeAction):
+        year_month = get_ym_pair(ta.date_time)
         if ta.type == TradeType.SELL:
             self.sells.append(ta)
+            if year_month in self.sell_actions.keys():
+                self.sell_actions[year_month].add_trade(ta)
+            else:
+                self.sell_actions.update({year_month: TradeActionsPerMonth(ta)})
         else:
             self.buys.append(ta)
+            if year_month in self.buy_actions.keys():
+                self.buy_actions[year_month].add_trade(ta)
+            else:
+                self.buy_actions.update({year_month: TradeActionsPerMonth(ta)})
 
     def print(self):
         print("The company " + self.symbol + "has the following sells: ")
@@ -64,6 +119,15 @@ class AllTradesPerCompany:
         print("The company " + self.symbol + "has the following buys: ")
         for buy in self.buys:
             buy.print()
+        print("Other features:")
+        print("The company " + self.symbol + " has the following sell trades: ")
+        for k, v in self.sell_actions.items():
+            print("For " + str(k))
+            v.print()
+        print("The company " + self.symbol + " has the following buy trades: ")
+        for k, v in self.buy_actions.items():
+            print("For " + str(k))
+            v.print()
 
 
 def parse_data():
@@ -123,8 +187,19 @@ def persist_data(trade_actions: {}):
     csv_file.close()
 
 
+def vest_date():
+    print("")
+    date_time = "2021-05-18, 14:53:23"
+    print("before: " + date_time)
+    date = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
+    print("after: " + str(date))
+    print(str(date.year) + "  " + str(date.month) + "  " + date.strftime("%Y") + "  " + date.strftime("%B"))
+    print(str(get_ym_pair(date)))
+
+
 def vest_on():
-    operation = "0.505060183*80/370"
+    # operation 0.505060183*80/370
+
     number = "0.505060183"
     fee_float = float(number)
     fee_decimal = Decimal(number)
@@ -145,8 +220,8 @@ def get_sell_actions(trade_actions):
         for action in v:
             action.print()
             if action.type == TradeType.SELL:
-                sell_actions_by_month = sell_actions_by_year[action.date_time.year]
-                sell_actions = sell_actions_by_month[action.date_time.year]
+                sell_actions_by_month = sell_actions_by_year[action.year_month_pair.year]
+                sell_actions = sell_actions_by_month[action.year_month_pair.year]
                 sell_actions.append(action)
     return sell_actions_by_symbol
 
