@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple
 
 
 class TradeType(Enum):
@@ -9,10 +9,8 @@ class TradeType(Enum):
     SELL = 2
 
 
-# noinspection DuplicatedCode
 class TradeAction:
     def __init__(self, symbol, date_time, currency, quantity, price, fee):
-        # self.keys = ["time", "Quantity", "Price", "Fee"]
         self.symbol = symbol
         self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
         self.currency = currency

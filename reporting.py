@@ -1,7 +1,9 @@
 import copy
 import csv
 import os.path
+from os import PathLike
 
+from typing import Union
 from trade_classes import TradeType, TradeAction, TradeActions, TradeActionsPerCompany, TradeActionList
 from datetime import datetime
 from decimal import Decimal
@@ -109,15 +111,12 @@ class AllTradesPerCompany:
             v.print()
 
 
-def parse_data(path: object):
+def parse_data(path: Union[str, PathLike[str]]):
     print("This line will be printed.")
     print(path)
 
-    companies = {}
     trade_actions_per_company: TradeActionsPerCompany = {}
     trade_actions: TradeActions = {}
-    trade_action_list: TradeActionList = []
-    # open file in read mode
     with open(path, 'r') as read_obj:
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
@@ -129,22 +128,12 @@ def parse_data(path: object):
                 t = TradeAction(company, row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
                                 row["Comm/Fee"])
                 if t.type in trade_actions:
-                    trade_action_list = trade_actions[t.type]
+                    trade_action_list: TradeActionList = trade_actions[t.type]
                 else:
-                    trade_action_list = []
+                    trade_action_list: TradeActionList = []
                 trade_action_list.append((t.quantity, t))
                 trade_actions[t.type] = trade_action_list
                 trade_actions_per_company[company] = trade_actions
-
-    for k, v in companies.items():
-        print("Printing trades for " + k)
-        v.print()
-        #v.select_complete_trades()
-        #v.sell_actions = {get_ym_pair(datetime.now()): TradeActionsPerMonth(
-        #    TradeAction("test", "2022-06-02, 09:30:01", "test", -3, 3, 3))}
-        #print("changed")
-        #v.print()
-        #v.select_complete_trades()
 
     return trade_actions_per_company
 

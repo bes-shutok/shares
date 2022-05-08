@@ -32,10 +32,10 @@ class MyTestCase(unittest.TestCase):
     def test_parsing(self):
         source_file = "resources/simple.csv"
         actual_trade = reporting.parse_data(source_file)
-        # self.assertEqual(simple_trade[company][TradeType.BUY], actual_trade[company][TradeType.BUY])  # add assertion here
-        # self.assertEqual(simple_trade[company][TradeType.SELL][1], actual_trade[company][TradeType.SELL][1])  # add assertion here
-        # self.assertEqual(simple_trade[company][TradeType.SELL], actual_trade[company][TradeType.SELL])  # add assertion here
-        self.assertEqual(simple_trade, actual_trade)  # add assertion here
+        self.assertEqual(simple_trade[company][TradeType.BUY], actual_trade[company][TradeType.BUY])
+        self.assertEqual(simple_trade[company][TradeType.SELL][1], actual_trade[company][TradeType.SELL][1])
+        self.assertEqual(simple_trade[company][TradeType.SELL], actual_trade[company][TradeType.SELL])
+        self.assertEqual(simple_trade, actual_trade)
 
 
 if __name__ == '__main__':
