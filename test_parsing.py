@@ -1,5 +1,7 @@
 import unittest
-import reporting
+from pathlib import Path
+
+import parsing
 from trade_classes import TradeActionsPerCompany, TradeType, TradeAction
 
 currency = "USD"
@@ -30,12 +32,20 @@ simple_trade: TradeActionsPerCompany = {company: {
 class MyTestCase(unittest.TestCase):
 
     def test_parsing(self):
-        source_file = "resources/simple.csv"
-        actual_trade = reporting.parse_data(source_file)
-        self.assertEqual(simple_trade[company][TradeType.BUY], actual_trade[company][TradeType.BUY])
-        self.assertEqual(simple_trade[company][TradeType.SELL][1], actual_trade[company][TradeType.SELL][1])
-        self.assertEqual(simple_trade[company][TradeType.SELL], actual_trade[company][TradeType.SELL])
-        self.assertEqual(simple_trade, actual_trade)
+        source_file = Path('resources', 'simple.csv')
+        actual_trades = parsing.parse_data(source_file)
+        self.assertEqual(simple_trade[company][TradeType.BUY], actual_trades[company][TradeType.BUY])
+        self.assertEqual(simple_trade[company][TradeType.SELL][1], actual_trades[company][TradeType.SELL][1])
+        self.assertEqual(simple_trade[company][TradeType.SELL], actual_trades[company][TradeType.SELL])
+        self.assertEqual(simple_trade, actual_trades)
+
+    def test_extraction(self):
+        source_file = Path('resources', 'simple.csv')
+        actual_trades: TradeActionsPerCompany = parsing.parse_data(source_file)
+        xlsx_file = Path('resources', 'capital_gains.xlsx')
+        actual_trades: TradeActionsPerCompany = parsing.parse_results(xlsx_file)
+        #results_source_file = "resources/capital_gains.csv"
+        #complete_trades = reporting.extract_complete_trades(actual_trades)
 
 
 if __name__ == '__main__':

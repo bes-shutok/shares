@@ -1,18 +1,17 @@
-import copy
 import csv
-import os.path
 from os import PathLike
+from pathlib import Path
 
-from typing import Union
-from trade_classes import TradeType, TradeAction, TradeActions, TradeActionsPerCompany, TradeActionList
+from parsing import parse_data
+from trade_classes import TradeType, TradeAction
 from datetime import datetime
 from decimal import Decimal
 
 work_dir: str = "E:\\tests"
 source_file = "shares.csv"
-source_path = os.path.join(work_dir, source_file)
+source_path = Path(work_dir, source_file)
 result_file = "trades.csv"
-result_path = os.path.join(work_dir, result_file)
+result_path = Path(work_dir, result_file)
 
 
 # noinspection DuplicatedCode
@@ -109,33 +108,6 @@ class AllTradesPerCompany:
         for k, v in self.buy_actions.items():
             print("For " + str(k))
             v.print()
-
-
-def parse_data(path: Union[str, PathLike[str]]):
-    print("This line will be printed.")
-    print(path)
-
-    trade_actions_per_company: TradeActionsPerCompany = {}
-    trade_actions: TradeActions = {}
-    with open(path, 'r') as read_obj:
-        csv_dict_reader = csv.DictReader(read_obj)
-        for row in csv_dict_reader:
-            if row["Date/Time"] != "":
-                company = row["Symbol"]
-                if company in trade_actions_per_company.keys():
-                    trade_actions = trade_actions_per_company[company]
-
-                t = TradeAction(company, row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
-                                row["Comm/Fee"])
-                if t.type in trade_actions:
-                    trade_action_list: TradeActionList = trade_actions[t.type]
-                else:
-                    trade_action_list: TradeActionList = []
-                trade_action_list.append((t.quantity, t))
-                trade_actions[t.type] = trade_action_list
-                trade_actions_per_company[company] = trade_actions
-
-    return trade_actions_per_company
 
 
 def persist_data(trade_actions: {}):
