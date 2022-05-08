@@ -1,48 +1,16 @@
+import copy
 import csv
 import os.path
 
+from trade_classes import TradeType, TradeAction, TradeActions, TradeActionsPerCompany, TradeActionList
 from datetime import datetime
-from enum import Enum
 from decimal import Decimal
-
-
-class TradeType(Enum):
-    BUY = 1
-    SELL = 2
-
 
 work_dir: str = "E:\\tests"
 source_file = "shares.csv"
 source_path = os.path.join(work_dir, source_file)
 result_file = "trades.csv"
 result_path = os.path.join(work_dir, result_file)
-
-
-# noinspection DuplicatedCode
-class TradeAction:
-    def __init__(self, symbol, date_time, currency, quantity, price, fee):
-        # self.keys = ["time", "Quantity", "Price", "Fee"]
-        self.symbol = symbol
-        self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
-        self.currency = currency
-        if int(quantity) < 0:
-            self.type = TradeType.SELL
-            self.quantity = -int(quantity)
-        else:
-            self.type = TradeType.BUY
-            self.quantity = int(quantity)
-
-        self.price = Decimal(price)
-        self.fee = Decimal(fee).copy_abs()
-
-    def print(self):
-        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
-                  str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
-                  str(self.fee) + " " + self.currency
-        if self.type == TradeType.BUY:
-            print("Bought " + postfix)
-        else:
-            print("Sold " + postfix)
 
 
 # noinspection DuplicatedCode
@@ -89,10 +57,11 @@ class TradeActionsPerMonth:
 
 # noinspection DuplicatedCode
 class AllTradesPerCompany:
-    sells = []
-    buys = []
     sell_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
     buy_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
+    complete_trades: dict[tuple[str, str, str, str], tuple[TradeActionsPerMonth, TradeActionsPerMonth]] = {}
+    sell_actions_copy: dict[tuple[str, str], TradeActionsPerMonth] = None
+    buy_actions_copy: dict[tuple[str, str], TradeActionsPerMonth] = None
 
     def __init__(self, symbol):
         self.symbol = symbol
@@ -100,26 +69,36 @@ class AllTradesPerCompany:
     def add_trade(self, ta: TradeAction):
         year_month = get_ym_pair(ta.date_time)
         if ta.type == TradeType.SELL:
-            self.sells.append(ta)
             if year_month in self.sell_actions.keys():
                 self.sell_actions[year_month].add_trade(ta)
             else:
                 self.sell_actions.update({year_month: TradeActionsPerMonth(ta)})
         else:
-            self.buys.append(ta)
             if year_month in self.buy_actions.keys():
                 self.buy_actions[year_month].add_trade(ta)
             else:
                 self.buy_actions.update({year_month: TradeActionsPerMonth(ta)})
 
+    def select_complete_trades(self):
+        print("\nTest\n")
+        if self.sell_actions_copy is None:
+            print("CREATING NEW COPY!!!!!!!!!!!")
+            self.sell_actions_copy = self.sell_actions.copy()
+            self.buy_actions_copy = self.buy_actions.copy()
+            # self.sell_actions_copy = copy.deepcopy(self.sell_actions)
+
+            for sell_dates, sell_actions in self.sell_actions_copy.items():
+                for buy_dates, buy_actions in self.buy_actions_copy.items():
+                    if sell_actions.year_month_pair > buy_actions.year_month_pair:
+                        if sell_actions.quantity <= buy_actions.quantity:
+                            self.complete_trades.update({sell_dates + buy_dates, (sell_actions, buy_actions)})
+
+        for k, v in self.sell_actions_copy.items():
+            print("For " + str(k))
+            v.print()
+        return None
+
     def print(self):
-        print("The company " + self.symbol + "has the following sells: ")
-        for sell in self.sells:
-            sell.print()
-        print("The company " + self.symbol + "has the following buys: ")
-        for buy in self.buys:
-            buy.print()
-        print("Other features:")
         print("The company " + self.symbol + " has the following sell trades: ")
         for k, v in self.sell_actions.items():
             print("For " + str(k))
@@ -130,40 +109,44 @@ class AllTradesPerCompany:
             v.print()
 
 
-def parse_data():
+def parse_data(path: object):
     print("This line will be printed.")
-    print(source_path)
+    print(path)
 
     companies = {}
-    trade_actions = {}
-    share_trade_actions = []
+    trade_actions_per_company: TradeActionsPerCompany = {}
+    trade_actions: TradeActions = {}
+    trade_action_list: TradeActionList = []
     # open file in read mode
-    with open(source_path, 'r') as read_obj:
+    with open(path, 'r') as read_obj:
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
             if row["Date/Time"] != "":
                 company = row["Symbol"]
-                if company in trade_actions.keys():
-                    share_trade_actions = trade_actions[company]
+                if company in trade_actions_per_company.keys():
+                    trade_actions = trade_actions_per_company[company]
 
                 t = TradeAction(company, row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
                                 row["Comm/Fee"])
-                t.print()
-                share_trade_actions.append(t)
-                trade_actions[company] = share_trade_actions
-
-                if company in companies.keys():
-                    trades = companies[company]
+                if t.type in trade_actions:
+                    trade_action_list = trade_actions[t.type]
                 else:
-                    trades = AllTradesPerCompany(company)
-                trades.add_trade(t)
-                companies[company] = trades
+                    trade_action_list = []
+                trade_action_list.append((t.quantity, t))
+                trade_actions[t.type] = trade_action_list
+                trade_actions_per_company[company] = trade_actions
 
     for k, v in companies.items():
         print("Printing trades for " + k)
         v.print()
+        #v.select_complete_trades()
+        #v.sell_actions = {get_ym_pair(datetime.now()): TradeActionsPerMonth(
+        #    TradeAction("test", "2022-06-02, 09:30:01", "test", -3, 3, 3))}
+        #print("changed")
+        #v.print()
+        #v.select_complete_trades()
 
-    return trade_actions
+    return trade_actions_per_company
 
 
 def persist_data(trade_actions: {}):
@@ -228,9 +211,9 @@ def get_sell_actions(trade_actions):
 
 def main():
     print("Starting conversion.")
-    trade_actions = parse_data()
+    trade_actions = parse_data(source_path)
     # sell_actions = get_sell_actions(trade_actions)
-    persist_data(trade_actions)
+    # persist_data(trade_actions)
     # test()
 
 
