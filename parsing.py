@@ -8,7 +8,7 @@ from typing import Union
 from trade_classes import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList
 
 
-def parse_data(path: Union[str, Path[str]]):
+def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
     print("This line will be printed.")
     print(path)
 

@@ -3,9 +3,20 @@ from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from trade_classes import TradeType, TradeAction
+from trade_classes import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany
 from datetime import datetime
 from decimal import Decimal
+
+def capital_gains(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
+    capital_gain_lines_per_company: CapitalGainLinesPerCompany ={}
+    for symbol, trade_actions in trade_actions_per_company:
+        sell_action_list = trade_actions[TradeType.SELL]
+        if sell_action_list is not None:
+            buy_action_list = trade_actions[TradeType.BUY]
+            # some function to convert trade_actions to intermediary format. E.g grouped by months..
+
+
+
 
 work_dir: str = "E:\\tests"
 source_file = "shares.csv"

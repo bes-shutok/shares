@@ -38,6 +38,7 @@ line2 = CapitalGainLine(symbol, currency)
 line2.add_trade(5, buy_action1)
 line2.add_trade(5, sell_action2)
 line2.validate()
+capitalGainLinesPerCompany = {"BTU": [line1, line2]}
 
 
 class MyTestCase(unittest.TestCase):
