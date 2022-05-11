@@ -3,19 +3,26 @@ from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from trade_classes import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany
+from trade_classes import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, MonthlyTradeLines, \
+    TradeActions, CapitalGainLines
 from datetime import datetime
 from decimal import Decimal
 
+
 def capital_gains(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
-    capital_gain_lines_per_company: CapitalGainLinesPerCompany ={}
+    capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
+    monthly_trade_lines: MonthlyTradeLines = {TradeType.SELL: [], TradeType.BUY: []}
     for symbol, trade_actions in trade_actions_per_company:
-        sell_action_list = trade_actions[TradeType.SELL]
-        if sell_action_list is not None:
-            buy_action_list = trade_actions[TradeType.BUY]
-            # some function to convert trade_actions to intermediary format. E.g grouped by months..
+        # sell/buy pairs on individual trades level
+        capital_gain_lines = atomic_trade_gains(trade_actions)
 
 
+# Get minimal pairs on individual trades level starting with the biggest sale quantity
+def atomic_trade_gains(trade_actions: TradeActions) -> CapitalGainLines:
+    capital_gain_lines: CapitalGainLines = []
+    for trade_type, trade_actions in trade_actions:
+        print("creating trade pairs")
+    return None
 
 
 work_dir: str = "E:\\tests"
@@ -37,13 +44,13 @@ class TradeActionsPerMonth:
         self.symbol = ta.symbol
         self.year_month_pair = get_ym_pair(ta.date_time)
         self.currency = ta.currency
-        self.trade_type = ta.type
+        self.trade_type = ta.trade_type
         self.quantity = ta.quantity
         self.price = ta.price
         self.fee = ta.fee
 
     def add_trade(self, ta: TradeAction):
-        if ta.type == self.trade_type:
+        if ta.trade_type == self.trade_type:
             if self.year_month_pair == get_ym_pair(ta.date_time):
                 self.trades.append(ta)
                 self.quantity += ta.quantity
@@ -53,7 +60,7 @@ class TradeActionsPerMonth:
                 print(
                     "Incompatible trade date! expected " + str(self.year_month_pair) + " and got " + str(ta.date_time))
         else:
-            print("Incompatible trade type! expected " + str(self.trade_type) + " and got " + str(ta.type))
+            print("Incompatible trade type! expected " + str(self.trade_type) + " and got " + str(ta.trade_type))
 
     def print(self):
         postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
@@ -80,7 +87,7 @@ class AllTradesPerCompany:
 
     def add_trade(self, ta: TradeAction):
         year_month = get_ym_pair(ta.date_time)
-        if ta.type == TradeType.SELL:
+        if ta.trade_type == TradeType.SELL:
             if year_month in self.sell_actions.keys():
                 self.sell_actions[year_month].add_trade(ta)
             else:
@@ -174,7 +181,7 @@ def get_sell_actions(trade_actions):
     for k, v in trade_actions.items():
         for action in v:
             action.print()
-            if action.type == TradeType.SELL:
+            if action.trade_type == TradeType.SELL:
                 sell_actions_by_month = sell_actions_by_year[action.year_month_pair.year]
                 sell_actions = sell_actions_by_month[action.year_month_pair.year]
                 sell_actions.append(action)

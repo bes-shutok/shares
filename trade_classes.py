@@ -20,10 +20,10 @@ class TradeAction:
         self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
         self.currency = currency
         if int(quantity) < 0:
-            self.type = TradeType.SELL
+            self.trade_type = TradeType.SELL
             self.quantity = -int(quantity)
         else:
-            self.type = TradeType.BUY
+            self.trade_type = TradeType.BUY
             self.quantity = int(quantity)
 
         self.price = Decimal(price)
@@ -41,7 +41,7 @@ class TradeAction:
         postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
                   str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
                   str(self.fee) + " " + self.currency
-        if self.type == TradeType.BUY:
+        if self.trade_type == TradeType.BUY:
             print("Bought " + postfix)
         else:
             print("Sold " + postfix)
@@ -66,7 +66,7 @@ class CapitalGainLine:
 
     def add_trade(self, count: int, ta: TradeAction):
         year_month = get_ym_pair(ta.date_time)
-        if ta.type == TradeType.SELL:
+        if ta.trade_type == TradeType.SELL:
             if self.__sell_date is None:
                 self.__sell_date = year_month
             else:
@@ -101,4 +101,35 @@ class CapitalGainLine:
                              "] for buys in capital gain line!")
 
 
-CapitalGainLinesPerCompany = Dict[str, List[CapitalGainLine]]
+CapitalGainLines = List[CapitalGainLine]
+CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
+
+
+class MonthlyTradeLine:
+    quantities: List[int]
+    trades: List[TradeAction]
+
+    def __init__(self, symbol: str, currency: str, trade_type: TradeType, month: Tuple[str, str]):
+        self.symbol = symbol
+        self.currency = currency
+        self.trade_type = trade_type
+        self.month = month
+
+    def add_trade(self, quantity: int, month: Tuple[str, str], ta: TradeAction):
+        assert quantity > 0
+        assert month is not None
+        assert ta is not None
+
+        if self.trade_type == ta.trade_type and self.month == month:
+            self.quantities.append(quantity)
+            self.trades.append(ta)
+        else:
+            raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
+                             "[" + str(self.trade_type) + " and " + str(self.month) + "] " +
+                             " and got [" + str(ta.trade_type) + " and " + str(month) + "]")
+
+    def quantity(self) -> int:
+        return sum(self.quantities)
+
+
+MonthlyTradeLines = Dict[TradeType, List[MonthlyTradeLine]]
