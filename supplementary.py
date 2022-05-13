@@ -142,6 +142,8 @@ CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 class TradesWithinMonth:
     quantities: List[int]
     trades: List[TradeAction]
+    year_month: YearMonth
+    trade_type: TradeType
 
     def __init__(self, symbol: str, currency: str, trade_type: TradeType, date_time: datetime):
         self.symbol = symbol
@@ -165,4 +167,4 @@ class TradesWithinMonth:
         return sum(self.quantities)
 
 
-MonthlyTradeLines = Dict[TradeType, List[TradesWithinMonth]]
+TradesWithinMonths = Dict[TradeType, Dict[YearMonth, TradesWithinMonth]]

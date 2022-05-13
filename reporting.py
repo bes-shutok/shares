@@ -9,6 +9,14 @@ from datetime import datetime
 from decimal import Decimal
 
 
+# Create TradesWithinMonths with Dict sorted by YearMonth
+# Check whether it has sell orders
+# Start creating CapitalGainLines with the earliest sell.
+# find the earliest buy for the sell.
+# Create CapitalGainLine and modify TradesWithinMonths accordingly
+# Repeat from 2nd step
+
+
 def capital_gains(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
     #monthly_trade_lines: MonthlyTradeLines = {TradeType.SELL: [], TradeType.BUY: []}
