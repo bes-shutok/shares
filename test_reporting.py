@@ -24,13 +24,8 @@ class MyTestCase(unittest.TestCase):
         print(str(sorted(self.test_dict2)))
         print(str(self.test_dict3))
         print(str(sorted(self.test_dict3)))
-        # print(str(self.test_dict4))
-        # print(str(sorted(self.test_dict4)))
-        # for m in self.test_dict4:
-        #    print(m[1])
-        #    print(calendar.month_name[m[1]])
-        #    print(calendar.month_abbr[m[1]])
-
+        print(str(self.test_dict4))
+        print(str(sorted(self.test_dict4)))
         print(self.test_dict5)
         print(str(sorted(self.test_dict5)))
 
