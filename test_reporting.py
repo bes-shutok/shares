@@ -1,23 +1,34 @@
 import unittest
+import calendar
+from datetime import datetime
+
+from supplementary import get_ym_pair, get_year_month
 
 
 class MyTestCase(unittest.TestCase):
 
-    def test_parsing(self):
-        source_file = Path('resources', 'simple.csv')
-        actual_trades = parsing.parse_data(source_file)
-        self.assertEqual(simple_trade[symbol][TradeType.BUY], actual_trades[symbol][TradeType.BUY])
-        self.assertEqual(simple_trade[symbol][TradeType.SELL][1], actual_trades[symbol][TradeType.SELL][1])
-        self.assertEqual(simple_trade[symbol][TradeType.SELL], actual_trades[symbol][TradeType.SELL])
-        self.assertEqual(simple_trade, actual_trades)
+    test_dict1 = {("2022","01"), ("2021","12"), ("2021","02")}
+    test_dict2 = ["202201", "202112", "202102"]
+    date_time1 = datetime.strptime("2021-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
+    date_time2 = datetime.strptime("2022-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
+    date_time3 = datetime.strptime("2021-01-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
+    date_time4 = datetime.strptime("2021-12-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
+    test_dict3 = [get_ym_pair(date_time1), get_ym_pair(date_time2), get_ym_pair(date_time3), get_ym_pair(date_time4)]
+    test_dict4 = [get_year_month(date_time1), get_year_month(date_time2), get_year_month(date_time3), get_year_month(date_time4)]
 
-    def test_capital_gain_lines(self):
-        source_file = Path('resources', 'simple.csv')
-        actual_trades: TradeActionsPerCompany = parsing.parse_data(source_file)
-        xlsx_file = Path('resources', 'capital_gains.xlsx')
-        actual_trades: TradeActionsPerCompany = parsing.parse_results(xlsx_file)
-        #results_source_file = "resources/capital_gains.csv"
-        #complete_trades = reporting.extract_complete_trades(actual_trades)
+    def test_sorting(self):
+        print(str(self.test_dict1))
+        print(str(sorted(self.test_dict1)))
+        print(str(self.test_dict2))
+        print(str(sorted(self.test_dict2)))
+        print(str(self.test_dict3))
+        print(str(sorted(self.test_dict3)))
+        print(str(self.test_dict4))
+        print(str(sorted(self.test_dict4)))
+        for m in self.test_dict4:
+            print(m[1])
+            print(calendar.month_name[m[1]])
+            print(calendar.month_abbr[m[1]])
 
 
 if __name__ == '__main__':

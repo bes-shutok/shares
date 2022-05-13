@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
@@ -7,6 +8,11 @@ from typing import Dict, List, Tuple
 # noinspection DuplicatedCode
 def get_ym_pair(date_time: datetime):
     return date_time.strftime("%Y"), date_time.strftime("%B")
+
+
+# noinspection DuplicatedCode
+def get_year_month(date_time: datetime) -> Tuple[int, int]:
+    return date_time.year, date_time.month
 
 
 class TradeType(Enum):
@@ -53,10 +59,10 @@ TradeActionsPerCompany = Dict[str, TradeActions]
 
 
 class CapitalGainLine:
-    __sell_date: Tuple[str, str] = None
+    __sell_date: Tuple[int, int] = None
     __sell_counts: List[int] = []
     __sell_trades: List[TradeAction] = []
-    __buy_date: Tuple[str, str] = None
+    __buy_date: Tuple[int, int] = None
     __buy_counts: List[int] = []
     __buy_trades: List[TradeAction] = []
 
@@ -65,14 +71,15 @@ class CapitalGainLine:
         self.currency = currency
 
     def add_trade(self, count: int, ta: TradeAction):
-        year_month = get_ym_pair(ta.date_time)
+        year_month = get_year_month(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.__sell_date is None:
                 self.__sell_date = year_month
             else:
                 if self.__sell_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.__sell_date) + "] " + " and got [" + str(year_month) + "]")
+                                     + str(self.__sell_date) + "] " +
+                                     " and got [" + calendar.month_name[year_month[1]] + ", " + year_month[0] + "]")
             self.__sell_counts.append(count)
             self.__sell_trades.append(ta)
 
@@ -82,7 +89,8 @@ class CapitalGainLine:
             else:
                 if self.__buy_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.__buy_date) + "] " + " and got [" + str(year_month) + "]")
+                                     + str(self.__buy_date) + "] " + " and got ["
+                                     + calendar.month_name[year_month[1]] + ", " + year_month[0] + "]")
             self.__buy_counts.append(count)
             self.__buy_trades.append(ta)
 

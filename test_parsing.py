@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 import parsing
-from trade_classes import TradeActionsPerCompany, TradeType, TradeAction, CapitalGainLine
+from supplementary import TradeActionsPerCompany, TradeType, TradeAction, CapitalGainLine
 
 currency = "USD"
 symbol = "BTU"

@@ -3,7 +3,7 @@ from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from trade_classes import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, MonthlyTradeLines, \
+from supplementary import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, MonthlyTradeLines, \
     TradeActions, CapitalGainLines
 from datetime import datetime
 from decimal import Decimal

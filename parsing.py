@@ -5,7 +5,7 @@ from pathlib import Path
 import openpyxl
 from typing import Union
 
-from trade_classes import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList
+from supplementary import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList
 
 
 def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
