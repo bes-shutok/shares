@@ -11,7 +11,7 @@ from decimal import Decimal
 
 def capital_gains(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
-    monthly_trade_lines: MonthlyTradeLines = {TradeType.SELL: [], TradeType.BUY: []}
+    #monthly_trade_lines: MonthlyTradeLines = {TradeType.SELL: [], TradeType.BUY: []}
     for symbol, trade_actions in trade_actions_per_company:
         # sell/buy pairs on individual trades level
         capital_gain_lines = atomic_trade_gains(trade_actions)

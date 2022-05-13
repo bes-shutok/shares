@@ -51,7 +51,8 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(simple_trade[symbol][TradeType.SELL], actual_trades[symbol][TradeType.SELL])
         self.assertEqual(simple_trade, actual_trades)
 
-    def test_capital_gain_lines(self):
+    @staticmethod
+    def test_capital_gain_lines():
         source_file = Path('resources', 'simple.csv')
         actual_trades: TradeActionsPerCompany = parsing.parse_data(source_file)
         xlsx_file = Path('resources', 'capital_gains.xlsx')

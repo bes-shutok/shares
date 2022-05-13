@@ -10,9 +10,35 @@ def get_ym_pair(date_time: datetime):
     return date_time.strftime("%Y"), date_time.strftime("%B")
 
 
+class YearMonth:
+    year: int
+    month: int
+
+    def __init__(self, date_time: datetime):
+        self.year = date_time.year
+        self.month = date_time.month
+
+    def __repr__(self) -> str:
+        return "[" + calendar.month_name[self.month] + ", " + str(self.year) + "]"
+
+    # noinspection PyMethodMayBeStatic
+    def __is_valid_operand(self, other) -> bool:
+        return hasattr(other, "year") and hasattr(other, "month")
+
+    def __eq__(self, other):
+        if not self.__is_valid_operand(other):
+            return NotImplemented
+        return (self.year, self.month) == (other.year, other.month)
+
+    def __lt__(self, other):
+        if not self.__is_valid_operand(other):
+            return NotImplemented
+        return (self.year, self.month) < (other.year, other.month)
+
+
 # noinspection DuplicatedCode
-def get_year_month(date_time: datetime) -> Tuple[int, int]:
-    return date_time.year, date_time.month
+def get_year_month(date_time: datetime) -> YearMonth:
+    return YearMonth(date_time)
 
 
 class TradeType(Enum):
@@ -59,10 +85,10 @@ TradeActionsPerCompany = Dict[str, TradeActions]
 
 
 class CapitalGainLine:
-    __sell_date: Tuple[int, int] = None
+    __sell_date: YearMonth = None
     __sell_counts: List[int] = []
     __sell_trades: List[TradeAction] = []
-    __buy_date: Tuple[int, int] = None
+    __buy_date: YearMonth = None
     __buy_counts: List[int] = []
     __buy_trades: List[TradeAction] = []
 
@@ -71,7 +97,7 @@ class CapitalGainLine:
         self.currency = currency
 
     def add_trade(self, count: int, ta: TradeAction):
-        year_month = get_year_month(ta.date_time)
+        year_month = YearMonth(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.__sell_date is None:
                 self.__sell_date = year_month
@@ -79,7 +105,7 @@ class CapitalGainLine:
                 if self.__sell_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.__sell_date) + "] " +
-                                     " and got [" + calendar.month_name[year_month[1]] + ", " + year_month[0] + "]")
+                                     " and got [" + str(year_month) + "]")
             self.__sell_counts.append(count)
             self.__sell_trades.append(ta)
 
@@ -113,31 +139,30 @@ CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
-class MonthlyTradeLine:
+class TradesWithinMonth:
     quantities: List[int]
     trades: List[TradeAction]
 
-    def __init__(self, symbol: str, currency: str, trade_type: TradeType, month: Tuple[str, str]):
+    def __init__(self, symbol: str, currency: str, trade_type: TradeType, date_time: datetime):
         self.symbol = symbol
         self.currency = currency
         self.trade_type = trade_type
-        self.month = month
+        self.year_month = get_year_month(date_time)
 
-    def add_trade(self, quantity: int, month: Tuple[str, str], ta: TradeAction):
+    def add_trade(self, quantity: int, ta: TradeAction):
         assert quantity > 0
-        assert month is not None
         assert ta is not None
 
-        if self.trade_type == ta.trade_type and self.month == month:
+        if self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
-                             "[" + str(self.trade_type) + " and " + str(self.month) + "] " +
-                             " and got [" + str(ta.trade_type) + " and " + str(month) + "]")
+                             "[" + str(self.trade_type) + " and " + str(self.year_month) + "] " +
+                             " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
     def quantity(self) -> int:
         return sum(self.quantities)
 
 
-MonthlyTradeLines = Dict[TradeType, List[MonthlyTradeLine]]
+MonthlyTradeLines = Dict[TradeType, List[TradesWithinMonth]]
