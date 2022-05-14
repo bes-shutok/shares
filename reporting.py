@@ -226,8 +226,8 @@ def get_sell_actions(trade_actions):
 
 def main():
     print("Starting conversion.")
-    trade_actions = parse_data(source_path)
-    split_by_months(trade_actions, TradeType.SELL)
+    trade_actions = parse_data(Path('resources', 'simple.csv'))
+    capital_gains(trade_actions["BTU"])
     # sell_actions = get_sell_actions(trade_actions)
     # persist_data(trade_actions)
     # test()

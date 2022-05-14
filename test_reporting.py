@@ -40,6 +40,7 @@ class MyTestCase(unittest.TestCase):
 
         actual: MonthPartitionedTrades = split_by_months([(1, sell_action1)], TradeType.SELL)
         self.assertEqual(actual, month_partitioned_trades1)
+        print(actual)
 
 
 if __name__ == '__main__':

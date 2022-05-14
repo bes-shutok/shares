@@ -2,7 +2,7 @@ import calendar
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 
 # noinspection DuplicatedCode
@@ -72,6 +72,15 @@ class TradeAction:
                self.price == other.price and \
                self.fee == other.fee
 
+    def __repr__(self) -> str:
+        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
+                  str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
+                  str(self.fee) + " " + self.currency
+        if self.trade_type == TradeType.BUY:
+            return "Bought " + postfix
+        else:
+            return "Sold " + postfix
+
     def print(self):
         postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
                   str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
@@ -120,7 +129,7 @@ class CapitalGainLine:
                 if self.__buy_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.__buy_date) + "] " + " and got ["
-                                     + calendar.month_name[year_month[1]] + ", " + year_month[0] + "]")
+                                     + str(year_month) + "]")
             self.__buy_counts.append(count)
             self.__buy_trades.append(ta)
 
@@ -144,12 +153,14 @@ CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
 class TradesWithinMonth:
-    symbol: str = None
-    currency: str = None
-    quantities: List[int] = []
-    trades: List[TradeAction] = []
-    year_month: YearMonth = None
-    trade_type: TradeType = None
+
+    def __init__(self):
+        self.symbol: Optional[str] = None
+        self.currency: Optional[str] = None
+        self.year_month: Optional[YearMonth] = None
+        self.trade_type: Optional[TradeType] = None
+        self.quantities = []
+        self.trades = []
 
     def add_trade(self, quantity: int, ta: TradeAction):
         assert quantity > 0
@@ -173,7 +184,14 @@ class TradesWithinMonth:
         return sum(self.quantities)
 
     def __repr__(self) -> str:
-        return "TradesWithinMonth{" + "symbol:" + self.symbol + "}"
+        return "TradesWithinMonth{" + \
+               "symbol:" + self.symbol + ", " \
+               "currency:" + self.currency + ", " \
+               "year_month:" + str(self.year_month) + ", " \
+               "trade_type:" + str(self.trade_type) + ", " \
+               "quantities:" + str(self.quantities) + ", " \
+               "\ntrades:" + str(self.trades) + \
+               "}"
 
     def __eq__(self, other):
         return self.symbol == other.symbol and \
