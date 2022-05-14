@@ -35,6 +35,9 @@ class YearMonth:
             return NotImplemented
         return (self.year, self.month) < (other.year, other.month)
 
+    def __hash__(self):
+        return hash(self.__repr__())
+
 
 # noinspection DuplicatedCode
 def get_year_month(date_time: datetime) -> YearMonth:
@@ -141,22 +144,24 @@ CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
 class TradesWithinMonth:
-    quantities: List[int]
-    trades: List[TradeAction]
-    year_month: YearMonth
-    trade_type: TradeType
-
-    def __init__(self, symbol: str, currency: str, trade_type: TradeType, date_time: datetime):
-        self.symbol = symbol
-        self.currency = currency
-        self.trade_type = trade_type
-        self.year_month = get_year_month(date_time)
+    symbol: str = None
+    currency: str = None
+    quantities: List[int] = []
+    trades: List[TradeAction] = []
+    year_month: YearMonth = None
+    trade_type: TradeType = None
 
     def add_trade(self, quantity: int, ta: TradeAction):
         assert quantity > 0
         assert ta is not None
+        if self.symbol is None:
+            self.symbol = ta.symbol
+            self.currency = ta.currency
+            self.trade_type = ta.trade_type
+            self.year_month = get_year_month(ta.date_time)
 
-        if self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
+        if self.symbol == ta.symbol and self.currency == ta.currency \
+                and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
@@ -167,6 +172,17 @@ class TradesWithinMonth:
     def quantity(self) -> int:
         return sum(self.quantities)
 
+    def __repr__(self) -> str:
+        return "TradesWithinMonth{" + "symbol:" + self.symbol + "}"
 
-TradesWithinMonths = Dict[YearMonth, TradesWithinMonth]
-TradesTypesWithinMonths = Dict[TradeType, TradesWithinMonths]
+    def __eq__(self, other):
+        return self.symbol == other.symbol and \
+               self.currency == other.currency and \
+               self.quantities == other.quantities and \
+               self.trades == other.trades and \
+               self.year_month == other.year_month and \
+               self.trade_type == other.trade_type
+
+
+MonthPartitionedTrades = Dict[YearMonth, TradesWithinMonth]
+PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]

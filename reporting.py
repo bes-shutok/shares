@@ -3,8 +3,9 @@ from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from supplementary import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, MonthlyTradeLines, \
-    TradeActions, CapitalGainLines, TradesWithinMonths, TradeActionList, TradeActionPart
+from supplementary import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, \
+    TradeActions, CapitalGainLines, TradeActionList, TradeActionPart, get_year_month, MonthPartitionedTrades, \
+    TradesWithinMonth
 from datetime import datetime
 from decimal import Decimal
 
@@ -16,33 +17,40 @@ from decimal import Decimal
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
 def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
-    soled = trade_actions[TradeType.SELL]
+    sold = trade_actions[TradeType.SELL]
     bought = trade_actions[TradeType.BUY]
-    if not soled:
+    if not sold:
         return []
     if not bought:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
     capital_gain_lines: CapitalGainLines = []
-    trades_within_months: TradesWithinMonths
+    trades_within_months: MonthPartitionedTrades
 
-    soled_within_months = split_by_months(soled, TradeType.SELL)
+    sold_within_months = split_by_months(sold, TradeType.SELL)
+    bought_within_months = split_by_months(bought, TradeType.BUY)
 
     return []
 
 
-def split_by_months(actions: TradeActionList, trade_type: TradeType) -> TradesWithinMonths:
+def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPartitionedTrades:
+    month_partitioned_trades: MonthPartitionedTrades = {}
+
     if not actions:
-        return []
+        return {}
 
-    for part in actions:
-        quantity = part[0]
-        trade_action = part[1]
-        if trade_action.trade_type != trade_type:
-            raise ValueError("Incompatible trade types! Got " + trade_type + "for expected output and " +
-                             trade_action.trade_type + " for the trade_action" + trade_action)
+    for trade_action_part in actions:
+        quantity: int = trade_action_part[0]
+        trade_action: TradeAction = trade_action_part[1]
+        if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
+            raise ValueError("Incompatible trade types! Got " + str(trade_type) + "for expected output and " +
+                             trade_action.trade_type + " for the trade_action" + str(trade_action))
+        year_month = get_year_month(trade_action.date_time)
+        trades_within_month: TradesWithinMonth = month_partitioned_trades.get(year_month, TradesWithinMonth())
+        trades_within_month.add_trade(quantity, trade_action)
+        month_partitioned_trades[year_month] = trades_within_month
 
-    return []
+    return month_partitioned_trades
 
 
 # Get minimal pairs on individual trades level starting with the biggest sale quantity
@@ -219,6 +227,7 @@ def get_sell_actions(trade_actions):
 def main():
     print("Starting conversion.")
     trade_actions = parse_data(source_path)
+    split_by_months(trade_actions, TradeType.SELL)
     # sell_actions = get_sell_actions(trade_actions)
     # persist_data(trade_actions)
     # test()
