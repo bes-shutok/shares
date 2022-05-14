@@ -28,7 +28,16 @@ def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
     trades_within_months: MonthPartitionedTrades
 
     sold_within_months = split_by_months(sold, TradeType.SELL)
+    print("sold_within_months:")
+    for k, v in sold_within_months.items():
+        print(str(k) + ": " + str(v))
+
     bought_within_months = split_by_months(bought, TradeType.BUY)
+    print("bought_within_months:")
+    for k, v in bought_within_months.items():
+        print(str(k) + ": " + str(v))
+
+    # todo
 
     return []
 
