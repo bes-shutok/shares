@@ -79,7 +79,8 @@ class TradeAction:
             print("Sold " + postfix)
 
 
-TradeActionList = List[Tuple[int, TradeAction]]
+TradeActionPart = Tuple[int, TradeAction]
+TradeActionList = List[TradeActionPart]
 TradeActions = Dict[TradeType, TradeActionList]
 TradeActionsPerCompany = Dict[str, TradeActions]
 
@@ -167,4 +168,5 @@ class TradesWithinMonth:
         return sum(self.quantities)
 
 
-TradesWithinMonths = Dict[TradeType, Dict[YearMonth, TradesWithinMonth]]
+TradesWithinMonths = Dict[YearMonth, TradesWithinMonth]
+TradesTypesWithinMonths = Dict[TradeType, TradesWithinMonths]

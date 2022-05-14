@@ -4,7 +4,7 @@ from pathlib import Path
 
 from parsing import parse_data
 from supplementary import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, MonthlyTradeLines, \
-    TradeActions, CapitalGainLines
+    TradeActions, CapitalGainLines, TradesWithinMonths, TradeActionList, TradeActionPart
 from datetime import datetime
 from decimal import Decimal
 
@@ -15,14 +15,34 @@ from decimal import Decimal
 # find the earliest buy for the sell.
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
+def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
+    soled = trade_actions[TradeType.SELL]
+    bought = trade_actions[TradeType.BUY]
+    if not soled:
+        return []
+    if not bought:
+        raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
+
+    capital_gain_lines: CapitalGainLines = []
+    trades_within_months: TradesWithinMonths
+
+    soled_within_months = split_by_months(soled, TradeType.SELL)
+
+    return []
 
 
-def capital_gains(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
-    capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
-    #monthly_trade_lines: MonthlyTradeLines = {TradeType.SELL: [], TradeType.BUY: []}
-    for symbol, trade_actions in trade_actions_per_company:
-        # sell/buy pairs on individual trades level
-        capital_gain_lines = atomic_trade_gains(trade_actions)
+def split_by_months(actions: TradeActionList, trade_type: TradeType) -> TradesWithinMonths:
+    if not actions:
+        return []
+
+    for part in actions:
+        quantity = part[0]
+        trade_action = part[1]
+        if trade_action.trade_type != trade_type:
+            raise ValueError("Incompatible trade types! Got " + trade_type + "for expected output and " +
+                             trade_action.trade_type + " for the trade_action" + trade_action)
+
+    return []
 
 
 # Get minimal pairs on individual trades level starting with the biggest sale quantity
