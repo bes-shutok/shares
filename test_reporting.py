@@ -39,8 +39,8 @@ class MyTestCase(unittest.TestCase):
             get_year_month(sell_action1.date_time): trades_within_month1}
 
         actual: MonthPartitionedTrades = split_by_months([(1, sell_action1)], TradeType.SELL)
-        self.assertEqual(actual, month_partitioned_trades1)
         print(actual)
+        self.assertEqual(actual, month_partitioned_trades1)
 
 
 if __name__ == '__main__':

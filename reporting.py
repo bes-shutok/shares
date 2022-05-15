@@ -3,8 +3,8 @@ from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from supplementary import TradeType, TradeAction, TradeActionsPerCompany, CapitalGainLinesPerCompany, \
-    TradeActions, CapitalGainLines, TradeActionList, TradeActionPart, get_year_month, MonthPartitionedTrades, \
+from supplementary import TradeType, TradeAction,  \
+    TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
     TradesWithinMonth
 from datetime import datetime
 from decimal import Decimal
@@ -28,12 +28,12 @@ def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
     trades_within_months: MonthPartitionedTrades
 
     sold_within_months = split_by_months(sold, TradeType.SELL)
-    print("sold_within_months:")
+    print("\nsold_within_months:")
     for k, v in sold_within_months.items():
         print(str(k) + ": " + str(v))
 
     bought_within_months = split_by_months(bought, TradeType.BUY)
-    print("bought_within_months:")
+    print("\nbought_within_months:")
     for k, v in bought_within_months.items():
         print(str(k) + ": " + str(v))
 
@@ -235,7 +235,7 @@ def get_sell_actions(trade_actions):
 
 def main():
     print("Starting conversion.")
-    trade_actions = parse_data(Path('resources', 'simple.csv'))
+    trade_actions = parse_data(Path('resources', 'shares.csv'))
     capital_gains(trade_actions["BTU"])
     # sell_actions = get_sell_actions(trade_actions)
     # persist_data(trade_actions)
