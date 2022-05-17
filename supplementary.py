@@ -109,6 +109,17 @@ class CapitalGainLine:
         self.symbol = symbol
         self.currency = currency
 
+    def __repr__(self) -> str:
+        return "CapitalGainLine{" + \
+               "symbol:" + self.symbol + ", " \
+               "currency:" + self.currency + ", \n" \
+               "__sell_counts:" + str(self.__sell_counts) + ", \n" \
+               "__sell_trades:" + str(self.__sell_trades) + ", \n" \
+               "__buy_counts:" + str(self.__buy_counts) + ", \n" \
+               "\n__buy_trades:" + str(self.__buy_trades) + \
+               "\n}"
+
+
     def add_trade(self, count: int, ta: TradeAction):
         year_month = YearMonth(ta.date_time)
         if ta.trade_type == TradeType.SELL:
@@ -152,6 +163,9 @@ CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
+# Should we sort trades?
+# todo
+# Implement pop method to remove 1st or last element from the list of trades
 class TradesWithinMonth:
 
     def __init__(self):
@@ -162,7 +176,7 @@ class TradesWithinMonth:
         self.quantities = []
         self.trades = []
 
-    def add_trade(self, quantity: int, ta: TradeAction):
+    def push_trade(self, quantity: int, ta: TradeAction):
         assert quantity > 0
         assert ta is not None
         if self.symbol is None:
@@ -203,4 +217,5 @@ class TradesWithinMonth:
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradesWithinMonth]
+SortedDateRanges = List[YearMonth]
 PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]

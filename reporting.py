@@ -1,11 +1,12 @@
 import csv
+from copy import copy
 from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
-from supplementary import TradeType, TradeAction,  \
+from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
-    TradesWithinMonth
+    TradesWithinMonth, SortedDateRanges, CapitalGainLine
 from datetime import datetime
 from decimal import Decimal
 
@@ -16,7 +17,7 @@ from decimal import Decimal
 # find the earliest buy for the sell.
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
-def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
+def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
     sold = trade_actions[TradeType.SELL]
     bought = trade_actions[TradeType.BUY]
     if not sold:
@@ -24,19 +25,48 @@ def capital_gains(trade_actions: TradeActions) -> CapitalGainLines:
     if not bought:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
+    sold_within_months = split_by_months(sold, TradeType.SELL)
+    sorted_sale_date_ranges: SortedDateRanges = sorted(sold_within_months.keys())
+    print("\nsold_within_months:")
+    for sale_date_range in sorted_sale_date_ranges:
+        print(str(sale_date_range) + ": " + str(sold_within_months[sale_date_range]))
+
+    bought_within_months = split_by_months(bought, TradeType.BUY)
+    sorted_bought_date_ranges: SortedDateRanges = sorted(bought_within_months.keys())
+    print("\nbought_within_months:")
+    for bought_date_range in sorted_bought_date_ranges:
+        print(str(bought_date_range) + ": " + str(bought_within_months[bought_date_range]))
+
     capital_gain_lines: CapitalGainLines = []
     trades_within_months: MonthPartitionedTrades
 
-    sold_within_months = split_by_months(sold, TradeType.SELL)
-    print("\nsold_within_months:")
-    for k, v in sold_within_months.items():
-        print(str(k) + ": " + str(v))
+    #for sale_date_range in sorted_sale_date_ranges:
+    sale_date_range = sorted_sale_date_ranges[0]
+    #for bought_date_range in sorted_bought_date_ranges:
+    bought_date_range = sorted_bought_date_ranges[0]
+    sold: TradesWithinMonth = sold_within_months[sale_date_range]
+    print("sold")
+    print(sold)
+    bought: TradesWithinMonth = bought_within_months[bought_date_range]
+    print("bought")
+    print(bought)
+    sold_count: int = sold.quantity()
+    bought_count: int = bought.quantity()
+    left_count: int = sold_count
+    if sold_count <= bought_count:
+        capital_gain_line = CapitalGainLine(sold.symbol, sold.currency)
+        for i in range(len(sold.quantities)):
+            capital_gain_line.add_trade(sold.quantities[i], sold.trades[i])
+        while bought.quantities[0] <= left_count:
+            left_count -= bought.quantities[0]
+            capital_gain_line.add_trade(bought.quantities[0], bought.trades[0])
 
-    bought_within_months = split_by_months(bought, TradeType.BUY)
-    print("\nbought_within_months:")
-    for k, v in bought_within_months.items():
-        print(str(k) + ": " + str(v))
+        for i in range(len(sold.quantities)):
+            pass
+        capital_gain_lines.append(capital_gain_line)
 
+    print("capital_gain_lines")
+    print(capital_gain_lines)
     # todo
 
     return []
@@ -56,7 +86,7 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
                              trade_action.trade_type + " for the trade_action" + str(trade_action))
         year_month = get_year_month(trade_action.date_time)
         trades_within_month: TradesWithinMonth = month_partitioned_trades.get(year_month, TradesWithinMonth())
-        trades_within_month.add_trade(quantity, trade_action)
+        trades_within_month.push_trade(quantity, trade_action)
         month_partitioned_trades[year_month] = trades_within_month
 
     return month_partitioned_trades
@@ -236,7 +266,7 @@ def get_sell_actions(trade_actions):
 def main():
     print("Starting conversion.")
     trade_actions = parse_data(Path('resources', 'shares.csv'))
-    capital_gains(trade_actions["BTU"])
+    capital_gains(trade_actions["BTU"], "BTU")
     # sell_actions = get_sell_actions(trade_actions)
     # persist_data(trade_actions)
     # test()

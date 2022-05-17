@@ -34,7 +34,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_partitioning(self):
         trades_within_month1 = TradesWithinMonth()
-        trades_within_month1.add_trade(1, sell_action1)
+        trades_within_month1.push_trade(1, sell_action1)
         month_partitioned_trades1: MonthPartitionedTrades = {
             get_year_month(sell_action1.date_time): trades_within_month1}
 
