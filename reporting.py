@@ -18,20 +18,20 @@ from decimal import Decimal
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
 def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
-    sold = trade_actions[TradeType.SELL]
-    bought = trade_actions[TradeType.BUY]
-    if not sold:
+    sold_trades = trade_actions[TradeType.SELL]
+    bought_trades = trade_actions[TradeType.BUY]
+    if not sold_trades:
         return []
-    if not bought:
+    if not bought_trades:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
-    sold_within_months = split_by_months(sold, TradeType.SELL)
+    sold_within_months = split_by_months(sold_trades, TradeType.SELL)
     sorted_sale_date_ranges: SortedDateRanges = sorted(sold_within_months.keys())
     print("\nsold_within_months:")
     for sale_date_range in sorted_sale_date_ranges:
         print(str(sale_date_range) + ": " + str(sold_within_months[sale_date_range]))
 
-    bought_within_months = split_by_months(bought, TradeType.BUY)
+    bought_within_months = split_by_months(bought_trades, TradeType.BUY)
     sorted_bought_date_ranges: SortedDateRanges = sorted(bought_within_months.keys())
     print("\nbought_within_months:")
     for bought_date_range in sorted_bought_date_ranges:
@@ -44,26 +44,34 @@ def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
     sale_date_range = sorted_sale_date_ranges[0]
     #for bought_date_range in sorted_bought_date_ranges:
     bought_date_range = sorted_bought_date_ranges[0]
-    sold: TradesWithinMonth = sold_within_months[sale_date_range]
-    print("sold")
-    print(sold)
-    bought: TradesWithinMonth = bought_within_months[bought_date_range]
-    print("bought")
-    print(bought)
-    sold_count: int = sold.quantity()
-    bought_count: int = bought.quantity()
+    sold_trades: TradesWithinMonth = sold_within_months[sale_date_range]
+    print("sold_trades")
+    print(sold_trades)
+    bought_trades: TradesWithinMonth = bought_within_months[bought_date_range]
+    print("bought_trades")
+    print(bought_trades)
+    sold_count: int = sold_trades.quantity()
+    bought_count: int = bought_trades.quantity()
     left_count: int = sold_count
-    if sold_count <= bought_count:
-        capital_gain_line = CapitalGainLine(sold.symbol, sold.currency)
-        for i in range(len(sold.quantities)):
-            capital_gain_line.add_trade(sold.quantities[i], sold.trades[i])
-        while bought.quantities[0] <= left_count:
-            left_count -= bought.quantities[0]
-            capital_gain_line.add_trade(bought.quantities[0], bought.trades[0])
-
-        for i in range(len(sold.quantities)):
-            pass
-        capital_gain_lines.append(capital_gain_line)
+    capital_gain_line = CapitalGainLine(sold_trades.symbol, sold_trades.currency)
+    while sold_trades.quantity() >= bought_trades.quantity() > 0:
+        sold = sold_trades.pop_trade()
+        bought = bought_trades.pop_trade()
+        capital_gain_line.add_trade(sold.quantity, sold)
+        capital_gain_line.add_trade(bought.quantity, bought)
+    #if sold_count <= bought_count:
+    #    capital_gain_line = CapitalGainLine(sold_trades.symbol, sold_trades.currency)
+#
+    #    while sold_trades.count() > 0:
+    #        sold = sold_trades.pop_trade()
+    #        capital_gain_line.add_trade(sold.quantity, sold)
+    #    while bought_trades.get_top_count() <= left_count:
+    #        left_count -= bought_trades.quantities[0]
+    #        capital_gain_line.add_trade(bought_trades.quantities[0], bought_trades.trades[0])
+#
+    #    for i in range(len(sold_trades.quantities)):
+    #        pass
+    #    capital_gain_lines.append(capital_gain_line)
 
     print("capital_gain_lines")
     print(capital_gain_lines)

@@ -173,8 +173,8 @@ class TradesWithinMonth:
         self.currency: Optional[str] = None
         self.year_month: Optional[YearMonth] = None
         self.trade_type: Optional[TradeType] = None
-        self.quantities = []
-        self.trades = []
+        self.__quantities: Dict[datetime, int] = {}
+        self.__trades: Dict[datetime, TradeAction] = {}
 
     def push_trade(self, quantity: int, ta: TradeAction):
         assert quantity > 0
@@ -187,33 +187,44 @@ class TradesWithinMonth:
 
         if self.symbol == ta.symbol and self.currency == ta.currency \
                 and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
-            self.quantities.append(quantity)
-            self.trades.append(ta)
+            self.__quantities[ta.date_time] = quantity
+            self.__trades[ta.date_time] = ta
         else:
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
                              "[" + str(self.trade_type) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
+    def __earliest_date(self) -> datetime:
+        return sorted(self.__quantities.keys())[0]
+
+    def is_not_empty(self) -> bool:
+        return self.count() > 0
+
+    def get_top_count(self) -> int:
+        date: datetime = self.__earliest_date()
+        return self.__quantities[date]
+
+    def pop_trade(self) -> TradeAction:
+        date: datetime = self.__earliest_date()
+        self.__quantities.pop(date)
+        return self.__trades.pop(date)
+
     def quantity(self) -> int:
-        return sum(self.quantities)
+        return sum(self.__quantities.values())
+
+    def count(self) -> int:
+        return len(self.__quantities)
 
     def __repr__(self) -> str:
-        return "TradesWithinMonth{" + \
-               "symbol:" + self.symbol + ", " \
-               "currency:" + self.currency + ", " \
-               "year_month:" + str(self.year_month) + ", " \
-               "trade_type:" + str(self.trade_type) + ", " \
-               "quantities:" + str(self.quantities) + ", " \
-               "\ntrades:" + str(self.trades) + \
-               "}"
+        return "TradesWithinMonth{" + "symbol:" + self.symbol + ", " "trade_type:" + str(self.trade_type) + ", "\
+               + "currency:" + self.currency + ", " "year_month:" + str(self.year_month) + ", " +\
+               "quantities:" + str(self.__quantities.values()) + ", " +\
+               "\ntrades:" + str(self.__trades) + "}"
 
     def __eq__(self, other):
-        return self.symbol == other.symbol and \
-               self.currency == other.currency and \
-               self.quantities == other.quantities and \
-               self.trades == other.trades and \
-               self.year_month == other.year_month and \
-               self.trade_type == other.trade_type
+        return self.symbol == other.symbol and self.currency == other.currency and \
+               self.year_month == other.year_month and self.trade_type == other.trade_type and \
+               self.__quantities == other.__quantities and self.__trades == other.__trades
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradesWithinMonth]
