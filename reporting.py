@@ -6,7 +6,7 @@ from pathlib import Path
 from parsing import parse_data
 from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
-    TradesWithinMonth, SortedDateRanges, CapitalGainLine
+    TradesWithinMonth, SortedDateRanges, CapitalGainLine, TradeActionsPerCompany
 from datetime import datetime
 from decimal import Decimal
 
@@ -18,8 +18,8 @@ from decimal import Decimal
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
 def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
-    sold_trades = trade_actions[TradeType.SELL]
-    bought_trades = trade_actions[TradeType.BUY]
+    sold_trades: TradeActionList = trade_actions[TradeType.SELL]
+    bought_trades: TradeActionList = trade_actions[TradeType.BUY]
     if not sold_trades:
         return []
     if not bought_trades:
@@ -38,7 +38,6 @@ def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
         print(str(bought_date_range) + ": " + str(bought_within_months[bought_date_range]))
 
     capital_gain_lines: CapitalGainLines = []
-    trades_within_months: MonthPartitionedTrades
 
     #for sale_date_range in sorted_sale_date_ranges:
     sale_date_range = sorted_sale_date_ranges[0]
@@ -50,31 +49,28 @@ def capital_gains(trade_actions: TradeActions, symbol: str) -> CapitalGainLines:
     bought_trades: TradesWithinMonth = bought_within_months[bought_date_range]
     print("bought_trades")
     print(bought_trades)
-    sold_count: int = sold_trades.quantity()
-    bought_count: int = bought_trades.quantity()
-    left_count: int = sold_count
+    target_quantity: int = min(bought_trades.quantity(), sold_trades.quantity())
+    sold_quantity_left = target_quantity
+    bought_quantity_left = target_quantity
     capital_gain_line = CapitalGainLine(sold_trades.symbol, sold_trades.currency)
-    while sold_trades.quantity() >= bought_trades.quantity() > 0:
+    while sold_trades.quantity() > 0 and bought_trades.quantity() > 0:
         sold = sold_trades.pop_trade()
+        sold_quantity_left -= sold.quantity
         bought = bought_trades.pop_trade()
-        capital_gain_line.add_trade(sold.quantity, sold)
-        capital_gain_line.add_trade(bought.quantity, bought)
-    #if sold_count <= bought_count:
-    #    capital_gain_line = CapitalGainLine(sold_trades.symbol, sold_trades.currency)
-#
-    #    while sold_trades.count() > 0:
-    #        sold = sold_trades.pop_trade()
-    #        capital_gain_line.add_trade(sold.quantity, sold)
-    #    while bought_trades.get_top_count() <= left_count:
-    #        left_count -= bought_trades.quantities[0]
-    #        capital_gain_line.add_trade(bought_trades.quantities[0], bought_trades.trades[0])
-#
-    #    for i in range(len(sold_trades.quantities)):
-    #        pass
-    #    capital_gain_lines.append(capital_gain_line)
+        bought_quantity_left -= bought.quantity
+        if sold_quantity_left >= 0:
+            capital_gain_line.add_trade(sold.quantity, sold)
+        else:
+            capital_gain_line.add_trade(sold.quantity + sold_quantity_left, sold)
+            sold_trades.push_trade(-sold_quantity_left, sold)
+        if bought_quantity_left >= 0:
+            capital_gain_line.add_trade(bought.quantity, bought)
+        else:
+            capital_gain_line.add_trade(bought.quantity + bought_quantity_left, bought)
+            bought_trades.push_trade(-bought_quantity_left, bought)
 
     print("capital_gain_lines")
-    print(capital_gain_lines)
+    print(capital_gain_line)
     # todo
 
     return []
@@ -273,7 +269,7 @@ def get_sell_actions(trade_actions):
 
 def main():
     print("Starting conversion.")
-    trade_actions = parse_data(Path('resources', 'shares.csv'))
+    trade_actions: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
     capital_gains(trade_actions["BTU"], "BTU")
     # sell_actions = get_sell_actions(trade_actions)
     # persist_data(trade_actions)

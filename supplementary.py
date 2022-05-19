@@ -112,13 +112,14 @@ class CapitalGainLine:
     def __repr__(self) -> str:
         return "CapitalGainLine{" + \
                "symbol:" + self.symbol + ", " \
-               "currency:" + self.currency + ", \n" \
-               "__sell_counts:" + str(self.__sell_counts) + ", \n" \
-               "__sell_trades:" + str(self.__sell_trades) + ", \n" \
-               "__buy_counts:" + str(self.__buy_counts) + ", \n" \
-               "\n__buy_trades:" + str(self.__buy_trades) + \
+                                         "currency:" + self.currency + ", \n" \
+                                                                       "__sell_counts:" + str(
+            self.__sell_counts) + ", \n" \
+                                  "__sell_trades:" + str(self.__sell_trades) + ", \n" \
+                                                                               "__buy_counts:" + str(
+            self.__buy_counts) + ", \n" \
+                                 "\n__buy_trades:" + str(self.__buy_trades) + \
                "\n}"
-
 
     def add_trade(self, count: int, ta: TradeAction):
         year_month = YearMonth(ta.date_time)
@@ -144,8 +145,14 @@ class CapitalGainLine:
             self.__buy_counts.append(count)
             self.__buy_trades.append(ta)
 
+    def sold_quantity(self) -> int:
+        return sum(self.__sell_counts)
+
+    def bought_quantity(self) -> int:
+        return sum(self.__buy_counts)
+
     def validate(self):
-        if sum(self.__sell_counts) != sum(self.__buy_counts):
+        if self.sold_quantity() != self.bought_quantity():
             raise ValueError("Different counts for sales ["
                              + str(self.__sell_counts) + "] " + " and buys [" + str(self.__buy_counts) +
                              "] in capital gain line!")
@@ -216,9 +223,9 @@ class TradesWithinMonth:
         return len(self.__quantities)
 
     def __repr__(self) -> str:
-        return "TradesWithinMonth{" + "symbol:" + self.symbol + ", " "trade_type:" + str(self.trade_type) + ", "\
-               + "currency:" + self.currency + ", " "year_month:" + str(self.year_month) + ", " +\
-               "quantities:" + str(self.__quantities.values()) + ", " +\
+        return "TradesWithinMonth{" + "symbol:" + self.symbol + ", " "trade_type:" + str(self.trade_type) + ", " \
+               + "currency:" + self.currency + ", " "year_month:" + str(self.year_month) + ", " + \
+               "quantities:" + str(self.__quantities.values()) + ", " + \
                "\ntrades:" + str(self.__trades) + "}"
 
     def __eq__(self, other):
