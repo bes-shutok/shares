@@ -65,9 +65,9 @@ class TradeAction:
         self.fee = Decimal(fee).copy_abs()
 
     def __eq__(self, other):
-        return self.symbol == other.symbol and \
+        return self.symbol == other.__symbol and \
                self.date_time == other.date_time and \
-               self.currency == other.currency and \
+               self.currency == other.__currency and \
                self.quantity == other.quantity and \
                self.price == other.price and \
                self.fee == other.fee
@@ -99,6 +99,70 @@ TradeActionsPerCompany = Dict[str, TradeActions]
 
 class CapitalGainLine:
     __sell_date: YearMonth = None
+    __sell_counts: List[int]
+    __sell_trades: List[TradeAction]
+    __buy_date: YearMonth = None
+    __buy_counts: List[int]
+    __buy_trades: List[TradeAction]
+
+    def __init__(self, symbol: str, currency: str,
+                 sell_date: YearMonth, sell_counts: List[int], sell_trades: List[TradeAction],
+                 buy_date: YearMonth, buy_counts: List[int], buy_trades: List[TradeAction]):
+        assert symbol
+        self.__symbol = symbol
+        assert currency
+        self.__currency = currency
+        assert sell_date
+        self.__sell_date = sell_date
+        assert sell_counts
+        self.__sell_counts = sell_counts
+        assert sell_trades
+        self.__sell_trades = sell_trades
+        assert buy_date
+        self.__buy_date = buy_date
+        assert buy_counts
+        self.__buy_counts = buy_counts
+        assert buy_trades
+        self.__buy_trades = buy_trades
+        self.validate()
+
+    def get_symbol(self):
+        return self.__symbol
+
+    def get_currency(self):
+        return self.__currency
+
+    def __repr__(self) -> str:
+        return "CapitalGainLine{\n" + \
+               "symbol:" + self.__symbol + ", " + "currency:" + self.__currency + ", " + \
+               "\n__sell_counts:" + str(self.__sell_counts) + ", " + \
+               "\n__sell_trades:" + str(self.__sell_trades) + "," + \
+               "\n__buy_counts:" + str(self.__buy_counts) + "," + \
+               "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
+
+    def sold_quantity(self) -> int:
+        return sum(self.__sell_counts)
+
+    def bought_quantity(self) -> int:
+        return sum(self.__buy_counts)
+
+    def validate(self):
+        if self.sold_quantity() != self.bought_quantity():
+            raise ValueError("Different counts for sales ["
+                             + str(self.__sell_counts) + "] " + " and buys [" + str(self.__buy_counts) +
+                             "] in capital gain line!")
+        if len(self.__sell_counts) != len(self.__sell_trades):
+            raise ValueError("Different number of counts ["
+                             + str(len(self.__sell_counts)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
+                             "] for sales in capital gain line!")
+        if len(self.__buy_counts) != len(self.__buy_trades):
+            raise ValueError("Different number of counts ["
+                             + str(len(self.__buy_counts)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
+                             "] for buys in capital gain line!")
+
+
+class CapitalGainLineAccumulator:
+    __sell_date: YearMonth = None
     __sell_counts: List[int] = []
     __sell_trades: List[TradeAction] = []
     __buy_date: YearMonth = None
@@ -106,12 +170,18 @@ class CapitalGainLine:
     __buy_trades: List[TradeAction] = []
 
     def __init__(self, symbol: str, currency: str):
-        self.symbol = symbol
-        self.currency = currency
+        self.__symbol = symbol
+        self.__currency = currency
+
+    def get_symbol(self):
+        return self.__symbol
+
+    def get_currency(self):
+        return self.__currency
 
     def __repr__(self) -> str:
         return "CapitalGainLine{\n" + \
-               "symbol:" + self.symbol + ", " + "currency:" + self.currency + ", " + \
+               "symbol:" + self.__symbol + ", " + "currency:" + self.__currency + ", " + \
                "\n__sell_counts:" + str(self.__sell_counts) + ", " + \
                "\n__sell_trades:" + str(self.__sell_trades) + "," + \
                "\n__buy_counts:" + str(self.__buy_counts) + "," + \
@@ -147,7 +217,22 @@ class CapitalGainLine:
     def bought_quantity(self) -> int:
         return sum(self.__buy_counts)
 
+    def finalize(self) -> CapitalGainLine:
+        self.validate()
+        result = CapitalGainLine(self.__symbol, self.__currency,
+                                 self.__sell_date, self.__sell_counts, self.__sell_trades,
+                                 self.__buy_date, self.__buy_counts, self.__buy_trades)
+        self.__sell_date: YearMonth = None
+        self.__sell_counts: List[int] = []
+        self.__sell_trades: List[TradeAction] = []
+        self.__buy_date: YearMonth = None
+        self.__buy_counts: List[int] = []
+        self.__buy_trades: List[TradeAction] = []
+        return result
+
     def validate(self):
+        if self.sold_quantity() <= 0 or self.bought_quantity() <= 0:
+            raise ValueError("Cannot finalize empty Accumulator object!")
         if self.sold_quantity() != self.bought_quantity():
             raise ValueError("Different counts for sales ["
                              + str(self.__sell_counts) + "] " + " and buys [" + str(self.__buy_counts) +
@@ -161,8 +246,7 @@ class CapitalGainLine:
                              + str(len(self.__buy_counts)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
                              "] for buys in capital gain line!")
 
-
-CapitalGainLines = List[CapitalGainLine]
+CapitalGainLines = List[CapitalGainLineAccumulator]
 CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
@@ -225,7 +309,7 @@ class TradesWithinMonth:
                "\ntrades:" + str(self.__trades) + "}"
 
     def __eq__(self, other):
-        return self.symbol == other.symbol and self.currency == other.currency and \
+        return self.symbol == other.__symbol and self.currency == other.__currency and \
                self.year_month == other.year_month and self.trade_type == other.trade_type and \
                self.__quantities == other.__quantities and self.__trades == other.__trades
 

@@ -1,7 +1,7 @@
 import datetime
 
 from supplementary import get_year_month, MonthPartitionedTrades, \
-    TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLine, TradesWithinMonth
+    TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator, TradesWithinMonth
 
 currency = "USD"
 test_symbol = "BTU"
@@ -28,12 +28,12 @@ simple_trade: TradeActionsPerCompany = {test_symbol: {
     TradeType.SELL: [(abs(int(sell_quantity1)), sell_action1), (abs(int(sell_quantity2)), sell_action2)]
 }}
 
-line1 = CapitalGainLine(test_symbol, currency)
+line1 = CapitalGainLineAccumulator(test_symbol, currency)
 line1.add_trade(10, buy_action1)
 line1.add_trade(10, sell_action1)
 line1.validate()
 
-line2 = CapitalGainLine(test_symbol, currency)
+line2 = CapitalGainLineAccumulator(test_symbol, currency)
 line2.add_trade(5, buy_action1)
 line2.add_trade(5, sell_action2)
 line2.validate()

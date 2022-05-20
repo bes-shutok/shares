@@ -3,7 +3,7 @@ from pathlib import Path
 
 import parsing
 from reporting import split_by_months
-from supplementary import TradeActionsPerCompany, TradeType, TradeAction, CapitalGainLine
+from supplementary import TradeActionsPerCompany, TradeType, TradeAction, CapitalGainLineAccumulator
 from test_common_data import simple_trade, test_symbol
 
 
