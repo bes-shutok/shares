@@ -111,8 +111,8 @@ class CapitalGainLine:
 
     def __repr__(self) -> str:
         return "CapitalGainLine{\n" + \
-               "symbol:" + self.symbol + ", " + "currency:" + self.currency + ", " +\
-               "\n__sell_counts:" + str(self.__sell_counts) + ", " +\
+               "symbol:" + self.symbol + ", " + "currency:" + self.currency + ", " + \
+               "\n__sell_counts:" + str(self.__sell_counts) + ", " + \
                "\n__sell_trades:" + str(self.__sell_trades) + "," + \
                "\n__buy_counts:" + str(self.__buy_counts) + "," + \
                "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
@@ -231,5 +231,15 @@ class TradesWithinMonth:
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradesWithinMonth]
+
+
+def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):
+    print("MonthPartitionedTrades{")
+    keys = sorted(month_partitioned_trades.keys())
+    for key in keys:
+        print(str(key) + " : " + str(month_partitioned_trades[key]))
+    print("}")
+
+
 SortedDateRanges = List[YearMonth]
 PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
