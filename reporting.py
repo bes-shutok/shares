@@ -1,6 +1,4 @@
 import csv
-from copy import copy
-from os import PathLike
 from pathlib import Path
 
 from parsing import parse_data
@@ -39,9 +37,9 @@ def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency
         print("\nbought_within_months:")
         print_month_partitioned_trades(bought_within_months)
 
-        #for sale_date_range in sorted_sale_date_ranges:
+        # for sale_date_range in sorted_sale_date_ranges:
         sale_date_range = sorted_sale_date_ranges[0]
-        #for bought_date_range in sorted_bought_date_ranges:
+        # for bought_date_range in sorted_bought_date_ranges:
         bought_date_range = sorted_bought_date_ranges[0]
         sold_trades: TradesWithinMonth = sold_within_months[sale_date_range]
         print("sold_trades")
@@ -116,14 +114,6 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
     return month_partitioned_trades
 
 
-# Get minimal pairs on individual trades level starting with the biggest sale quantity
-def atomic_trade_gains(trade_actions: TradeActions) -> CapitalGainLines:
-    capital_gain_lines: CapitalGainLines = []
-    for trade_type, trade_actions in trade_actions:
-        print("creating trade pairs")
-    return None
-
-
 work_dir: str = "E:\\tests"
 source_file = "shares.csv"
 source_path = Path(work_dir, source_file)
@@ -171,60 +161,6 @@ class TradeActionsPerMonth:
             print("\nSold " + postfix)
         for trade in self.trades:
             trade.print()
-
-
-# noinspection DuplicatedCode
-class AllTradesPerCompany:
-    sell_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
-    buy_actions: dict[tuple[str, str], TradeActionsPerMonth] = {}
-    complete_trades: dict[tuple[str, str, str, str], tuple[TradeActionsPerMonth, TradeActionsPerMonth]] = {}
-    sell_actions_copy: dict[tuple[str, str], TradeActionsPerMonth] = None
-    buy_actions_copy: dict[tuple[str, str], TradeActionsPerMonth] = None
-
-    def __init__(self, symbol):
-        self.symbol = symbol
-
-    def add_trade(self, ta: TradeAction):
-        year_month = get_ym_pair(ta.date_time)
-        if ta.trade_type == TradeType.SELL:
-            if year_month in self.sell_actions.keys():
-                self.sell_actions[year_month].add_trade(ta)
-            else:
-                self.sell_actions.update({year_month: TradeActionsPerMonth(ta)})
-        else:
-            if year_month in self.buy_actions.keys():
-                self.buy_actions[year_month].add_trade(ta)
-            else:
-                self.buy_actions.update({year_month: TradeActionsPerMonth(ta)})
-
-    def select_complete_trades(self):
-        print("\nTest\n")
-        if self.sell_actions_copy is None:
-            print("CREATING NEW COPY!!!!!!!!!!!")
-            self.sell_actions_copy = self.sell_actions.copy()
-            self.buy_actions_copy = self.buy_actions.copy()
-            # self.sell_actions_copy = copy.deepcopy(self.sell_actions)
-
-            for sell_dates, sell_actions in self.sell_actions_copy.items():
-                for buy_dates, buy_actions in self.buy_actions_copy.items():
-                    if sell_actions.year_month_pair > buy_actions.year_month_pair:
-                        if sell_actions.quantity <= buy_actions.quantity:
-                            self.complete_trades.update({sell_dates + buy_dates, (sell_actions, buy_actions)})
-
-        for k, v in self.sell_actions_copy.items():
-            print("For " + str(k))
-            v.print()
-        return None
-
-    def print(self):
-        print("The company " + self.symbol + " has the following sell trades: ")
-        for k, v in self.sell_actions.items():
-            print("For " + str(k))
-            v.print()
-        print("The company " + self.symbol + " has the following buy trades: ")
-        for k, v in self.buy_actions.items():
-            print("For " + str(k))
-            v.print()
 
 
 def persist_data(trade_actions: {}):
