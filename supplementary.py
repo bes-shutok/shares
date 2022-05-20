@@ -246,13 +246,13 @@ class CapitalGainLineAccumulator:
                              + str(len(self.__buy_counts)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
                              "] for buys in capital gain line!")
 
-CapitalGainLines = List[CapitalGainLineAccumulator]
+
+CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
 # Should we sort trades?
-# todo
-# Implement pop method to remove 1st or last element from the list of trades
+# Should we implement pop method to remove 1st or last element from the list of trades
 class TradesWithinMonth:
 
     def __init__(self):
