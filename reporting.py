@@ -18,73 +18,73 @@ from decimal import Decimal
 # Repeat from 2nd step
 def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency: str) -> CapitalGainLines:
     capital_gain_line_accumulator = CapitalGainLineAccumulator(symbol, currency)
-    sold_trades: TradeActionList = trade_actions[TradeType.SELL]
-    bought_trades: TradeActionList = trade_actions[TradeType.BUY]
-    if not sold_trades:
+    sale_trades: TradeActionList = trade_actions[TradeType.SELL]
+    buy_trades: TradeActionList = trade_actions[TradeType.BUY]
+    if not sale_trades:
         return []
-    if not bought_trades:
+    if not buy_trades:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
-    sold_within_months = split_by_months(sold_trades, TradeType.SELL)
-    bought_within_months = split_by_months(bought_trades, TradeType.BUY)
+    sales_within_months = split_by_months(sale_trades, TradeType.SELL)
+    buys_within_months = split_by_months(buy_trades, TradeType.BUY)
     capital_gain_lines: CapitalGainLines = []
 
-    while len(sold_within_months) > 0 and len(bought_within_months) > 0:
-        sorted_sale_date_ranges: SortedDateRanges = sorted(sold_within_months.keys())
-        print("\nsold_within_months:")
-        print_month_partitioned_trades(sold_within_months)
-        sorted_bought_date_ranges: SortedDateRanges = sorted(bought_within_months.keys())
-        print("\nbought_within_months:")
-        print_month_partitioned_trades(bought_within_months)
+    while len(sales_within_months) > 0 and len(buys_within_months) > 0:
+        sorted_sale_date_ranges: SortedDateRanges = sorted(sales_within_months.keys())
+        print("\nsales_within_months:")
+        print_month_partitioned_trades(sales_within_months)
+        sorted_bought_date_ranges: SortedDateRanges = sorted(buys_within_months.keys())
+        print("\nbuys_within_months:")
+        print_month_partitioned_trades(buys_within_months)
 
-        # for sale_date_range in sorted_sale_date_ranges:
-        sale_date_range = sorted_sale_date_ranges[0]
-        # for bought_date_range in sorted_bought_date_ranges:
-        bought_date_range = sorted_bought_date_ranges[0]
-        sold_trades: TradesWithinMonth = sold_within_months[sale_date_range]
-        print("sold_trades")
-        print(sold_trades)
-        bought_trades: TradesWithinMonth = bought_within_months[bought_date_range]
-        print("bought_trades")
-        print(bought_trades)
-        target_quantity: int = min(bought_trades.quantity(), sold_trades.quantity())
-        sold_quantity_left = target_quantity
-        bought_quantity_left = target_quantity
+        # for sale_dates_slice in sorted_sale_date_ranges:
+        sale_dates_slice = sorted_sale_date_ranges[0]
+        # for buy_dates_slice in sorted_bought_date_ranges:
+        buy_dates_slice = sorted_bought_date_ranges[0]
+        sale_trades: TradesWithinMonth = sales_within_months[sale_dates_slice]
+        print("sale_trades")
+        print(sale_trades)
+        buy_trades: TradesWithinMonth = buys_within_months[buy_dates_slice]
+        print("buy_trades")
+        print(buy_trades)
+        target_quantity: int = min(buy_trades.quantity(), sale_trades.quantity())
+        sale_quantity_left = target_quantity
+        buy_quantity_left = target_quantity
         iteration_count = 0
-        while sold_trades.quantity() > 0 and bought_trades.quantity() > 0:
+        while sale_trades.quantity() > 0 and buy_trades.quantity() > 0:
             print("\ncapital_gain_line aggregation cycle (" + str(iteration_count) + ")")
             iteration_count += 1
 
-            sold = sold_trades.pop_trade()
-            sold_quantity_left -= sold.quantity
-            bought = bought_trades.pop_trade()
-            bought_quantity_left -= bought.quantity
-            if sold_quantity_left >= 0:
-                capital_gain_line_accumulator.add_trade(sold.quantity, sold)
+            sale = sale_trades.pop_trade()
+            sale_quantity_left -= sale.quantity
+            buy = buy_trades.pop_trade()
+            buy_quantity_left -= buy.quantity
+            if sale_quantity_left >= 0:
+                capital_gain_line_accumulator.add_trade(sale.quantity, sale)
             else:
-                capital_gain_line_accumulator.add_trade(sold.quantity + sold_quantity_left, sold)
-                sold_trades.push_trade(-sold_quantity_left, sold)
-            if bought_quantity_left >= 0:
-                capital_gain_line_accumulator.add_trade(bought.quantity, bought)
+                capital_gain_line_accumulator.add_trade(sale.quantity + sale_quantity_left, sale)
+                sale_trades.push_trade(-sale_quantity_left, sale)
+            if buy_quantity_left >= 0:
+                capital_gain_line_accumulator.add_trade(buy.quantity, buy)
             else:
-                capital_gain_line_accumulator.add_trade(bought.quantity + bought_quantity_left, bought)
-                bought_trades.push_trade(-bought_quantity_left, bought)
+                capital_gain_line_accumulator.add_trade(buy.quantity + buy_quantity_left, buy)
+                buy_trades.push_trade(-buy_quantity_left, buy)
 
             print(capital_gain_line_accumulator)
 
-            if sold_trades.count() > 0:
-                sold_within_months[sale_date_range] = sold_trades
+            if sale_trades.count() > 0:
+                sales_within_months[sale_dates_slice] = sale_trades
             else:
-                sold_within_months.pop(sale_date_range)
-            print("sold_within_months")
-            print_month_partitioned_trades(sold_within_months)
+                sales_within_months.pop(sale_dates_slice)
+            print("sales_within_months")
+            print_month_partitioned_trades(sales_within_months)
 
-            if bought_trades.count() > 0:
-                bought_within_months[bought_date_range] = bought_trades
+            if buy_trades.count() > 0:
+                buys_within_months[buy_dates_slice] = buy_trades
             else:
-                bought_within_months.pop(bought_date_range)
-            print("bought_within_months")
-            print_month_partitioned_trades(bought_within_months)
+                buys_within_months.pop(buy_dates_slice)
+            print("buys_within_months")
+            print_month_partitioned_trades(buys_within_months)
 
         capital_gain_line: CapitalGainLine = capital_gain_line_accumulator.finalize()
         capital_gain_lines.append(capital_gain_line)
@@ -121,48 +121,6 @@ result_file = "trades.csv"
 result_path = Path(work_dir, result_file)
 
 
-# noinspection DuplicatedCode
-def get_ym_pair(date_time: datetime):
-    return date_time.strftime("%Y"), date_time.strftime("%B")
-
-
-# noinspection DuplicatedCode
-class TradeActionsPerMonth:
-    def __init__(self, ta: TradeAction):
-        self.trades = [ta]
-        self.symbol = ta.symbol
-        self.year_month_pair = get_ym_pair(ta.date_time)
-        self.currency = ta.currency
-        self.trade_type = ta.trade_type
-        self.quantity = ta.quantity
-        self.price = ta.price
-        self.fee = ta.fee
-
-    def add_trade(self, ta: TradeAction):
-        if ta.trade_type == self.trade_type:
-            if self.year_month_pair == get_ym_pair(ta.date_time):
-                self.trades.append(ta)
-                self.quantity += ta.quantity
-                self.price += ta.price
-                self.fee += ta.fee
-            else:
-                print(
-                    "Incompatible trade date! expected " + str(self.year_month_pair) + " and got " + str(ta.date_time))
-        else:
-            print("Incompatible trade type! expected " + str(self.trade_type) + " and got " + str(ta.trade_type))
-
-    def print(self):
-        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
-                  str(self.price) + " " + self.currency + " at " + str(self.year_month_pair) + " with fee " + \
-                  str(self.fee) + " " + self.currency + "\n" + "trades:"
-        if self.trade_type == TradeType.BUY:
-            print("\nBought " + postfix)
-        else:
-            print("\nSold " + postfix)
-        for trade in self.trades:
-            trade.print()
-
-
 def persist_data(trade_actions: {}):
     print(result_path)
     trades = {}
@@ -182,16 +140,6 @@ def persist_data(trade_actions: {}):
             writer.writerows(v)
 
     csv_file.close()
-
-
-def vest_date():
-    print("")
-    date_time = "2021-05-18, 14:53:23"
-    print("before: " + date_time)
-    date = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
-    print("after: " + str(date))
-    print(str(date.year) + "  " + str(date.month) + "  " + date.strftime("%Y") + "  " + date.strftime("%B"))
-    print(str(get_ym_pair(date)))
 
 
 def vest_on():
