@@ -99,29 +99,29 @@ TradeActionsPerCompany = Dict[str, TradeActions]
 
 class CapitalGainLine:
     __sell_date: YearMonth = None
-    __sell_counts: List[int]
+    __sell_quantities: List[int]
     __sell_trades: List[TradeAction]
     __buy_date: YearMonth = None
-    __buy_counts: List[int]
+    __buy_quantities: List[int]
     __buy_trades: List[TradeAction]
 
     def __init__(self, symbol: str, currency: str,
-                 sell_date: YearMonth, sell_counts: List[int], sell_trades: List[TradeAction],
-                 buy_date: YearMonth, buy_counts: List[int], buy_trades: List[TradeAction]):
+                 sell_date: YearMonth, sell_quantities: List[int], sell_trades: List[TradeAction],
+                 buy_date: YearMonth, buy_quantities: List[int], buy_trades: List[TradeAction]):
         assert symbol
         self.__symbol = symbol
         assert currency
         self.__currency = currency
         assert sell_date
         self.__sell_date = sell_date
-        assert sell_counts
-        self.__sell_counts = sell_counts
+        assert sell_quantities
+        self.__sell_quantities = sell_quantities
         assert sell_trades
         self.__sell_trades = sell_trades
         assert buy_date
         self.__buy_date = buy_date
-        assert buy_counts
-        self.__buy_counts = buy_counts
+        assert buy_quantities
+        self.__buy_quantities = buy_quantities
         assert buy_trades
         self.__buy_trades = buy_trades
         self.validate()
@@ -135,29 +135,29 @@ class CapitalGainLine:
     def __repr__(self) -> str:
         return "CapitalGainLine{\n" + \
                "symbol:" + self.__symbol + ", " + "currency:" + self.__currency + ", " + \
-               "\n__sell_counts:" + str(self.__sell_counts) + ", " + \
+               "\n__sell_counts:" + str(self.__sell_quantities) + ", " + \
                "\n__sell_trades:" + str(self.__sell_trades) + "," + \
-               "\n__buy_counts:" + str(self.__buy_counts) + "," + \
+               "\n__buy_counts:" + str(self.__buy_quantities) + "," + \
                "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
 
     def sold_quantity(self) -> int:
-        return sum(self.__sell_counts)
+        return sum(self.__sell_quantities)
 
     def bought_quantity(self) -> int:
-        return sum(self.__buy_counts)
+        return sum(self.__buy_quantities)
 
     def validate(self):
         if self.sold_quantity() != self.bought_quantity():
             raise ValueError("Different counts for sales ["
-                             + str(self.__sell_counts) + "] " + " and buys [" + str(self.__buy_counts) +
+                             + str(self.__sell_quantities) + "] " + " and buys [" + str(self.__buy_quantities) +
                              "] in capital gain line!")
-        if len(self.__sell_counts) != len(self.__sell_trades):
+        if len(self.__sell_quantities) != len(self.__sell_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__sell_counts)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
+                             + str(len(self.__sell_quantities)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
                              "] for sales in capital gain line!")
-        if len(self.__buy_counts) != len(self.__buy_trades):
+        if len(self.__buy_quantities) != len(self.__buy_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__buy_counts)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
+                             + str(len(self.__buy_quantities)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
                              "] for buys in capital gain line!")
 
 
@@ -251,9 +251,7 @@ CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
 
 
-# Should we sort trades?
-# Should we implement pop method to remove 1st or last element from the list of trades
-class TradesWithinMonth:
+class TradePartsWithinMonth:
 
     def __init__(self):
         self.symbol: Optional[str] = None
@@ -263,7 +261,7 @@ class TradesWithinMonth:
         self.__quantities: Dict[datetime, int] = {}
         self.__trades: Dict[datetime, TradeAction] = {}
 
-    def push_trade(self, quantity: int, ta: TradeAction):
+    def push_trade_part(self, quantity: int, ta: TradeAction):
         assert quantity > 0
         assert ta is not None
         if self.symbol is None:
@@ -281,20 +279,19 @@ class TradesWithinMonth:
                              "[" + str(self.trade_type) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
-    def __earliest_date(self) -> datetime:
-        return sorted(self.__quantities.keys())[0]
-
-    def is_not_empty(self) -> bool:
-        return self.count() > 0
+    def pop_trade_part(self) -> TradeActionPart:
+        date: datetime = self.__earliest_date()
+        return self.__quantities.pop(date), self.__trades.pop(date)
 
     def get_top_count(self) -> int:
         date: datetime = self.__earliest_date()
         return self.__quantities[date]
 
-    def pop_trade(self) -> TradeAction:
-        date: datetime = self.__earliest_date()
-        self.__quantities.pop(date)
-        return self.__trades.pop(date)
+    def __earliest_date(self) -> datetime:
+        return sorted(self.__quantities.keys())[0]
+
+    def is_not_empty(self) -> bool:
+        return self.count() > 0
 
     def quantity(self) -> int:
         return sum(self.__quantities.values())
@@ -314,7 +311,7 @@ class TradesWithinMonth:
                self.__quantities == other.__quantities and self.__trades == other.__trades
 
 
-MonthPartitionedTrades = Dict[YearMonth, TradesWithinMonth]
+MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]
 
 
 def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):

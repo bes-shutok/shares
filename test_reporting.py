@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from reporting import split_by_months
-from supplementary import get_ym_pair, get_year_month, YearMonth, TradeType, TradesWithinMonth, MonthPartitionedTrades
+from supplementary import get_ym_pair, get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades
 from test_common_data import sell_action1
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
@@ -33,8 +33,8 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(1, 1)
 
     def test_partitioning(self):
-        trades_within_month1 = TradesWithinMonth()
-        trades_within_month1.push_trade(1, sell_action1)
+        trades_within_month1 = TradePartsWithinMonth()
+        trades_within_month1.push_trade_part(1, sell_action1)
         month_partitioned_trades1: MonthPartitionedTrades = {
             get_year_month(sell_action1.date_time): trades_within_month1}
 
