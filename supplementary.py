@@ -290,8 +290,9 @@ class TradePartsWithinMonth:
         self.currency: Optional[str] = None
         self.year_month: Optional[YearMonth] = None
         self.trade_type: Optional[TradeType] = None
-        self.__quantities: Dict[datetime, int] = {}
-        self.__trades: Dict[datetime, TradeAction] = {}
+        self.__dates: List[datetime] = []
+        self.__quantities: List[int] = []
+        self.__trades: List[TradeAction] = []
 
     def push_trade_part(self, quantity: int, ta: TradeAction):
         assert quantity > 0
@@ -304,29 +305,36 @@ class TradePartsWithinMonth:
 
         if self.symbol == ta.symbol and self.currency == ta.currency \
                 and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
-            self.__quantities[ta.date_time] = quantity
-            self.__trades[ta.date_time] = ta
+            self.__dates.append(ta.date_time)
+            self.__quantities.append(quantity)
+            self.__trades.append(ta)
         else:
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
                              "[" + str(self.trade_type) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
     def pop_trade_part(self) -> TradeActionPart:
-        date: datetime = self.__earliest_date()
-        return self.__quantities.pop(date), self.__trades.pop(date)
+        idx: int = self.__get_top_index()
+        self.__dates.pop(idx)
+        return self.__quantities.pop(idx), self.__trades.pop(idx)
 
     def get_top_count(self) -> int:
-        date: datetime = self.__earliest_date()
-        return self.__quantities[date]
+        idx: int = self.__get_top_index()
+        return self.__quantities[idx]
+
+    def __get_top_index(self) -> int:
+        return self.__dates.index(self.__earliest_date())
 
     def __earliest_date(self) -> datetime:
-        return sorted(self.__quantities.keys())[0]
+        t = self.__dates.copy()
+        t.sort()
+        return t[0]
 
     def is_not_empty(self) -> bool:
         return self.count() > 0
 
     def quantity(self) -> int:
-        return sum(self.__quantities.values())
+        return sum(self.__quantities)
 
     def count(self) -> int:
         return len(self.__quantities)
@@ -334,7 +342,7 @@ class TradePartsWithinMonth:
     def __repr__(self) -> str:
         return "TradesWithinMonth{" + "symbol:" + self.symbol + ", " "trade_type:" + str(self.trade_type) + ", " \
                + "currency:" + self.currency + ", " "year_month:" + str(self.year_month) + ", " + \
-               "quantities:" + str(self.__quantities.values()) + ", " + \
+               "quantities:" + str(self.__quantities) + ", " + \
                "\ntrades:" + str(self.__trades) + "}"
 
     def __eq__(self, other):
