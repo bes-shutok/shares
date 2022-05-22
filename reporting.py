@@ -9,7 +9,7 @@ from parsing import parse_data
 from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
     TradePartsWithinMonth, SortedDateRanges, CapitalGainLineAccumulator, TradeActionsPerCompany, \
-    print_month_partitioned_trades, CapitalGainLine
+    print_month_partitioned_trades, CapitalGainLine, CapitalGainLinesPerCompany
 from decimal import Decimal
 
 
@@ -155,14 +155,19 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines: Capital
 
 def main():
     print("Starting conversion.")
-    trade_actions: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
-    for symbol, trade_action_list in trade_actions.items():
-        trade_action: TradeAction = trade_action_list[TradeType.SELL][0][1]
+    capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
+    capital_gain_lines: CapitalGainLines = []
+    trade_actions_per_company: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
+    for symbol, trade_actions in trade_actions_per_company.items():
+        trade_action: TradeAction = trade_actions[TradeType.SELL][0][1]
         assert symbol == trade_action.symbol
         currency = trade_action.currency
-        capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_action_list, symbol, currency)
-        xlsx_file = Path('resources', 'tmp.xlsx')
-        persist_results(xlsx_file, capital_gain_lines)
+
+        capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_actions, symbol, currency)
+        capital_gain_lines_per_company[symbol] = capital_gain_lines
+
+    xlsx_file = Path('resources', 'tmp.xlsx')
+    persist_results(xlsx_file, capital_gain_lines)
 
 
 if __name__ == "__main__":
