@@ -13,18 +13,19 @@ def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
     print(path)
 
     trade_actions_per_company: TradeActionsPerCompany = {}
-    trade_actions: TradeActions = {}
     with open(path, 'r') as read_obj:
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
             if row["Date/Time"] != "":
                 company = row["Symbol"]
                 if company in trade_actions_per_company.keys():
-                    trade_actions = trade_actions_per_company[company]
+                    trade_actions: TradeActions = trade_actions_per_company[company]
+                else:
+                    trade_actions: TradeActions = {}
 
                 t = TradeAction(company, row["Date/Time"], row["Currency"], row["Quantity"], row["T. Price"],
                                 row["Comm/Fee"])
-                if t.trade_type in trade_actions:
+                if t.trade_type in trade_actions.keys():
                     trade_action_list: TradeActionList = trade_actions[t.trade_type]
                 else:
                     trade_action_list: TradeActionList = []

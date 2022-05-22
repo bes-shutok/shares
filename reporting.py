@@ -1,4 +1,3 @@
-import csv
 from os import PathLike
 from pathlib import Path
 
@@ -10,15 +9,6 @@ from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
     TradePartsWithinMonth, SortedDateRanges, CapitalGainLineAccumulator, TradeActionsPerCompany, \
     print_month_partitioned_trades, CapitalGainLine, CapitalGainLinesPerCompany
-from decimal import Decimal
-
-
-# Create TradesWithinMonths with Dict sorted by YearMonth
-# Check whether it has sell orders
-# Start creating CapitalGainLines with the earliest sell.
-# find the earliest buy for the sell.
-# Create CapitalGainLine and modify TradesWithinMonths accordingly
-# Repeat from 2nd step
 
 
 def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency: str) -> CapitalGainLines:
@@ -113,6 +103,7 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
                              trade_action.trade_type + " for the trade_action" + str(trade_action))
         year_month = get_year_month(trade_action.date_time)
         trades_within_month: TradePartsWithinMonth = month_partitioned_trades.get(year_month, TradePartsWithinMonth())
+        print("pushing trade action " + str(trade_action))
         trades_within_month.push_trade_part(quantity, trade_action)
         month_partitioned_trades[year_month] = trades_within_month
 
@@ -120,13 +111,12 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
 
 
 # https://openpyxl.readthedocs.io/en/latest/tutorial.html
-def persist_results(path: Union[str, PathLike[str]], capital_gain_lines: CapitalGainLines):
-
+def persist_results(path: Union[str, PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
     first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
                     "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
-                    "Currency", "Sale amount", "Buy amount", "Expenses amount"]
+                    "Symbol", "Currency", "Sale amount", "Buy amount", "Expenses amount"]
     second_header = ["", "", "Month ", "Year", "Amount", "Month ", "Year", "Amount", "Country", "Amount",
-                     "", "", "", "", "", ""]
+                     "", "", "", "", "", "", ""]
 
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -138,17 +128,18 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines: Capital
 
     start_column = 3
     line_number = 3
-    for line in capital_gain_lines:
-
-        worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
-        worksheet.cell(line_number, start_column + 1, line.get_sell_date().year)
-        worksheet.cell(line_number, start_column + 3, line.get_buy_date().get_month_name())
-        worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
-        worksheet.cell(line_number, start_column + 10, line.get_currency())
-        worksheet.cell(line_number, start_column + 11, line.get_sell_amount())
-        worksheet.cell(line_number, start_column + 12, line.get_buy_amount())
-        worksheet.cell(line_number, start_column + 13, line.get_expense_amount())
-        line_number += 1
+    for symbol, capital_gain_lines in capital_gain_lines_per_company.items():
+        for line in capital_gain_lines:
+            worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
+            worksheet.cell(line_number, start_column + 1, line.get_sell_date().year)
+            worksheet.cell(line_number, start_column + 3, line.get_buy_date().get_month_name())
+            worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
+            worksheet.cell(line_number, start_column + 10, symbol)
+            worksheet.cell(line_number, start_column + 11, line.get_currency())
+            worksheet.cell(line_number, start_column + 12, line.get_sell_amount())
+            worksheet.cell(line_number, start_column + 13, line.get_buy_amount())
+            worksheet.cell(line_number, start_column + 14, line.get_expense_amount())
+            line_number += 1
 
     workbook.save(path)
 
@@ -156,9 +147,10 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines: Capital
 def main():
     print("Starting conversion.")
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
-    capital_gain_lines: CapitalGainLines = []
     trade_actions_per_company: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
     for symbol, trade_actions in trade_actions_per_company.items():
+        if len(trade_actions) != 2:
+            continue
         trade_action: TradeAction = trade_actions[TradeType.SELL][0][1]
         assert symbol == trade_action.symbol
         currency = trade_action.currency
@@ -167,7 +159,7 @@ def main():
         capital_gain_lines_per_company[symbol] = capital_gain_lines
 
     xlsx_file = Path('resources', 'tmp.xlsx')
-    persist_results(xlsx_file, capital_gain_lines)
+    persist_results(xlsx_file, capital_gain_lines_per_company)
 
 
 if __name__ == "__main__":

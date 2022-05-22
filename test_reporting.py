@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from reporting import split_by_months
-from supplementary import get_ym_pair, get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades
+from supplementary import get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades
 from test_common_data import sell_action1
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
@@ -11,7 +11,6 @@ date_time1 = datetime.strptime("2021-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time2 = datetime.strptime("2022-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time3 = datetime.strptime("2021-01-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time4 = datetime.strptime("2021-12-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
-test_dict3 = [get_ym_pair(date_time1), get_ym_pair(date_time2), get_ym_pair(date_time3), get_ym_pair(date_time4)]
 test_dict4 = [get_year_month(date_time1), get_year_month(date_time2), get_year_month(date_time3),
               get_year_month(date_time4)]
 test_dict5 = [YearMonth(date_time1), YearMonth(date_time2), YearMonth(date_time3), YearMonth(date_time4)]
@@ -24,8 +23,6 @@ class MyTestCase(unittest.TestCase):
         print(str(sorted(test_dict1)))
         print(str(test_dict2))
         print(str(sorted(test_dict2)))
-        print(str(test_dict3))
-        print(str(sorted(test_dict3)))
         print(str(test_dict4))
         print(str(sorted(test_dict4)))
         print(test_dict5)

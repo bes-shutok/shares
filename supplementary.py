@@ -5,11 +5,6 @@ from enum import Enum
 from typing import Dict, List, Tuple, Optional
 
 
-# noinspection DuplicatedCode
-def get_ym_pair(date_time: datetime):
-    return date_time.strftime("%Y"), date_time.strftime("%B")
-
-
 class YearMonth:
     year: int
     month: int
@@ -204,6 +199,12 @@ class CapitalGainLineAccumulator:
     def __init__(self, symbol: str, currency: str):
         self.__symbol = symbol
         self.__currency = currency
+        self.__sell_date: YearMonth = None
+        self.__sell_counts: List[int] = []
+        self.__sell_trades: List[TradeAction] = []
+        self.__buy_date: YearMonth = None
+        self.__buy_counts: List[int] = []
+        self.__buy_trades: List[TradeAction] = []
 
     def get_symbol(self):
         return self.__symbol
@@ -310,7 +311,7 @@ class TradePartsWithinMonth:
             self.__trades.append(ta)
         else:
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
-                             "[" + str(self.trade_type) + " and " + str(self.year_month) + "] " +
+                             str(self.trade_type) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
     def pop_trade_part(self) -> TradeActionPart:

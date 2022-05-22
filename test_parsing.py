@@ -23,7 +23,6 @@ class MyTestCase(unittest.TestCase):
         xlsx_file = Path('resources', 'capital_gains.xlsx')
         actual_trades: TradeActionsPerCompany = parsing.parse_results(xlsx_file)
         results_source_file = "resources/capital_gains.csv"
-        #complete_trades = reporting.extract_complete_trades(actual_trades)
 
 
 if __name__ == '__main__':

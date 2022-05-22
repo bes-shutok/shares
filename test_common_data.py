@@ -1,7 +1,4 @@
-import datetime
-
-from supplementary import get_year_month, MonthPartitionedTrades, \
-    TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator, TradePartsWithinMonth
+from supplementary import TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator
 
 currency = "USD"
 test_symbol = "BTU"
