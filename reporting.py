@@ -16,6 +16,8 @@ from decimal import Decimal
 # find the earliest buy for the sell.
 # Create CapitalGainLine and modify TradesWithinMonths accordingly
 # Repeat from 2nd step
+
+
 def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency: str) -> CapitalGainLines:
     capital_gain_line_accumulator = CapitalGainLineAccumulator(symbol, currency)
     sale_trade_parts: TradeActionList = trade_actions[TradeType.SELL]
@@ -54,25 +56,12 @@ def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency
         sale_quantity_left = target_quantity
         buy_quantity_left = target_quantity
         iteration_count = 0
-        while sale_quantity_left > 0 and buy_quantity_left > 0:
+        while sale_trade_parts.quantity() > 0 and buy_trade_parts.quantity() > 0:
             print("\ncapital_gain_line aggregation cycle (" + str(iteration_count) + ")")
             iteration_count += 1
 
-            sale_part = sale_trade_parts.pop_trade_part()
-            sale_quantity_left -= sale_part[0]
-            buy_part = buy_trade_parts.pop_trade_part()
-            buy_quantity_left -= buy_part[0]
-            if sale_quantity_left >= 0:
-                capital_gain_line_accumulator.add_trade(sale_part[0], sale_part[1])
-            else:
-                capital_gain_line_accumulator.add_trade(sale_part[0] + sale_quantity_left, sale_part[1])
-                sale_trade_parts.push_trade_part(-sale_quantity_left, sale_part[1])
-            if buy_quantity_left >= 0:
-                capital_gain_line_accumulator.add_trade(buy_part[0], buy_part[1])
-            else:
-                capital_gain_line_accumulator.add_trade(buy_part[0] + buy_quantity_left, buy_part[1])
-                buy_trade_parts.push_trade_part(-buy_quantity_left, buy_part[1])
-
+            extract_trades(sale_quantity_left, sale_trade_parts, capital_gain_line_accumulator)
+            extract_trades(buy_quantity_left, buy_trade_parts, capital_gain_line_accumulator)
             print(capital_gain_line_accumulator)
 
             if sale_trade_parts.count() == 0:
@@ -93,6 +82,18 @@ def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency
     print(capital_gain_lines)
 
     return capital_gain_lines
+
+
+def extract_trades(quantity_left, trade_parts, capital_gain_line_accumulator):
+    while quantity_left > 0:
+        part = trade_parts.pop_trade_part()
+        quantity_left -= part[0]
+        if quantity_left >= 0:
+            capital_gain_line_accumulator.add_trade(part[0], part[1])
+        else:
+            capital_gain_line_accumulator.add_trade(part[0] + quantity_left, part[1])
+            trade_parts.push_trade_part(-quantity_left, part[1])
+            quantity_left = 0
 
 
 def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPartitionedTrades:
