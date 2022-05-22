@@ -2,8 +2,7 @@ import unittest
 from pathlib import Path
 
 import parsing
-from reporting import split_by_months
-from supplementary import TradeActionsPerCompany, TradeType, TradeAction, CapitalGainLineAccumulator
+from supplementary import TradeActionsPerCompany, TradeType
 from test_common_data import simple_trade, test_symbol
 
 

@@ -18,6 +18,9 @@ class YearMonth:
         self.year = date_time.year
         self.month = date_time.month
 
+    def get_month_name(self) -> str:
+        return calendar.month_name[self.month]
+
     def __repr__(self) -> str:
         return "[" + calendar.month_name[self.month] + ", " + str(self.year) + "]"
 
@@ -140,14 +143,14 @@ class CapitalGainLine:
                "\n__buy_counts:" + str(self.__buy_quantities) + "," + \
                "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
 
-    def sold_quantity(self) -> int:
+    def sell_quantity(self) -> int:
         return sum(self.__sell_quantities)
 
-    def bought_quantity(self) -> int:
+    def buy_quantity(self) -> int:
         return sum(self.__buy_quantities)
 
     def validate(self):
-        if self.sold_quantity() != self.bought_quantity():
+        if self.sell_quantity() != self.buy_quantity():
             raise ValueError("Different counts for sales ["
                              + str(self.__sell_quantities) + "] " + " and buys [" + str(self.__buy_quantities) +
                              "] in capital gain line!")
@@ -159,6 +162,35 @@ class CapitalGainLine:
             raise ValueError("Different number of counts ["
                              + str(len(self.__buy_quantities)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
                              "] for buys in capital gain line!")
+
+    def get_sell_date(self) -> YearMonth:
+        return self.__sell_date
+
+    def get_buy_date(self) -> YearMonth:
+        return self.__buy_date
+
+    def get_sell_amount(self) -> str:
+        result = "="
+        for i in range(len(self.__sell_quantities)):
+            result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].price)
+        return result
+
+    def get_buy_amount(self) -> str:
+        result = "="
+        for i in range(len(self.__buy_quantities)):
+            result += "+" + str(self.__buy_quantities[i]) + "*" + str(self.__buy_trades[i].price)
+        return result
+
+    def get_expense_amount(self) -> str:
+        result = "="
+        for i in range(len(self.__sell_quantities)):
+            result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].fee) \
+                      + "/" + str(self.__sell_trades[i].quantity)
+        for i in range(len(self.__buy_quantities)):
+            result += "+" + str(self.__buy_quantities[i]) + "*" + str(self.__buy_trades[i].fee) \
+                      + "/" + str(self.__buy_trades[i].quantity)
+
+        return result
 
 
 class CapitalGainLineAccumulator:

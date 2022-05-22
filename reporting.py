@@ -1,12 +1,15 @@
 import csv
+from os import PathLike
 from pathlib import Path
+
+import openpyxl
+from typing import Union
 
 from parsing import parse_data
 from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
     TradePartsWithinMonth, SortedDateRanges, CapitalGainLineAccumulator, TradeActionsPerCompany, \
     print_month_partitioned_trades, CapitalGainLine
-from datetime import datetime
 from decimal import Decimal
 
 
@@ -116,61 +119,38 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
     return month_partitioned_trades
 
 
-work_dir: str = "E:\\tests"
-source_file = "shares.csv"
-source_path = Path(work_dir, source_file)
-result_file = "trades.csv"
-result_path = Path(work_dir, result_file)
+# https://openpyxl.readthedocs.io/en/latest/tutorial.html
+def persist_results(path: Union[str, PathLike[str]], capital_gain_lines: CapitalGainLines):
 
+    first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
+                    "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
+                    "Currency", "Sale amount", "Buy amount", "Expenses amount"]
+    second_header = ["", "", "Month ", "Year", "Amount", "Month ", "Year", "Amount", "Country", "Amount",
+                     "", "", "", "", "", ""]
 
-def persist_data(trade_actions: {}):
-    print(result_path)
-    trades = {}
-    for k, v in trade_actions.items():
-        actions = trade_actions[k]
-        share_trades = []
-        for action in actions:
-            share_trades.append({"time": action.date_time.date(), "Quantity": str(action.quantity),
-                                 "Price": action.price, "Fee": action.fee})
-        trades[k] = share_trades
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Reporting"
 
-    with open(result_path, 'w+', newline='', encoding='utf-8') as csv_file:
-        csv_columns = ["time", "Quantity", "Price", "Fee"]
-        writer = csv.DictWriter(csv_file, fieldnames=csv_columns)
-        writer.writeheader()
-        for k, v in trades.items():
-            writer.writerows(v)
+    for i in range(len(first_header)):
+        worksheet.cell(1, i + 1, first_header[i])
+        worksheet.cell(2, i + 1, second_header[i])
 
-    csv_file.close()
+    start_column = 3
+    line_number = 3
+    for line in capital_gain_lines:
 
+        worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
+        worksheet.cell(line_number, start_column + 1, line.get_sell_date().year)
+        worksheet.cell(line_number, start_column + 3, line.get_buy_date().get_month_name())
+        worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
+        worksheet.cell(line_number, start_column + 10, line.get_currency())
+        worksheet.cell(line_number, start_column + 11, line.get_sell_amount())
+        worksheet.cell(line_number, start_column + 12, line.get_buy_amount())
+        worksheet.cell(line_number, start_column + 13, line.get_expense_amount())
+        line_number += 1
 
-def vest_on():
-    # operation 0.505060183*80/370
-
-    number = "0.505060183"
-    fee_float = float(number)
-    fee_decimal = Decimal(number)
-    fl = "Float representation: "
-    dl = "Decimal representation: "
-    print("/n")
-    print(fl + str(fee_float))
-    print(fl + str(fee_float * 80 / 370))
-    print(dl + str(fee_decimal))
-    print(dl + str(fee_decimal * 80 / 370))
-
-
-def get_sell_actions(trade_actions):
-    print("Get sell actions")
-    sell_actions_by_symbol = {}
-    sell_actions_by_year = {}
-    for k, v in trade_actions.items():
-        for action in v:
-            action.print()
-            if action.trade_type == TradeType.SELL:
-                sell_actions_by_month = sell_actions_by_year[action.year_month_pair.year]
-                sell_actions = sell_actions_by_month[action.year_month_pair.year]
-                sell_actions.append(action)
-    return sell_actions_by_symbol
+    workbook.save(path)
 
 
 def main():
@@ -180,10 +160,9 @@ def main():
         trade_action: TradeAction = trade_action_list[TradeType.SELL][0][1]
         assert symbol == trade_action.symbol
         currency = trade_action.currency
-        capital_gains_for_company(trade_action_list, symbol, currency)
-    # sell_actions = get_sell_actions(trade_actions)
-    # persist_data(trade_actions)
-    # test()
+        capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_action_list, symbol, currency)
+        xlsx_file = Path('resources', 'tmp.xlsx')
+        persist_results(xlsx_file, capital_gain_lines)
 
 
 if __name__ == "__main__":
