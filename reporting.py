@@ -1,3 +1,4 @@
+from decimal import Decimal
 from os import PathLike
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency
         print("buy_trade_parts")
         print(buy_trade_parts)
 
-        target_quantity: int = min(buy_trade_parts.quantity(), sale_trade_parts.quantity())
+        target_quantity: Decimal = min(buy_trade_parts.quantity(), sale_trade_parts.quantity())
         sale_quantity_left = target_quantity
         buy_quantity_left = target_quantity
         iteration_count = 0
@@ -128,14 +129,17 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines_per_comp
 
     start_column = 3
     line_number = 3
-    for symbol, capital_gain_lines in capital_gain_lines_per_company.items():
+    for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
+        currency = currency_company[0]
+        symbol = currency_company[1]
         for line in capital_gain_lines:
+            assert currency == line.get_currency()
             worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
             worksheet.cell(line_number, start_column + 1, line.get_sell_date().year)
             worksheet.cell(line_number, start_column + 3, line.get_buy_date().get_month_name())
             worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
             worksheet.cell(line_number, start_column + 10, symbol)
-            worksheet.cell(line_number, start_column + 11, line.get_currency())
+            worksheet.cell(line_number, start_column + 11, currency)
             worksheet.cell(line_number, start_column + 12, line.get_sell_amount())
             worksheet.cell(line_number, start_column + 13, line.get_buy_amount())
             worksheet.cell(line_number, start_column + 14, line.get_expense_amount())
@@ -148,15 +152,17 @@ def main():
     print("Starting conversion.")
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
     trade_actions_per_company: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
-    for symbol, trade_actions in trade_actions_per_company.items():
+    for company_currency, trade_actions in trade_actions_per_company.items():
+        currency = company_currency[0]
+        symbol = company_currency[1]
         if len(trade_actions) != 2:
             continue
         trade_action: TradeAction = trade_actions[TradeType.SELL][0][1]
         assert symbol == trade_action.symbol
-        currency = trade_action.currency
+        assert currency == trade_action.currency
 
         capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_actions, symbol, currency)
-        capital_gain_lines_per_company[symbol] = capital_gain_lines
+        capital_gain_lines_per_company[(currency, symbol)] = capital_gain_lines
 
     xlsx_file = Path('resources', 'tmp.xlsx')
     persist_results(xlsx_file, capital_gain_lines_per_company)

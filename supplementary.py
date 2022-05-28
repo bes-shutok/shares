@@ -48,16 +48,17 @@ class TradeType(Enum):
 
 
 class TradeAction:
-    def __init__(self, symbol, date_time, currency, quantity, price, fee):
+    def __init__(self, symbol, date_time, currency, quantity: str, price, fee):
+        quantity = quantity.replace(",", "")
         self.symbol = symbol
         self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
         self.currency = currency
-        if int(quantity) < 0:
+        if Decimal(quantity) < 0:
             self.trade_type = TradeType.SELL
-            self.quantity = -int(quantity)
+            self.quantity = -Decimal(quantity)
         else:
             self.trade_type = TradeType.BUY
-            self.quantity = int(quantity)
+            self.quantity = Decimal(quantity)
 
         self.price = Decimal(price)
         self.fee = Decimal(fee).copy_abs()
@@ -89,23 +90,24 @@ class TradeAction:
             print("Sold " + postfix)
 
 
-TradeActionPart = Tuple[int, TradeAction]
+TradeActionPart = Tuple[Decimal, TradeAction]
 TradeActionList = List[TradeActionPart]
 TradeActions = Dict[TradeType, TradeActionList]
-TradeActionsPerCompany = Dict[str, TradeActions]
+CurrencyCompany = Tuple[str, str]
+TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
 
 
 class CapitalGainLine:
     __sell_date: YearMonth = None
-    __sell_quantities: List[int]
+    __sell_quantities: List[Decimal]
     __sell_trades: List[TradeAction]
     __buy_date: YearMonth = None
-    __buy_quantities: List[int]
+    __buy_quantities: List[Decimal]
     __buy_trades: List[TradeAction]
 
     def __init__(self, symbol: str, currency: str,
-                 sell_date: YearMonth, sell_quantities: List[int], sell_trades: List[TradeAction],
-                 buy_date: YearMonth, buy_quantities: List[int], buy_trades: List[TradeAction]):
+                 sell_date: YearMonth, sell_quantities: List[Decimal], sell_trades: List[TradeAction],
+                 buy_date: YearMonth, buy_quantities: List[Decimal], buy_trades: List[TradeAction]):
         assert symbol
         self.__symbol = symbol
         assert currency
@@ -138,10 +140,10 @@ class CapitalGainLine:
                "\n__buy_counts:" + str(self.__buy_quantities) + "," + \
                "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
 
-    def sell_quantity(self) -> int:
+    def sell_quantity(self) -> Decimal:
         return sum(self.__sell_quantities)
 
-    def buy_quantity(self) -> int:
+    def buy_quantity(self) -> Decimal:
         return sum(self.__buy_quantities)
 
     def validate(self):
@@ -190,20 +192,20 @@ class CapitalGainLine:
 
 class CapitalGainLineAccumulator:
     __sell_date: YearMonth = None
-    __sell_counts: List[int] = []
+    __sell_counts: List[Decimal] = []
     __sell_trades: List[TradeAction] = []
     __buy_date: YearMonth = None
-    __buy_counts: List[int] = []
+    __buy_counts: List[Decimal] = []
     __buy_trades: List[TradeAction] = []
 
     def __init__(self, symbol: str, currency: str):
         self.__symbol = symbol
         self.__currency = currency
-        self.__sell_date: YearMonth = None
-        self.__sell_counts: List[int] = []
+        self.__sell_date: YearMonth
+        self.__sell_counts: List[Decimal] = []
         self.__sell_trades: List[TradeAction] = []
-        self.__buy_date: YearMonth = None
-        self.__buy_counts: List[int] = []
+        self.__buy_date: YearMonth
+        self.__buy_counts: List[Decimal] = []
         self.__buy_trades: List[TradeAction] = []
 
     def get_symbol(self):
@@ -220,7 +222,7 @@ class CapitalGainLineAccumulator:
                "\n__buy_counts:" + str(self.__buy_counts) + "," + \
                "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
 
-    def add_trade(self, count: int, ta: TradeAction):
+    def add_trade(self, count: Decimal, ta: TradeAction):
         year_month = YearMonth(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.__sell_date is None:
@@ -244,23 +246,24 @@ class CapitalGainLineAccumulator:
             self.__buy_counts.append(count)
             self.__buy_trades.append(ta)
 
-    def sold_quantity(self) -> int:
+    def sold_quantity(self) -> Decimal:
         return sum(self.__sell_counts)
 
-    def bought_quantity(self) -> int:
+    def bought_quantity(self) -> Decimal:
         return sum(self.__buy_counts)
 
+    # noinspection PyTypeChecker
     def finalize(self) -> CapitalGainLine:
         self.validate()
         result = CapitalGainLine(self.__symbol, self.__currency,
                                  self.__sell_date, self.__sell_counts, self.__sell_trades,
                                  self.__buy_date, self.__buy_counts, self.__buy_trades)
-        self.__sell_date: YearMonth = None
-        self.__sell_counts: List[int] = []
-        self.__sell_trades: List[TradeAction] = []
-        self.__buy_date: YearMonth = None
-        self.__buy_counts: List[int] = []
-        self.__buy_trades: List[TradeAction] = []
+        self.__sell_date = None
+        self.__sell_counts = []
+        self.__sell_trades = []
+        self.__buy_date = None
+        self.__buy_counts = []
+        self.__buy_trades = []
         return result
 
     def validate(self):
@@ -281,7 +284,7 @@ class CapitalGainLineAccumulator:
 
 
 CapitalGainLines = List[CapitalGainLine]
-CapitalGainLinesPerCompany = Dict[str, CapitalGainLines]
+CapitalGainLinesPerCompany = Dict[CurrencyCompany, CapitalGainLines]
 
 
 class TradePartsWithinMonth:
@@ -292,10 +295,10 @@ class TradePartsWithinMonth:
         self.year_month: Optional[YearMonth] = None
         self.trade_type: Optional[TradeType] = None
         self.__dates: List[datetime] = []
-        self.__quantities: List[int] = []
+        self.__quantities: List[Decimal] = []
         self.__trades: List[TradeAction] = []
 
-    def push_trade_part(self, quantity: int, ta: TradeAction):
+    def push_trade_part(self, quantity: Decimal, ta: TradeAction):
         assert quantity > 0
         assert ta is not None
         if self.symbol is None:
@@ -310,8 +313,9 @@ class TradePartsWithinMonth:
             self.__quantities.append(quantity)
             self.__trades.append(ta)
         else:
+            print(str(quantity))
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
-                             str(self.trade_type) + " and " + str(self.year_month) + "] " +
+                             str(self.trade_type) + " " + str(self.quantity) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
     def pop_trade_part(self) -> TradeActionPart:
@@ -319,7 +323,7 @@ class TradePartsWithinMonth:
         self.__dates.pop(idx)
         return self.__quantities.pop(idx), self.__trades.pop(idx)
 
-    def get_top_count(self) -> int:
+    def get_top_count(self) -> Decimal:
         idx: int = self.__get_top_index()
         return self.__quantities[idx]
 
@@ -334,7 +338,7 @@ class TradePartsWithinMonth:
     def is_not_empty(self) -> bool:
         return self.count() > 0
 
-    def quantity(self) -> int:
+    def quantity(self) -> Decimal:
         return sum(self.__quantities)
 
     def count(self) -> int:
