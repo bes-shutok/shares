@@ -1,8 +1,10 @@
 import unittest
+import pandas as pd
 from datetime import datetime
 
-from reporting import split_by_months
-from supplementary import get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades
+from reporting import split_by_months, create_extract
+from supplementary import get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, \
+    safe_remove_file
 from test_common_data import sell_action1
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
@@ -38,6 +40,46 @@ class MyTestCase(unittest.TestCase):
         actual: MonthPartitionedTrades = split_by_months([(1, sell_action1)], TradeType.SELL)
         print(actual)
         self.assertEqual(actual, month_partitioned_trades1)
+
+    # https://kanoki.org/2019/02/26/compare-two-excel-files-for-difference-using-python/
+    def test_sorting(self):
+        from pathlib import Path
+
+        expected = Path('resources/test', 'extract.xlsx')
+        source = Path('resources/test', 'shares.csv')
+        destination = Path('resources/test', 'tmp.xlsx')
+        destination2 = Path('resources/test', 'tmp2.xlsx')
+
+        safe_remove_file(destination)
+        safe_remove_file(destination2)
+        create_extract(source, destination)
+
+        from openpyxl import load_workbook
+        wb1 = load_workbook(expected, data_only=True)
+        wb2 = load_workbook(destination, data_only=True)
+        df1 = pd.DataFrame(wb1.active.values)
+        df2 = pd.DataFrame(wb2.active.values)
+
+        wb1.save(destination2)
+
+        columns = pd.read_excel(expected,
+                                nrows=0,  # Read 0 rows, assuming headers are at row 0
+                                ).columns
+        str_converter = {col: str for col in columns}  # Convert all fields to strings
+        df1 = pd.read_excel(destination, converters=str_converter)
+        df2 = pd.read_excel(expected, converters=str_converter)
+
+
+
+        wb1.save(destination2)
+        from pandas import DataFrame
+        df1 = DataFrame(wb1.active.values)
+        df2 = DataFrame(wb2.active.values)
+
+        # os.remove(destination)
+        comparison_values = df1.values == df2.values
+        print(comparison_values)
+        self.assertTrue(df1.equals(df2))
 
 
 if __name__ == '__main__':

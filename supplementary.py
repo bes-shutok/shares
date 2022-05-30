@@ -1,8 +1,10 @@
 import calendar
+import os
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Tuple, Optional
+from os import PathLike
+from typing import Dict, List, Tuple, Optional, Union
 
 
 class YearMonth:
@@ -369,3 +371,8 @@ def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTra
 
 SortedDateRanges = List[YearMonth]
 PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
+
+
+def safe_remove_file(path: Union[str, PathLike[str]]):
+    if os.path.exists(path):
+        os.remove(path)

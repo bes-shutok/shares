@@ -11,6 +11,12 @@ from supplementary import TradeType, TradeAction, \
     TradePartsWithinMonth, SortedDateRanges, CapitalGainLineAccumulator, TradeActionsPerCompany, \
     print_month_partitioned_trades, CapitalGainLine, CapitalGainLinesPerCompany
 
+first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
+                "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
+                "Symbol", "Currency", "Sale amount", "Buy amount", "Expenses amount"]
+second_header = ["", "", "Month ", "Year", "Amount", "Month ", "Year", "Amount", "Country", "Amount",
+                 "", "", "", "", "", "", ""]
+
 
 def capital_gains_for_company(trade_actions: TradeActions, symbol: str, currency: str) -> CapitalGainLines:
     capital_gain_line_accumulator = CapitalGainLineAccumulator(symbol, currency)
@@ -113,12 +119,7 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
 
 # https://openpyxl.readthedocs.io/en/latest/tutorial.html
 def persist_results(path: Union[str, PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
-    first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
-                    "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
-                    "Symbol", "Currency", "Sale amount", "Buy amount", "Expenses amount"]
-    second_header = ["", "", "Month ", "Year", "Amount", "Month ", "Year", "Amount", "Country", "Amount",
-                     "", "", "", "", "", "", ""]
-
+    number_format = '0.000000'
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Reporting"
@@ -140,18 +141,31 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines_per_comp
             worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
             worksheet.cell(line_number, start_column + 10, symbol)
             worksheet.cell(line_number, start_column + 11, currency)
-            worksheet.cell(line_number, start_column + 12, line.get_sell_amount())
-            worksheet.cell(line_number, start_column + 13, line.get_buy_amount())
-            worksheet.cell(line_number, start_column + 14, line.get_expense_amount())
+            worksheet.cell(line_number, start_column + 12, line.get_sell_amount()).number_format = number_format
+            worksheet.cell(line_number, start_column + 13, line.get_buy_amount()).number_format = number_format
+            worksheet.cell(line_number, start_column + 14, line.get_expense_amount()).number_format = number_format
             line_number += 1
 
+    for col in worksheet.columns:
+        max_length = 0
+        column = col[0].column_letter  # Get the column name
+        for cell in col:
+            try:  # Necessary to avoid error on empty cells
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2) * 1.2
+        worksheet.column_dimensions[column].width = adjusted_width
+
     workbook.save(path)
+    workbook.close()
 
 
-def main():
-    print("Starting conversion.")
+def create_extract(source: Union[str, PathLike[str]], destination: Union[str, PathLike[str]]):
+    print("Starting conversion from " + str(source) + " to " + str(destination))
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
-    trade_actions_per_company: TradeActionsPerCompany = parse_data(Path('resources', 'shares.csv'))
+    trade_actions_per_company: TradeActionsPerCompany = parse_data(source)
     for company_currency, trade_actions in trade_actions_per_company.items():
         currency = company_currency[0]
         symbol = company_currency[1]
@@ -164,8 +178,11 @@ def main():
         capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_actions, symbol, currency)
         capital_gain_lines_per_company[(currency, symbol)] = capital_gain_lines
 
-    xlsx_file = Path('resources', 'tmp.xlsx')
-    persist_results(xlsx_file, capital_gain_lines_per_company)
+    persist_results(destination, capital_gain_lines_per_company)
+
+
+def main():
+    create_extract(Path('resources', 'shares.csv'), Path('resources', 'tmp.xlsx'))
 
 
 if __name__ == "__main__":
