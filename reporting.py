@@ -135,28 +135,32 @@ def persist_results(path: Union[str, PathLike[str]], capital_gain_lines_per_comp
         symbol = currency_company[1]
         for line in capital_gain_lines:
             assert currency == line.get_currency()
-            worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
-            worksheet.cell(line_number, start_column + 1, line.get_sell_date().year)
-            worksheet.cell(line_number, start_column + 3, line.get_buy_date().get_month_name())
-            worksheet.cell(line_number, start_column + 4, line.get_buy_date().year)
-            worksheet.cell(line_number, start_column + 10, symbol)
-            worksheet.cell(line_number, start_column + 11, currency)
-            worksheet.cell(line_number, start_column + 12, line.get_sell_amount()).number_format = number_format
-            worksheet.cell(line_number, start_column + 13, line.get_buy_amount()).number_format = number_format
-            worksheet.cell(line_number, start_column + 14, line.get_expense_amount()).number_format = number_format
+            idx = start_column
+            c = worksheet.cell(line_number, start_column, line.get_sell_date().get_month_name())
+            idx += 1
+            c = worksheet.cell(line_number, idx, line.get_sell_date().year)
+            idx += 2
+            c = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
+            idx += 1
+            c = worksheet.cell(line_number, idx, line.get_buy_date().year)
+            idx += 6
+            c = worksheet.cell(line_number, start_column + 10, symbol)
+            idx += 1
+            c = worksheet.cell(line_number, start_column + 11, currency)
+            idx += 1
+            c = worksheet.cell(line_number, start_column + 12, line.get_sell_amount())
+            c.number_format = number_format
+            idx += 1
+            c = worksheet.cell(line_number, start_column + 13, line.get_buy_amount())
+            c.number_format = number_format
+            idx += 1
+            c = worksheet.cell(line_number, start_column + 14, line.get_expense_amount())
+            c.number_format = number_format
             line_number += 1
 
-    for col in worksheet.columns:
-        max_length = 0
-        column = col[0].column_letter  # Get the column name
-        for cell in col:
-            try:  # Necessary to avoid error on empty cells
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2) * 1.2
-        worksheet.column_dimensions[column].width = adjusted_width
+    for column_cells in worksheet.columns:
+        length = max(len(str(cell.value)) for cell in column_cells)
+        worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
 
     workbook.save(path)
     workbook.close()
