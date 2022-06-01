@@ -9,7 +9,7 @@ from parsing import parse_data
 from supplementary import TradeType, TradeAction, \
     TradeActions, CapitalGainLines, TradeActionList, get_year_month, MonthPartitionedTrades, \
     TradePartsWithinMonth, SortedDateRanges, CapitalGainLineAccumulator, TradeActionsPerCompany, \
-    print_month_partitioned_trades, CapitalGainLine, CapitalGainLinesPerCompany
+    print_month_partitioned_trades, CapitalGainLine, CapitalGainLinesPerCompany, safe_remove_file
 
 first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
                 "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
@@ -186,7 +186,9 @@ def create_extract(source: Union[str, PathLike[str]], destination: Union[str, Pa
 
 
 def main():
-    create_extract(Path('resources', 'shares.csv'), Path('resources', 'tmp.xlsx'))
+    destination = Path('resources', 'extract.xlsx')
+    safe_remove_file(destination)
+    create_extract(Path('resources', 'shares.csv'), destination)
 
 
 if __name__ == "__main__":

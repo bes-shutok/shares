@@ -1,5 +1,4 @@
 import unittest
-import pandas as pd
 from datetime import datetime
 
 from reporting import split_by_months, create_extract
@@ -41,7 +40,7 @@ class MyTestCase(unittest.TestCase):
         print(actual)
         self.assertEqual(actual, month_partitioned_trades1)
 
-    # https://kanoki.org/2019/02/26/compare-two-excel-files-for-difference-using-python/
+    # https://stackoverflow.com/questions/52089716/comparing-two-excel-files-using-openpyxl
     def test_sorting(self):
         from pathlib import Path
 
@@ -55,31 +54,36 @@ class MyTestCase(unittest.TestCase):
         create_extract(source, destination)
 
         from openpyxl import load_workbook
-        wb1 = load_workbook(expected, data_only=True)
-        wb2 = load_workbook(destination, data_only=True)
-        df1 = pd.DataFrame(wb1.active.values)
-        df2 = pd.DataFrame(wb2.active.values)
+        workbook1 = load_workbook(expected, data_only=False)
+        workbook2 = load_workbook(destination, data_only=False)
 
-        wb1.save(destination2)
+        sheet1 = workbook1.active
+        sheet2 = workbook2.active
+        self.assertEqual(sheet1.title, sheet2.title)
 
-        columns = pd.read_excel(expected,
-                                nrows=0,  # Read 0 rows, assuming headers are at row 0
-                                ).columns
-        str_converter = {col: str for col in columns}  # Convert all fields to strings
-        df1 = pd.read_excel(destination, converters=str_converter)
-        df2 = pd.read_excel(expected, converters=str_converter)
+        min_row1: int = sheet1.min_row
+        min_row2: int = sheet2.min_row
+        self.assertEqual(min_row1, min_row2)
 
+        max_row1: int = sheet1.max_row
+        max_row2: int = sheet2.max_row
+        self.assertEqual(max_row1, max_row2)
 
+        min_column1: int = sheet1.min_column
+        min_column2: int = sheet2.min_column
+        self.assertEqual(min_column1, min_column2)
 
-        wb1.save(destination2)
-        from pandas import DataFrame
-        df1 = DataFrame(wb1.active.values)
-        df2 = DataFrame(wb2.active.values)
+        max_column1: int = sheet1.max_column
+        max_column2: int = sheet2.max_column
+        self.assertEqual(max_column1, max_column2)
 
-        # os.remove(destination)
-        comparison_values = df1.values == df2.values
-        print(comparison_values)
-        self.assertTrue(df1.equals(df2))
+        for i in range(min_row1, max_row1):
+            for j in range(min_column1, max_column1):
+                expected = sheet1.cell(i, j).value
+                actual = sheet2.cell(i, j).value
+                self.assertEqual(expected, actual,
+                                 "Values at row " + str(i) + " and column " + str(j) + " differs:\n" +
+                                 str(expected) + " expected and\n" + str(actual) + " actual\n")
 
 
 if __name__ == '__main__':

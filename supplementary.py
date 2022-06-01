@@ -169,19 +169,19 @@ class CapitalGainLine:
         return self.__buy_date
 
     def get_sell_amount(self) -> str:
-        result = "="
+        result = "=0"
         for i in range(len(self.__sell_quantities)):
             result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].price)
         return result
 
     def get_buy_amount(self) -> str:
-        result = "="
+        result = "=0"
         for i in range(len(self.__buy_quantities)):
             result += "+" + str(self.__buy_quantities[i]) + "*" + str(self.__buy_trades[i].price)
         return result
 
     def get_expense_amount(self) -> str:
-        result = "="
+        result = "=0"
         for i in range(len(self.__sell_quantities)):
             result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].fee) \
                       + "/" + str(self.__sell_trades[i].quantity)
