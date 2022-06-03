@@ -41,16 +41,14 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(actual, month_partitioned_trades1)
 
     # https://stackoverflow.com/questions/52089716/comparing-two-excel-files-using-openpyxl
-    def test_sorting(self):
+    def test_reporting(self):
         from pathlib import Path
 
-        expected = Path('resources/test', 'extract.xlsx')
-        source = Path('resources/test', 'shares.csv')
-        destination = Path('resources/test', 'tmp.xlsx')
-        destination2 = Path('resources/test', 'tmp2.xlsx')
+        expected = Path('./resources', 'extract.xlsx')
+        source = Path('./resources', 'shares.csv')
+        destination = Path('./resources', 'tmp.xlsx')
 
         safe_remove_file(destination)
-        safe_remove_file(destination2)
         create_extract(source, destination)
 
         from openpyxl import load_workbook

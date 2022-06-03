@@ -353,7 +353,7 @@ class TradePartsWithinMonth:
                "\ntrades:" + str(self.__trades) + "}"
 
     def __eq__(self, other):
-        return self.symbol == other.__symbol and self.currency == other.__currency and \
+        return self.symbol == other.symbol and self.currency == other.currency and \
                self.year_month == other.year_month and self.trade_type == other.trade_type and \
                self.__quantities == other.__quantities and self.__trades == other.__trades
 
