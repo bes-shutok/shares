@@ -1,7 +1,7 @@
 from decimal import Decimal
 from domain import TradeType, TradeAction, TradeActions, CapitalGainLines, TradeActionList, \
-    get_year_month, MonthPartitionedTrades, TradePartsWithinMonth, SortedDateRanges, \
-    CapitalGainLineAccumulator, CapitalGainLine, TradeActionsPerCompany, CapitalGainLinesPerCompany
+    MonthPartitionedTrades, TradePartsWithinMonth, SortedDateRanges, \
+    CapitalGainLineAccumulator, CapitalGainLine, TradeActionsPerCompany, CapitalGainLinesPerCompany, YearMonth
 
 
 def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):
@@ -102,7 +102,7 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
         if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
             raise ValueError("Incompatible trade types! Got " + str(trade_type) + "for expected output and " +
                              trade_action.trade_type + " for the trade_action" + str(trade_action))
-        year_month = get_year_month(trade_action.date_time)
+        year_month = YearMonth(trade_action.date_time)
         trades_within_month: TradePartsWithinMonth = month_partitioned_trades.get(year_month, TradePartsWithinMonth())
         print("pushing trade action " + str(trade_action))
         trades_within_month.push_trade_part(quantity, trade_action)

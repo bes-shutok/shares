@@ -1,10 +1,12 @@
 import calendar
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, NamedTuple, TypedDict
 
 
+@dataclass
 class YearMonth:
     year: int
     month: int
@@ -37,16 +39,12 @@ class YearMonth:
         return hash(self.__repr__())
 
 
-# noinspection DuplicatedCode
-def get_year_month(date_time: datetime) -> YearMonth:
-    return YearMonth(date_time)
-
-
 class TradeType(Enum):
     BUY = 1
     SELL = 2
 
 
+@dataclass
 class TradeAction:
     def __init__(self, symbol, date_time, currency, quantity: str, price, fee):
         quantity = quantity.replace(",", "")
@@ -64,9 +62,9 @@ class TradeAction:
         self.fee = Decimal(fee).copy_abs()
 
     def __eq__(self, other):
-        return self.symbol == other.__symbol and \
+        return self.symbol == other.symbol and \
                self.date_time == other.date_time and \
-               self.currency == other.__currency and \
+               self.currency == other.currency and \
                self.quantity == other.quantity and \
                self.price == other.price and \
                self.fee == other.fee
@@ -90,18 +88,29 @@ class TradeAction:
             print("Sold " + postfix)
 
 
-TradeActionPart = Tuple[Decimal, TradeAction]
+class TradeActionPart(NamedTuple):
+    quantity: Decimal
+    action: TradeAction
+
+
 TradeActionList = List[TradeActionPart]
 TradeActions = Dict[TradeType, TradeActionList]
-CurrencyCompany = Tuple[str, str]
+
+
+class CurrencyCompany(NamedTuple):
+    currency: str
+    company: str
+
+
 TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
 
 
+@dataclass
 class CapitalGainLine:
-    __sell_date: YearMonth = None
+    __sell_date: YearMonth
     __sell_quantities: List[Decimal]
     __sell_trades: List[TradeAction]
-    __buy_date: YearMonth = None
+    __buy_date: YearMonth
     __buy_quantities: List[Decimal]
     __buy_trades: List[TradeAction]
 
@@ -149,16 +158,16 @@ class CapitalGainLine:
     def validate(self):
         if self.sell_quantity() != self.buy_quantity():
             raise ValueError("Different counts for sales ["
-                             + str(self.__sell_quantities) + "] " + " and buys [" + str(self.__buy_quantities) +
-                             "] in capital gain line!")
+                             + str(self.__sell_quantities) + "] " + " and buys [" +
+                             str(self.__buy_quantities) + "] in capital gain line!")
         if len(self.__sell_quantities) != len(self.__sell_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__sell_quantities)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
-                             "] for sales in capital gain line!")
+                             + str(len(self.__sell_quantities)) + "] " + " and trades [" +
+                             str(len(self.__sell_trades)) + "] for sales in capital gain line!")
         if len(self.__buy_quantities) != len(self.__buy_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__buy_quantities)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
-                             "] for buys in capital gain line!")
+                             + str(len(self.__buy_quantities)) + "] " + " and trades [" +
+                             str(len(self.__buy_trades)) + "] for buys in capital gain line!")
 
     def get_sell_date(self) -> YearMonth:
         return self.__sell_date
@@ -288,6 +297,7 @@ CapitalGainLinesPerCompany = Dict[CurrencyCompany, CapitalGainLines]
 SortedDateRanges = List[YearMonth]
 
 
+@dataclass
 class TradePartsWithinMonth:
 
     def __init__(self):
@@ -306,10 +316,10 @@ class TradePartsWithinMonth:
             self.symbol = ta.symbol
             self.currency = ta.currency
             self.trade_type = ta.trade_type
-            self.year_month = get_year_month(ta.date_time)
+            self.year_month = YearMonth(ta.date_time)
 
         if self.symbol == ta.symbol and self.currency == ta.currency \
-                and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
+                and self.trade_type == ta.trade_type and self.year_month == YearMonth(ta.date_time):
             self.__dates.append(ta.date_time)
             self.__quantities.append(quantity)
             self.__trades.append(ta)
@@ -322,7 +332,7 @@ class TradePartsWithinMonth:
     def pop_trade_part(self) -> TradeActionPart:
         idx: int = self.__get_top_index()
         self.__dates.pop(idx)
-        return self.__quantities.pop(idx), self.__trades.pop(idx)
+        return TradeActionPart(quantity=self.__quantities.pop(idx), action=self.__trades.pop(idx))
 
     def get_top_count(self) -> Decimal:
         idx: int = self.__get_top_index()

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typing import Union
 
-from domain import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList
+from domain import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList, CurrencyCompany
 
 
 def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
@@ -17,7 +17,7 @@ def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
             if row["Date/Time"] != "":
                 company = row["Symbol"]
                 currency = row["Currency"]
-                currency_company = (currency, company)
+                currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
                 if currency_company in trade_actions_per_company.keys():
                     trade_actions: TradeActions = trade_actions_per_company[currency_company]
                 else:
