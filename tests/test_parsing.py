@@ -1,8 +1,8 @@
 import unittest
 from pathlib import Path
 
-import parsing
-from supplementary import TradeType
+import persisting
+from domain import TradeType
 from test_common_data import simple_trade, test_symbol
 
 

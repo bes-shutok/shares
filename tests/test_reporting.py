@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from reporting import split_by_months, create_extract
-from supplementary import get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, \
+from domain import get_year_month, YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, \
     safe_remove_file
 from test_common_data import sell_action1
 

@@ -1,4 +1,4 @@
-from supplementary import TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator
+from domain import TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator
 
 currency = "USD"
 test_symbol = "BTU"

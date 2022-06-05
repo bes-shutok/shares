@@ -1,10 +1,8 @@
 import calendar
-import os
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from os import PathLike
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional
 
 
 class YearMonth:
@@ -287,6 +285,7 @@ class CapitalGainLineAccumulator:
 
 CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[CurrencyCompany, CapitalGainLines]
+SortedDateRanges = List[YearMonth]
 
 
 class TradePartsWithinMonth:
@@ -359,20 +358,4 @@ class TradePartsWithinMonth:
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]
-
-
-def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):
-    print("MonthPartitionedTrades{")
-    keys = sorted(month_partitioned_trades.keys())
-    for key in keys:
-        print(str(key) + " : " + str(month_partitioned_trades[key]))
-    print("}")
-
-
-SortedDateRanges = List[YearMonth]
 PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
-
-
-def safe_remove_file(path: Union[str, PathLike[str]]):
-    if os.path.exists(path):
-        os.remove(path)
