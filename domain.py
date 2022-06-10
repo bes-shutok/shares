@@ -369,3 +369,11 @@ class TradePartsWithinMonth:
 
 MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]
 PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
+
+
+class CurrencyToCoordinate(NamedTuple):
+    currency: str
+    coordinate: str
+
+
+CurrencyToCoordinates = List[CurrencyToCoordinate]
