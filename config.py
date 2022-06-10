@@ -34,7 +34,7 @@ def create_config():
 def read_config() -> Config:
     config = configparser.ConfigParser()
     config.optionxform = str
-    config.read('config.ini')
+    config.read('../config.ini')
 
     target: str = config["COMMON"]["TARGET CURRENCY"]
     rates: List[ConversionRate] = []
