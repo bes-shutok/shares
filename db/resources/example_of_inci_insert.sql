@@ -1,7 +1,22 @@
-insert into inci(inci, cas, ec, refs)
-values 
-       ('2,4-DIMETHYLPYRIDINE', '{"108-47-4"}'::text[], '{"203-586-8"}'::text[], null),
-       ('METHOXYETHANOL', '{"109-86-4"}'::text[], '{"203-713-7"}'::text[], '{"II/665", "CMR1b (Reprotoxic 1B)"}'::text[]),
-       ('MALUS DOMESTICA FRUIT WATER', '{"89957-48-2"}'::text[], '{"289-567-5"}'::text[], null),
-       ('BUTYLENE GLYCOL', '{"107-88-0", "6290-03-5"}'::text[], '{"203-529-7", "228-532-0"}'::text[], null),
-       ('ETHYLHEXYLGLYCERIN', '{"70445-33-9"}'::text[], '{"408-080-2"}'::text[], null);
+insert into covalo.inci(inci, cas, ec, refs)
+values
+       ('ISOOCTANOYL TETRAPEPTIDE-25', null, null, null),
+       ('LACTOBACILLUS/GERMINATED SOYBEAN FERMENT FILTRATE', null, null, null),
+       ('METHOXYETHANOL', '{"109-86-4"}', '{"203-713-7"}', '{"II/665", "CMR1b (Reprotoxic 1B)"}'),
+       ('MYRISTOYL GLYCINE/HISTIDINE/LYSINE POLYPEPTIDE', null, null, null),
+       ('2,4-DIMETHYLHEPTA-2,2-DIENAL', '{"85136-08-9"}', '{"285-731-5"}', null),
+       ('2,4-DIMETHYLPYRIDINE', '{"108-47-4"}', '{"203-586-8"}', null),
+       ('2,4-Dinitrophenol', '{"51-28-5"}', '{"200-087-7"}', '{"II/151"}'),
+       ('BUTYLENE CARBONATE', '{"4437-85-8"}', null, null),
+       ('BUTYLENE GLYCOL', '{"107-88-0", "6290-03-5"}', '{"203-529-7", "228-532-0"}', null),
+       ('BUTYLENE GLYCOL BEHENATE', null, null, null),
+       ('ETHYLHEXYLBICYCLOHEPTENE DICARBOXIMIDE', '{"113-48-4"}', '{"204-029-1"}', null),
+       ('ETHYLHEXYLGLYCERIN', '{"70445-33-9"}', '{"408-080-2"}', null),
+       ('ETHYLHEXYLGLYCERYL BEHENATE', '{"66486-85-9"}', '{"266-379-1"}', null),
+       ('ETHYLHEXYLGLYCERYL PALMITATE', null, null, null),
+       ('ETHYLHEXYLOXYGLYCERYL PALMITATE', '{"53890-13-4"}', '{"258-841-6"}', null),
+       ('MALUS DOMESTICA FRUIT CELL CULTURE EXTRACT', null, null, null),
+       ('MALUS DOMESTICA FRUIT EXTRACT', null, null, null),
+       ('MALUS DOMESTICA FRUIT WATER', '{"89957-48-2"}', '{"289-567-5"}', null),
+       ('MALUS SYLVESTRIS FLOWER EXTRACT', '{"85251-63-4"}', '{"286-475-7"}', null),
+       ('MALUS TORINGO LEAF EXTRACT', null, null, null);
