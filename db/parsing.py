@@ -2,37 +2,42 @@ import csv
 import re
 from pathlib import Path
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Set
 
-from domain import InciRecord
+from domain import InciRecord, CasNumber, EcNumber, AnnexRef
 
 
-def parse_cas(source_str: str) -> Optional[List[str]]:
-    target_list: Optional[List[str]] = None
+def parse_cas(source_str: str) -> Optional[Set[CasNumber]]:
+    target_set: Optional[Set[CasNumber]] = None
     if source_str:
-        target_list = source_str.split(", ")
-        for i in range(len(target_list)):
-            target_list[i] = target_list[i].split(" ")[0]
+        target_set = set()
+        result = re.findall(r"\d{2,7}-\d{2}-\d", source_str)
+        for cas in set(result):
+            target_set.add(CasNumber(cas))
 
-    return target_list
+    return target_set
 
 
-def parse_refs(source_str: str) -> Optional[List[str]]:
-    target_list: Optional[List[str]] = None
+def parse_ec(source_str: str) -> Optional[Set[EcNumber]]:
+    target_set: Optional[Set[EcNumber]] = None
     if source_str:
-        target_list = []
-        tokens_list: Optional[List[str]] = source_str.split(" ")
+        target_set = set()
+        result = re.findall(r"\d{3}-\d{3}-\d", source_str)
+        for cas in set(result):
+            target_set.add(EcNumber(cas))
 
-        i = 0
-        while i < len(tokens_list):
-            if tokens_list[i].startswith("("):
-                comment, i = add_comment(i, tokens_list)
-                target_list[len(target_list) - 1] += " " + comment
-            else:
-                target_list.append(tokens_list[i])
+    return target_set
 
-            i += 1
-    return target_list
+
+def parse_refs(source_str: str) -> Set[AnnexRef]:
+    target_set: Optional[Set[AnnexRef]] = None
+    if source_str:
+        target_set = set()
+        result = re.findall(r"[MDCLXVI]{1,5}/\d{1,4}", source_str)
+        for cas in result:
+            target_set.add(AnnexRef(cas))
+
+    return target_set
 
 
 def add_comment(i, tokens_list) -> tuple[str, int]:
@@ -73,16 +78,31 @@ def parse_data(path: Union[str, Path[str]]) -> List[InciRecord]:
                 result = re.search(r"\b[a-zA-Z]", name)
                 char = result.group()
                 name = name.replace(char, char.upper(), 1)
-                cas: List[str] = parse_cas(row[cas_col])
-                ecs: List[str] = parse_cas(row[ec_col])
-                refs: List[str] = parse_refs(row[ref_col])
+                name = name.replace("'", "''")
+                cas: Set[CasNumber] = parse_cas(row[cas_col])
+                ecs: Set[EcNumber] = parse_ec(row[ec_col])
+                refs: Set[AnnexRef] = parse_refs(row[ref_col])
                 if name not in names:
                     names.append(name)
                     incis.append(InciRecord(name, cas, ecs, refs))
                 else:
                     index: int = names.index(name)
-                    incis[index].cas.extend(cas)
-                    incis[index].ecs.extend(ecs)
-                    incis[index].refs.extend(refs)
+                    if cas is not None:
+                        if hasattr(incis[index], "cas"):
+                            incis[index].cas.union(cas)
+                        else:
+                            incis[index].cas = cas
+
+                    if ecs is not None:
+                        if hasattr(incis[index], "ecs"):
+                            incis[index].ecs.union(ecs)
+                        else:
+                            incis[index].ecs = ecs
+
+                    if refs is not None:
+                        if hasattr(incis[index], "refs"):
+                            incis[index].refs.union(refs)
+                        else:
+                            incis[index].refs = refs
 
     return incis

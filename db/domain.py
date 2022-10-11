@@ -1,11 +1,6 @@
-import calendar
 from dataclasses import dataclass
-from datetime import datetime
-from decimal import Decimal
-from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, NamedTuple, TypedDict
-from unicodedata import name
+from typing import Optional, Set
 
 source_file = Path('./resources', 'incis_example.csv')
 destination_file = Path('./resources', 'incis_example.csv')
@@ -23,6 +18,20 @@ class CasNumber:
         if not self.value:
             raise ValueError("CAS number must not be empty")
 
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, CasNumber):
+            return self.value == o.value
+        return False
+
+    def __hash__(self) -> int:
+        return self.value.__hash__()
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return self.value
+
 
 @dataclass
 class EcNumber:
@@ -36,9 +45,23 @@ class EcNumber:
         if not self.value:
             raise ValueError("EC number must not be empty")
 
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, EcNumber):
+            return self.value == o.value
+        return False
+
+    def __hash__(self) -> int:
+        return self.value.__hash__()
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return self.value
+
 
 @dataclass
-class Reference:
+class AnnexRef:
     """A EU reference for the INCI."""
     value: str
 
@@ -49,22 +72,36 @@ class Reference:
         if not self.value:
             raise ValueError("Reference must not be empty")
 
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, AnnexRef):
+            return self.value == o.value
+        return False
+
+    def __hash__(self) -> int:
+        return self.value.__hash__()
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return self.value
+
 
 @dataclass
 class InciRecord:
     name: str
-    cas: Optional[List[CasNumber]]
-    ecs: Optional[List[EcNumber]]
-    refs: Optional[List[Reference]]
+    cas: Optional[Set[CasNumber]]
+    ecs: Optional[Set[EcNumber]]
+    refs: Optional[Set[AnnexRef]]
 
-    def __init__(self, name: str, cas: List[CasNumber], ecs: List[EcNumber], refs: List[Reference]):
+    def __init__(self, name: str, cas: Set[CasNumber], ecs: Set[EcNumber], refs: Set[AnnexRef]):
         self.name = name
         if cas:
-            self.cas = list(cas)
+            self.cas = cas
         if ecs:
-            self.ecs = list(ecs)
+            self.ecs = ecs
         if refs:
-            self.refs = list(refs)
+            self.refs = refs
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -85,12 +122,15 @@ class InciRecord:
             result += "null)"
         return result
 
-    def to_sql_array(self, array: List[any]) -> str:
+    @staticmethod
+    def to_sql_array(values: Set[any]) -> str:
         sql_array: str = "'{"
-        for i in range(len(array)):
+        i = 0
+        for value in values:
             if i > 0:
                 sql_array += ", "
-            sql_array += "\"" + array[i] + "\""
+            sql_array += "\"" + str(value) + "\""
+            i += 1
         sql_array += "}'"
         return sql_array
 
