@@ -30,7 +30,7 @@ def parse_ec(source_str: str) -> Optional[Set[EcNumber]]:
 
 
 def parse_refs(source_str: str) -> Set[AnnexRef]:
-    target_set: Optional[Set[AnnexRef]] = None
+    target_set: Set[AnnexRef] = None
     if source_str:
         target_set = set()
         result = re.findall(r"[MDCLXVI]{1,5}/\d{1,4}", source_str)
@@ -59,6 +59,14 @@ def add_comment(i, tokens_list) -> tuple[str, int]:
         return comment, i + 1
 
 
+def should_skip(refs: Set[AnnexRef]):
+    if refs is None:
+        return False
+    for ref in refs:
+        if ref.value.startswith("II/"):
+            return True
+    return False
+
 def parse_data(path: Union[str, Path[str]]) -> List[InciRecord]:
     print("This file will be parsed.")
     print(path)
@@ -82,6 +90,8 @@ def parse_data(path: Union[str, Path[str]]) -> List[InciRecord]:
                 cas: Set[CasNumber] = parse_cas(row[cas_col])
                 ecs: Set[EcNumber] = parse_ec(row[ec_col])
                 refs: Set[AnnexRef] = parse_refs(row[ref_col])
+                if should_skip(refs):
+                    continue
                 if name not in names:
                     names.append(name)
                     incis.append(InciRecord(name, cas, ecs, refs))
