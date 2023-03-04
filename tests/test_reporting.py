@@ -6,7 +6,7 @@ from extraction import parse_data
 from persisting import persist_results
 from reporting import create_extract
 from domain import YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, TradeActionsPerCompany, \
-    CapitalGainLinesPerCompany, TradeActionPart, TradeActionList
+    CapitalGainLinesPerCompany, TradeActionPart, TradeActionList, get_year_month
 from tests.data import sell_action1
 from transformation import split_by_months
 
@@ -16,7 +16,7 @@ date_time1 = datetime.strptime("2021-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time2 = datetime.strptime("2022-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time3 = datetime.strptime("2021-01-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time4 = datetime.strptime("2021-12-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
-test_dict4 = [YearMonth(date_time1), YearMonth(date_time2), YearMonth(date_time3), YearMonth(date_time4)]
+test_dict4 = [YearMonth(date_time1.year, date_time1.month), YearMonth(date_time2.year, date_time2.month), YearMonth(date_time3.year, date_time3.month), YearMonth(date_time4.year, date_time4.month)]
 
 
 class MyTestCase(unittest.TestCase):
@@ -32,8 +32,8 @@ class MyTestCase(unittest.TestCase):
 
     def test_partitioning(self):
         trades_within_month1 = TradePartsWithinMonth()
-        trades_within_month1.push_trade_part(1, sell_action1)
-        month_partitioned_trades1: MonthPartitionedTrades = {YearMonth(sell_action1.date_time): trades_within_month1}
+        trades_within_month1.push_trade_part( Decimal(1), sell_action1)
+        month_partitioned_trades1: MonthPartitionedTrades = {get_year_month(sell_action1.date_time): trades_within_month1}
 
         actions: TradeActionList = [TradeActionPart(quantity=Decimal(1.0), action=sell_action1)]
         actual: MonthPartitionedTrades = split_by_months(actions, TradeType.SELL)
@@ -47,10 +47,11 @@ class MyTestCase(unittest.TestCase):
         expected = Path('resources', 'extract.xlsx')
         source = Path('resources', 'shares.csv')
         destination = Path('resources', 'tmp.xlsx')
+        leftover = Path('resources', 'tmp_leftover.xlsx')
 
         trade_actions_per_company: TradeActionsPerCompany = parse_data(source)
         capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_actions_per_company)
-        persist_results(destination, capital_gain_lines_per_company)
+        persist_results(destination, leftover, capital_gain_lines_per_company)
 
         from openpyxl import load_workbook
         workbook1 = load_workbook(expected, data_only=False)

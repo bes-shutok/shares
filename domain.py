@@ -1,19 +1,14 @@
 import calendar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, NamedTuple
 
 
-@dataclass
-class YearMonth:
+class YearMonth(NamedTuple):
     year: int
     month: int
-
-    def __init__(self, date_time: datetime):
-        self.year = date_time.year
-        self.month = date_time.month
 
     def get_month_name(self) -> str:
         return calendar.month_name[self.month]
@@ -21,22 +16,9 @@ class YearMonth:
     def __repr__(self) -> str:
         return "[" + calendar.month_name[self.month] + ", " + str(self.year) + "]"
 
-    # noinspection PyMethodMayBeStatic
-    def __is_valid_operand(self, other) -> bool:
-        return hasattr(other, "year") and hasattr(other, "month")
 
-    def __eq__(self, other):
-        if not self.__is_valid_operand(other):
-            return NotImplemented
-        return (self.year, self.month) == (other.year, other.month)
-
-    def __lt__(self, other):
-        if not self.__is_valid_operand(other):
-            return NotImplemented
-        return (self.year, self.month) < (other.year, other.month)
-
-    def __hash__(self):
-        return hash(self.__repr__())
+def get_year_month(date: datetime) -> YearMonth:
+    return YearMonth(date.year, date.month)
 
 
 class TradeType(Enum):
@@ -46,6 +28,14 @@ class TradeType(Enum):
 
 @dataclass
 class TradeAction:
+    # Cannot use NamedTuple because we need to do some mutation in the init method
+    symbol: str
+    date_time: datetime
+    currency: str
+    quantity: Decimal
+    price: Decimal
+    fee: Decimal
+
     def __init__(self, symbol, date_time, currency, quantity: str, price, fee):
         quantity = quantity.replace(",", "")
         self.symbol = symbol
@@ -60,32 +50,6 @@ class TradeAction:
 
         self.price = Decimal(price)
         self.fee = Decimal(fee).copy_abs()
-
-    def __eq__(self, other):
-        return self.symbol == other.symbol and \
-               self.date_time == other.date_time and \
-               self.currency == other.currency and \
-               self.quantity == other.quantity and \
-               self.price == other.price and \
-               self.fee == other.fee
-
-    def __repr__(self) -> str:
-        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
-                  str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
-                  str(self.fee) + " " + self.currency
-        if self.trade_type == TradeType.BUY:
-            return "Bought " + postfix
-        else:
-            return "Sold " + postfix
-
-    def print(self):
-        postfix = str(self.quantity) + " " + self.symbol + " shares" + " for " + \
-                  str(self.price) + " " + self.currency + " at " + str(self.date_time) + " with fee " + \
-                  str(self.fee) + " " + self.currency
-        if self.trade_type == TradeType.BUY:
-            print("Bought " + postfix)
-        else:
-            print("Sold " + postfix)
 
 
 class TradeActionPart(NamedTuple):
@@ -107,6 +71,8 @@ TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
 
 @dataclass
 class CapitalGainLine:
+    __symbol: str
+    __currency: str
     __sell_date: YearMonth
     __sell_quantities: List[Decimal]
     __sell_trades: List[TradeAction]
@@ -114,40 +80,11 @@ class CapitalGainLine:
     __buy_quantities: List[Decimal]
     __buy_trades: List[TradeAction]
 
-    def __init__(self, symbol: str, currency: str,
-                 sell_date: YearMonth, sell_quantities: List[Decimal], sell_trades: List[TradeAction],
-                 buy_date: YearMonth, buy_quantities: List[Decimal], buy_trades: List[TradeAction]):
-        assert symbol
-        self.__symbol = symbol
-        assert currency
-        self.__currency = currency
-        assert sell_date
-        self.__sell_date = sell_date
-        assert sell_quantities
-        self.__sell_quantities = sell_quantities
-        assert sell_trades
-        self.__sell_trades = sell_trades
-        assert buy_date
-        self.__buy_date = buy_date
-        assert buy_quantities
-        self.__buy_quantities = buy_quantities
-        assert buy_trades
-        self.__buy_trades = buy_trades
-        self.validate()
-
     def get_symbol(self):
         return self.__symbol
 
     def get_currency(self):
         return self.__currency
-
-    def __repr__(self) -> str:
-        return "CapitalGainLine{\n" + \
-               "symbol:" + self.__symbol + ", " + "currency:" + self.__currency + ", " + \
-               "\n__sell_counts:" + str(self.__sell_quantities) + ", " + \
-               "\n__sell_trades:" + str(self.__sell_trades) + "," + \
-               "\n__buy_counts:" + str(self.__buy_quantities) + "," + \
-               "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
 
     def sell_quantity(self) -> Decimal:
         return sum(self.__sell_quantities)
@@ -199,23 +136,16 @@ class CapitalGainLine:
         return result
 
 
+@dataclass
 class CapitalGainLineAccumulator:
+    __symbol: str
+    __currency: str
     __sell_date: YearMonth = None
-    __sell_counts: List[Decimal] = []
-    __sell_trades: List[TradeAction] = []
+    __sell_counts: List[Decimal] = field(default_factory=list)
+    __sell_trades: List[TradeAction] = field(default_factory=list)
     __buy_date: YearMonth = None
-    __buy_counts: List[Decimal] = []
-    __buy_trades: List[TradeAction] = []
-
-    def __init__(self, symbol: str, currency: str):
-        self.__symbol = symbol
-        self.__currency = currency
-        self.__sell_date: YearMonth
-        self.__sell_counts: List[Decimal] = []
-        self.__sell_trades: List[TradeAction] = []
-        self.__buy_date: YearMonth
-        self.__buy_counts: List[Decimal] = []
-        self.__buy_trades: List[TradeAction] = []
+    __buy_counts: List[Decimal] = field(default_factory=list)
+    __buy_trades: List[TradeAction] = field(default_factory=list)
 
     def get_symbol(self):
         return self.__symbol
@@ -223,16 +153,8 @@ class CapitalGainLineAccumulator:
     def get_currency(self):
         return self.__currency
 
-    def __repr__(self) -> str:
-        return "CapitalGainLine{\n" + \
-               "symbol:" + self.__symbol + ", " + "currency:" + self.__currency + ", " + \
-               "\n__sell_counts:" + str(self.__sell_counts) + ", " + \
-               "\n__sell_trades:" + str(self.__sell_trades) + "," + \
-               "\n__buy_counts:" + str(self.__buy_counts) + "," + \
-               "\n__buy_trades:" + str(self.__buy_trades) + "\n}"
-
     def add_trade(self, count: Decimal, ta: TradeAction):
-        year_month = YearMonth(ta.date_time)
+        year_month = get_year_month(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.__sell_date is None:
                 self.__sell_date = year_month
@@ -286,10 +208,6 @@ class CapitalGainLineAccumulator:
             raise ValueError("Different number of counts ["
                              + str(len(self.__sell_counts)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
                              "] for sales in capital gain line!")
-        if len(self.__buy_counts) != len(self.__buy_trades):
-            raise ValueError("Different number of counts ["
-                             + str(len(self.__buy_counts)) + "] " + " and trades [" + str(len(self.__buy_trades)) +
-                             "] for buys in capital gain line!")
 
 
 CapitalGainLines = List[CapitalGainLine]
@@ -299,15 +217,13 @@ SortedDateRanges = List[YearMonth]
 
 @dataclass
 class TradePartsWithinMonth:
-
-    def __init__(self):
-        self.symbol: Optional[str] = None
-        self.currency: Optional[str] = None
-        self.year_month: Optional[YearMonth] = None
-        self.trade_type: Optional[TradeType] = None
-        self.__dates: List[datetime] = []
-        self.__quantities: List[Decimal] = []
-        self.__trades: List[TradeAction] = []
+    symbol: Optional[str] = None
+    currency: Optional[str] = None
+    year_month: Optional[YearMonth] = None
+    trade_type: Optional[TradeType] = None
+    __dates: List[datetime] = field(default_factory=list)
+    __quantities: List[Decimal] = field(default_factory=list)
+    __trades: List[TradeAction] = field(default_factory=list)
 
     def push_trade_part(self, quantity: Decimal, ta: TradeAction):
         assert quantity > 0
@@ -316,10 +232,10 @@ class TradePartsWithinMonth:
             self.symbol = ta.symbol
             self.currency = ta.currency
             self.trade_type = ta.trade_type
-            self.year_month = YearMonth(ta.date_time)
+            self.year_month = get_year_month(ta.date_time)
 
         if self.symbol == ta.symbol and self.currency == ta.currency \
-                and self.trade_type == ta.trade_type and self.year_month == YearMonth(ta.date_time):
+                and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
             self.__dates.append(ta.date_time)
             self.__quantities.append(quantity)
             self.__trades.append(ta)
@@ -354,17 +270,6 @@ class TradePartsWithinMonth:
 
     def count(self) -> int:
         return len(self.__quantities)
-
-    def __repr__(self) -> str:
-        return "TradesWithinMonth{" + "symbol:" + self.symbol + ", " "trade_type:" + str(self.trade_type) + ", " \
-               + "currency:" + self.currency + ", " "year_month:" + str(self.year_month) + ", " + \
-               "quantities:" + str(self.__quantities) + ", " + \
-               "\ntrades:" + str(self.__trades) + "}"
-
-    def __eq__(self, other):
-        return self.symbol == other.symbol and self.currency == other.currency and \
-               self.year_month == other.year_month and self.trade_type == other.trade_type and \
-               self.__quantities == other.__quantities and self.__trades == other.__trades
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]

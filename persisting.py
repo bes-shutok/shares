@@ -43,7 +43,7 @@ def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, con
     return coordinates
 
 
-def persist_results(path: Union[str, os.PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
+def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, os.PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
     number_format = '0.000000'
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -98,6 +98,6 @@ def persist_results(path: Union[str, os.PathLike[str]], capital_gain_lines_per_c
         worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
 
 
-    safe_remove_file(path)
-    workbook.save(path)
+    safe_remove_file(extract)
+    workbook.save(extract)
     workbook.close()

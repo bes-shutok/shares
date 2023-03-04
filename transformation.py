@@ -1,7 +1,9 @@
 from decimal import Decimal
+
 from domain import TradeType, TradeAction, TradeActions, CapitalGainLines, TradeActionList, \
     MonthPartitionedTrades, TradePartsWithinMonth, SortedDateRanges, \
-    CapitalGainLineAccumulator, CapitalGainLine, TradeActionsPerCompany, CapitalGainLinesPerCompany, YearMonth
+    CapitalGainLineAccumulator, CapitalGainLine, TradeActionsPerCompany, CapitalGainLinesPerCompany, CurrencyCompany, \
+    get_year_month
 
 
 def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):
@@ -102,7 +104,7 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
         if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
             raise ValueError("Incompatible trade types! Got " + str(trade_type) + "for expected output and " +
                              trade_action.trade_type + " for the trade_action" + str(trade_action))
-        year_month = YearMonth(trade_action.date_time)
+        year_month = get_year_month(trade_action.date_time)
         trades_within_month: TradePartsWithinMonth = month_partitioned_trades.get(year_month, TradePartsWithinMonth())
         print("pushing trade action " + str(trade_action))
         trades_within_month.push_trade_part(quantity, trade_action)
@@ -114,8 +116,8 @@ def split_by_months(actions: TradeActionList, trade_type: TradeType) -> MonthPar
 def create_extract(trade_actions_per_company: TradeActionsPerCompany) -> CapitalGainLinesPerCompany:
     capital_gain_lines_per_company: CapitalGainLinesPerCompany = {}
     for company_currency, trade_actions in trade_actions_per_company.items():
-        currency = company_currency[0]
-        symbol = company_currency[1]
+        currency = company_currency.currency
+        symbol = company_currency.company
         if len(trade_actions) != 2:
             continue
         trade_action: TradeAction = trade_actions[TradeType.SELL][0][1]
@@ -123,6 +125,6 @@ def create_extract(trade_actions_per_company: TradeActionsPerCompany) -> Capital
         assert currency == trade_action.currency
 
         capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_actions, symbol, currency)
-        capital_gain_lines_per_company[(currency, symbol)] = capital_gain_lines
+        capital_gain_lines_per_company[CurrencyCompany(currency, symbol)] = capital_gain_lines
 
     return capital_gain_lines_per_company
