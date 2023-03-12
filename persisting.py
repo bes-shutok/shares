@@ -43,7 +43,8 @@ def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, con
     return coordinates
 
 
-def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, os.PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
+def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, os.PathLike[str]],
+                    capital_gain_lines_per_company: CapitalGainLinesPerCompany):
     number_format = '0.000000'
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -59,8 +60,8 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
     start_column = 3
     line_number = 3
     for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
-        currency = currency_company[0]
-        symbol = currency_company[1]
+        currency = currency_company.currency
+        company = currency_company.company
         for line in capital_gain_lines:
             assert currency == line.get_currency()
             idx = start_column
@@ -68,18 +69,21 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_sell_amount() + ")")
+            c = worksheet.cell(line_number, idx,
+                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_sell_amount() + ")")
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_buy_amount() + ")")
+            c = worksheet.cell(line_number, idx,
+                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_buy_amount() + ")")
             idx += 3
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_expense_amount() +
+            c = worksheet.cell(line_number, idx,
+                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_expense_amount() +
                                ")")
             idx += 2
-            c = worksheet.cell(line_number, idx, symbol)
+            c = worksheet.cell(line_number, idx, company.ticker)
             idx += 1
             c = worksheet.cell(line_number, idx, currency.symbol)
             idx += 1
@@ -96,7 +100,6 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
     for column_cells in worksheet.columns:
         length = max(len(str(cell.value)) for cell in column_cells)
         worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
-
 
     safe_remove_file(extract)
     workbook.save(extract)

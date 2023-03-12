@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union
 
 from domain import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList, CurrencyCompany, get_currency, \
-    TradeActionPart
+    TradeActionPart, get_company
 
 
 def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
@@ -16,7 +16,7 @@ def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
             if row["Date/Time"] != "":
-                company = row["Symbol"]
+                company = get_company(row["Symbol"])
                 currency = get_currency(row["Currency"])
                 currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
                 if currency_company in trade_actions_per_company.keys():

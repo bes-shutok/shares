@@ -34,23 +34,36 @@ def get_currency(symbol: str) -> Currency:
     if (len(symbol)) == 3:
         pass
     else:
-        raise ValueError("Currency is expected to be a lenth o 3, instead got [" + symbol + "]!")
+        raise ValueError("Currency is expected to be a length of 3, instead got [" + symbol + "]!")
     return Currency(symbol.upper())
+
+
+class Company(NamedTuple):
+    ticker: str
+
+
+def get_company(ticker: str) -> Company:
+    if (len(ticker)) > 0:
+        pass
+    else:
+        raise ValueError("Company is expected to be not empty, instead got empty string!")
+    # Not just uppercase because IB sometimes use abridgements like TKAd (Thyssen-Krupp Ag deutsch?)
+    return Company(ticker)
 
 
 @dataclass
 class TradeAction:
     # Cannot use NamedTuple because we need to do some mutation in the init method
-    symbol: str
+    company: Company
     date_time: datetime
     currency: Currency
     quantity: Decimal
     price: Decimal
     fee: Decimal
 
-    def __init__(self, symbol, date_time, currency, quantity: str, price, fee):
+    def __init__(self, company, date_time, currency, quantity: str, price, fee):
         quantity = quantity.replace(",", "")
-        self.symbol = symbol
+        self.company = company
         self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
         self.currency = currency
         if Decimal(quantity) < 0:
@@ -75,7 +88,7 @@ TradeActions = Dict[TradeType, TradeActionList]
 
 class CurrencyCompany(NamedTuple):
     currency: Currency
-    company: str
+    company: Company
 
 
 TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
@@ -150,7 +163,7 @@ class CapitalGainLine:
 
 @dataclass
 class CapitalGainLineAccumulator:
-    __symbol: str
+    company: Company
     __currency: Currency
     __sell_date: YearMonth = None
     __sell_counts: List[Decimal] = field(default_factory=list)
@@ -160,7 +173,7 @@ class CapitalGainLineAccumulator:
     __buy_trades: List[TradeAction] = field(default_factory=list)
 
     def get_symbol(self):
-        return self.__symbol
+        return self.company
 
     def get_currency(self):
         return self.__currency
@@ -198,7 +211,7 @@ class CapitalGainLineAccumulator:
     # noinspection PyTypeChecker
     def finalize(self) -> CapitalGainLine:
         self.validate()
-        result = CapitalGainLine(self.__symbol, self.__currency,
+        result = CapitalGainLine(self.company, self.__currency,
                                  self.__sell_date, self.__sell_counts, self.__sell_trades,
                                  self.__buy_date, self.__buy_counts, self.__buy_trades)
         self.__sell_date = None
@@ -229,7 +242,7 @@ SortedDateRanges = List[YearMonth]
 
 @dataclass
 class TradePartsWithinMonth:
-    symbol: Optional[str] = None
+    company: Optional[Company] = None
     currency: Optional[Currency] = None
     year_month: Optional[YearMonth] = None
     trade_type: Optional[TradeType] = None
@@ -240,13 +253,13 @@ class TradePartsWithinMonth:
     def push_trade_part(self, quantity: Decimal, ta: TradeAction):
         assert quantity > 0
         assert ta is not None
-        if self.symbol is None:
-            self.symbol = ta.symbol
+        if self.company is None:
+            self.company = ta.company
             self.currency = ta.currency
             self.trade_type = ta.trade_type
             self.year_month = get_year_month(ta.date_time)
 
-        if self.symbol == ta.symbol and self.currency == ta.currency \
+        if self.company == ta.company and self.currency == ta.currency \
                 and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
             self.__dates.append(ta.date_time)
             self.__quantities.append(quantity)
