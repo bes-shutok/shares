@@ -26,12 +26,24 @@ class TradeType(Enum):
     SELL = 2
 
 
+class Currency(NamedTuple):
+    symbol: str
+
+
+def get_currency(symbol: str) -> Currency:
+    if (len(symbol)) == 3:
+        pass
+    else:
+        raise ValueError("Currency is expected to be a lenth o 3, instead got [" + symbol + "]!")
+    return Currency(symbol.upper())
+
+
 @dataclass
 class TradeAction:
     # Cannot use NamedTuple because we need to do some mutation in the init method
     symbol: str
     date_time: datetime
-    currency: str
+    currency: Currency
     quantity: Decimal
     price: Decimal
     fee: Decimal
@@ -62,7 +74,7 @@ TradeActions = Dict[TradeType, TradeActionList]
 
 
 class CurrencyCompany(NamedTuple):
-    currency: str
+    currency: Currency
     company: str
 
 
@@ -72,7 +84,7 @@ TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
 @dataclass
 class CapitalGainLine:
     __symbol: str
-    __currency: str
+    __currency: Currency
     __sell_date: YearMonth
     __sell_quantities: List[Decimal]
     __sell_trades: List[TradeAction]
@@ -139,7 +151,7 @@ class CapitalGainLine:
 @dataclass
 class CapitalGainLineAccumulator:
     __symbol: str
-    __currency: str
+    __currency: Currency
     __sell_date: YearMonth = None
     __sell_counts: List[Decimal] = field(default_factory=list)
     __sell_trades: List[TradeAction] = field(default_factory=list)
@@ -218,7 +230,7 @@ SortedDateRanges = List[YearMonth]
 @dataclass
 class TradePartsWithinMonth:
     symbol: Optional[str] = None
-    currency: Optional[str] = None
+    currency: Optional[Currency] = None
     year_month: Optional[YearMonth] = None
     trade_type: Optional[TradeType] = None
     __dates: List[datetime] = field(default_factory=list)
@@ -277,7 +289,7 @@ PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
 
 
 class CurrencyToCoordinate(NamedTuple):
-    currency: str
+    currency: Currency
     coordinate: str
 
 

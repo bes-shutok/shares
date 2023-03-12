@@ -68,20 +68,20 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency] + "*(" + line.get_sell_amount() + ")")
+            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_sell_amount() + ")")
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency] + "*(" + line.get_buy_amount() + ")")
+            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_buy_amount() + ")")
             idx += 3
-            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency] + "*(" + line.get_expense_amount() +
+            c = worksheet.cell(line_number, idx, "=" + exchange_rates[currency.symbol] + "*(" + line.get_expense_amount() +
                                ")")
             idx += 2
             c = worksheet.cell(line_number, idx, symbol)
             idx += 1
-            c = worksheet.cell(line_number, idx, currency)
+            c = worksheet.cell(line_number, idx, currency.symbol)
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_amount())
             c.number_format = number_format
