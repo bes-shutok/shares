@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional, NamedTuple
+from typing import Dict, List, NamedTuple
 
 
 class YearMonth(NamedTuple):
@@ -77,13 +77,41 @@ class TradeAction:
         self.fee = Decimal(fee).copy_abs()
 
 
-class TradeActionPart(NamedTuple):
+class QuantitatedTradeAction(NamedTuple):
     quantity: Decimal
     action: TradeAction
 
 
-TradeActionList = List[TradeActionPart]
-TradeActions = Dict[TradeType, TradeActionList]
+QuantitatedTradeActions = List[QuantitatedTradeAction]
+
+
+@dataclass
+class TradeCycle:
+    __bought: QuantitatedTradeActions = field(default_factory=list)
+    __sold: QuantitatedTradeActions = field(default_factory=list)
+
+    def has_bought(self) -> bool:
+        return len(self.__bought) > 0
+
+    def has_sold(self) -> bool:
+        return len(self.__sold) > 0
+
+    def validate(self, currency: Currency, company: Company) -> bool:
+        if self.has_sold():
+            any_action = self.__sold[0].action
+            return any_action.currency == currency and any_action.company == company
+        any_action = self.__bought[0].action
+        return any_action.currency == currency and any_action.company == company
+
+    def has(self, trade_type: TradeType) -> bool:
+        if trade_type == TradeType.SELL:
+            return self.has_sold()
+        return self.has_bought()
+
+    def get(self, trade_type: TradeType) -> QuantitatedTradeActions | List:
+        if trade_type == TradeType.SELL:
+            return self.__sold
+        return self.__bought
 
 
 class CurrencyCompany(NamedTuple):
@@ -91,7 +119,7 @@ class CurrencyCompany(NamedTuple):
     company: Company
 
 
-TradeActionsPerCompany = Dict[CurrencyCompany, TradeActions]
+TradeCyclePerCompany = Dict[CurrencyCompany, TradeCycle]
 
 
 @dataclass
@@ -242,10 +270,10 @@ SortedDateRanges = List[YearMonth]
 
 @dataclass
 class TradePartsWithinMonth:
-    company: Optional[Company] = None
-    currency: Optional[Currency] = None
-    year_month: Optional[YearMonth] = None
-    trade_type: Optional[TradeType] = None
+    company: Company | None = None
+    currency: Currency | None = None
+    year_month: YearMonth | None = None
+    trade_type: TradeType | None = None
     __dates: List[datetime] = field(default_factory=list)
     __quantities: List[Decimal] = field(default_factory=list)
     __trades: List[TradeAction] = field(default_factory=list)
@@ -270,10 +298,10 @@ class TradePartsWithinMonth:
                              str(self.trade_type) + " " + str(self.quantity) + " and " + str(self.year_month) + "] " +
                              " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
 
-    def pop_trade_part(self) -> TradeActionPart:
+    def pop_trade_part(self) -> QuantitatedTradeAction:
         idx: int = self.__get_top_index()
         self.__dates.pop(idx)
-        return TradeActionPart(quantity=self.__quantities.pop(idx), action=self.__trades.pop(idx))
+        return QuantitatedTradeAction(quantity=self.__quantities.pop(idx), action=self.__trades.pop(idx))
 
     def get_top_count(self) -> Decimal:
         idx: int = self.__get_top_index()

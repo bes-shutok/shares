@@ -5,8 +5,8 @@ from decimal import Decimal
 from extraction import parse_data
 from persisting import persist_results
 from reporting import create_extract
-from domain import YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, TradeActionsPerCompany, \
-    CapitalGainLinesPerCompany, TradeActionPart, TradeActionList, get_year_month
+from domain import YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, TradeCyclePerCompany, \
+    CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions, get_year_month
 from tests.data import sell_action1
 from transformation import split_by_months
 
@@ -32,10 +32,10 @@ class MyTestCase(unittest.TestCase):
 
     def test_partitioning(self):
         trades_within_month1 = TradePartsWithinMonth()
-        trades_within_month1.push_trade_part( Decimal(1), sell_action1)
+        trades_within_month1.push_trade_part(Decimal(1), sell_action1)
         month_partitioned_trades1: MonthPartitionedTrades = {get_year_month(sell_action1.date_time): trades_within_month1}
 
-        actions: TradeActionList = [TradeActionPart(quantity=Decimal(1.0), action=sell_action1)]
+        actions: QuantitatedTradeActions = [QuantitatedTradeAction(quantity=Decimal(1.0), action=sell_action1)]
         actual: MonthPartitionedTrades = split_by_months(actions, TradeType.SELL)
         print(actual)
         self.assertEqual(actual, month_partitioned_trades1)
@@ -49,7 +49,7 @@ class MyTestCase(unittest.TestCase):
         destination = Path('resources', 'tmp.xlsx')
         leftover = Path('resources', 'tmp_leftover.xlsx')
 
-        trade_actions_per_company: TradeActionsPerCompany = parse_data(source)
+        trade_actions_per_company: TradeCyclePerCompany = parse_data(source)
         capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_actions_per_company)
         persist_results(destination, leftover, capital_gain_lines_per_company)
 

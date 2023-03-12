@@ -3,15 +3,15 @@ from pathlib import Path
 
 from typing import Union
 
-from domain import TradeActionsPerCompany, TradeActions, TradeAction, TradeActionList, CurrencyCompany, get_currency, \
-    TradeActionPart, get_company
+from domain import TradeCyclePerCompany, TradeCycle, TradeAction, QuantitatedTradeActions, CurrencyCompany, get_currency, \
+    QuantitatedTradeAction, get_company
 
 
-def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
+def parse_data(path: Union[str, Path[str]]) -> TradeCyclePerCompany:
     print("This line will be printed.")
     print(path)
 
-    trade_actions_per_company: TradeActionsPerCompany = {}
+    trade_actions_per_company: TradeCyclePerCompany = {}
     with open(path, 'r') as read_obj:
         csv_dict_reader = csv.DictReader(read_obj)
         for row in csv_dict_reader:
@@ -20,18 +20,13 @@ def parse_data(path: Union[str, Path[str]]) -> TradeActionsPerCompany:
                 currency = get_currency(row["Currency"])
                 currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
                 if currency_company in trade_actions_per_company.keys():
-                    trade_actions: TradeActions = trade_actions_per_company[currency_company]
+                    trade_cycle: TradeCycle = trade_actions_per_company[currency_company]
                 else:
-                    trade_actions: TradeActions = {}
+                    trade_cycle: TradeCycle = TradeCycle()
+                    trade_actions_per_company[currency_company] = trade_cycle
 
                 t = TradeAction(company, row["Date/Time"], currency, row["Quantity"], row["T. Price"],
                                 row["Comm/Fee"])
-                if t.trade_type in trade_actions.keys():
-                    trade_action_list: TradeActionList = trade_actions[t.trade_type]
-                else:
-                    trade_action_list: TradeActionList = []
-                trade_action_list.append(TradeActionPart(t.quantity, t))
-                trade_actions[t.trade_type] = trade_action_list
-                trade_actions_per_company[currency_company] = trade_actions
-
+                quantitated_trade_actions: QuantitatedTradeActions = trade_cycle.get(t.trade_type)
+                quantitated_trade_actions.append(QuantitatedTradeAction(t.quantity, t))
     return trade_actions_per_company

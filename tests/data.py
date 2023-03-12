@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from domain import TradeAction, TradeActionsPerCompany, TradeType, CapitalGainLineAccumulator, CurrencyCompany, \
-    TradeActionPart, get_currency, get_company
+from domain import TradeAction, TradeCyclePerCompany, CapitalGainLineAccumulator, CurrencyCompany, \
+    QuantitatedTradeAction, get_currency, get_company, TradeCycle
 
 currency = get_currency("USD")
 company = get_company("BTU")
@@ -24,11 +24,12 @@ sell_price2 = "17.36"
 sell_fee2 = "-0.35229493"
 sell_action2: TradeAction = TradeAction(company, sell_date2, currency, sell_quantity2, sell_price2, sell_fee2)
 
-simple_trade: TradeActionsPerCompany = {currency_company: {
-    TradeType.BUY: [TradeActionPart(Decimal(buy_quantity), buy_action1)],
-    TradeType.SELL: [TradeActionPart(abs(Decimal(sell_quantity1)), sell_action1),
-                     TradeActionPart(abs(Decimal(sell_quantity2)), sell_action2)]
-}}
+trade_cycle = TradeCycle(
+    [QuantitatedTradeAction(Decimal(buy_quantity), buy_action1)],
+    [QuantitatedTradeAction(abs(Decimal(sell_quantity1)), sell_action1),
+     QuantitatedTradeAction(abs(Decimal(sell_quantity2)), sell_action2)]
+                         )
+simple_trade: TradeCyclePerCompany = {currency_company: trade_cycle}
 
 line1 = CapitalGainLineAccumulator(company, currency)
 line1.add_trade(Decimal(10), buy_action1)
