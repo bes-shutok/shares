@@ -27,15 +27,15 @@ class TradeType(Enum):
 
 
 class Currency(NamedTuple):
-    symbol: str
+    currency: str
 
 
-def get_currency(symbol: str) -> Currency:
-    if (len(symbol)) == 3:
+def get_currency(currency: str) -> Currency:
+    if (len(currency)) == 3:
         pass
     else:
-        raise ValueError("Currency is expected to be a length of 3, instead got [" + symbol + "]!")
-    return Currency(symbol.upper())
+        raise ValueError("Currency is expected to be a length of 3, instead got [" + currency + "]!")
+    return Currency(currency.upper())
 
 
 class Company(NamedTuple):
@@ -113,6 +113,9 @@ class TradeCycle:
             return self.__sold
         return self.__bought
 
+    def is_empty(self) -> bool:
+        return not (self.has_bought() or self.has_sold())
+
 
 class CurrencyCompany(NamedTuple):
     currency: Currency
@@ -124,7 +127,7 @@ TradeCyclePerCompany = Dict[CurrencyCompany, TradeCycle]
 
 @dataclass
 class CapitalGainLine:
-    __symbol: str
+    __ticker: str
     __currency: Currency
     __sell_date: YearMonth
     __sell_quantities: List[Decimal]
@@ -133,8 +136,8 @@ class CapitalGainLine:
     __buy_quantities: List[Decimal]
     __buy_trades: List[TradeAction]
 
-    def get_symbol(self):
-        return self.__symbol
+    def get_ticker(self):
+        return self.__ticker
 
     def get_currency(self):
         return self.__currency
@@ -200,7 +203,7 @@ class CapitalGainLineAccumulator:
     __buy_counts: List[Decimal] = field(default_factory=list)
     __buy_trades: List[TradeAction] = field(default_factory=list)
 
-    def get_symbol(self):
+    def get_ticker(self):
         return self.company
 
     def get_currency(self):

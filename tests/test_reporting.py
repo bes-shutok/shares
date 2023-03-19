@@ -50,8 +50,8 @@ class MyTestCase(unittest.TestCase):
         leftover = Path('resources', 'tmp_leftover.xlsx')
 
         trade_actions_per_company: TradeCyclePerCompany = parse_data(source)
-        capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_actions_per_company)
-        persist_results(destination, leftover, capital_gain_lines_per_company)
+        capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_actions_per_company, leftover)
+        persist_results(destination, capital_gain_lines_per_company)
 
         from openpyxl import load_workbook
         workbook1 = load_workbook(expected, data_only=False)

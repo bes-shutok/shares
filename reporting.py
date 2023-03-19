@@ -15,8 +15,8 @@ def main():
     # enhance pipeline to create 'shares-leftover-YYYY.csv' with the exact same structure but leftover shares.
     # In this file only bought and left shares should be present
     trade_lines_per_company: TradeCyclePerCompany = parse_data(source)
-    capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_lines_per_company)
-    persist_results(extract, leftover, capital_gain_lines_per_company)
+    capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_lines_per_company, leftover)
+    persist_results(extract, capital_gain_lines_per_company)
 
 
 if __name__ == "__main__":

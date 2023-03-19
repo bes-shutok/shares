@@ -43,8 +43,7 @@ def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, con
     return coordinates
 
 
-def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, os.PathLike[str]],
-                    capital_gain_lines_per_company: CapitalGainLinesPerCompany):
+def persist_results(extract: Union[str, os.PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
     number_format = '0.000000'
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -70,22 +69,22 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
             c = worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
             c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_sell_amount() + ")")
+                               "=" + exchange_rates[currency.currency] + "*(" + line.get_sell_amount() + ")")
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
             c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_buy_amount() + ")")
+                               "=" + exchange_rates[currency.currency] + "*(" + line.get_buy_amount() + ")")
             idx += 3
             c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.symbol] + "*(" + line.get_expense_amount() +
+                               "=" + exchange_rates[currency.currency] + "*(" + line.get_expense_amount() +
                                ")")
             idx += 2
             c = worksheet.cell(line_number, idx, company.ticker)
             idx += 1
-            c = worksheet.cell(line_number, idx, currency.symbol)
+            c = worksheet.cell(line_number, idx, currency.currency)
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_amount())
             c.number_format = number_format
@@ -97,6 +96,7 @@ def persist_results(extract: Union[str, os.PathLike[str]], leftover: Union[str, 
             c.number_format = number_format
             line_number += 1
 
+    # auto width for the populated cells
     for column_cells in worksheet.columns:
         length = max(len(str(cell.value)) for cell in column_cells)
         worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
