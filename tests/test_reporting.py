@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from extraction import parse_data
 from persisting import persist_results
-from reporting import create_extract
+from reporting import calculate
 from domain import YearMonth, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, TradeCyclePerCompany, \
     CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions, get_year_month
 from tests.data import sell_action1
@@ -50,8 +50,10 @@ class MyTestCase(unittest.TestCase):
         leftover = Path('resources', 'tmp_leftover.xlsx')
 
         trade_actions_per_company: TradeCyclePerCompany = parse_data(source)
-        capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_actions_per_company, leftover)
-        persist_results(destination, capital_gain_lines_per_company)
+        capital_gains: CapitalGainLinesPerCompany = {}
+        leftover_trades: TradeCyclePerCompany = {}
+        calculate(trade_actions_per_company, leftover_trades, capital_gains)
+        persist_results(destination, capital_gains)
 
         from openpyxl import load_workbook
         workbook1 = load_workbook(expected, data_only=False)

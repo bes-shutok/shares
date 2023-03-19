@@ -319,13 +319,16 @@ class TradePartsWithinMonth:
         return t[0]
 
     def is_not_empty(self) -> bool:
-        return self.count() > 0
+        return self.quantity() > 0
 
     def quantity(self) -> Decimal:
         return sum(self.__quantities)
 
-    def count(self) -> int:
-        return len(self.__quantities)
+    def get_trades(self) -> List[TradeAction]:
+        return self.__trades
+
+    def get_quantities(self) -> Decimal:
+        return sum(self.__quantities)
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]

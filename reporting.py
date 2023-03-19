@@ -2,8 +2,8 @@ from pathlib import Path
 
 from extraction import parse_data
 from domain import CapitalGainLinesPerCompany, TradeCyclePerCompany
-from transformation import create_extract
-from persisting import persist_results
+from transformation import calculate
+from persisting import persist_results, persist_leftover
 
 
 def main():
@@ -12,11 +12,17 @@ def main():
     source = Path('resources', 'shares.csv')
     print("Starting conversion from " + str(source) + " to " + str(extract))
 
-    # enhance pipeline to create 'shares-leftover-YYYY.csv' with the exact same structure but leftover shares.
-    # In this file only bought and left shares should be present
     trade_lines_per_company: TradeCyclePerCompany = parse_data(source)
-    capital_gain_lines_per_company: CapitalGainLinesPerCompany = create_extract(trade_lines_per_company, leftover)
-    persist_results(extract, capital_gain_lines_per_company)
+
+    leftover_trades: TradeCyclePerCompany = {}
+    capital_gains: CapitalGainLinesPerCompany = {}
+    calculate(trade_lines_per_company, leftover_trades, capital_gains)
+
+    # create 'shares-leftover-YYYY.csv' with the exact same structure but leftover shares.
+    # In this file only bought and left shares should be present
+    persist_leftover(leftover, leftover_trades)
+
+    persist_results(extract, capital_gains)
 
 
 if __name__ == "__main__":
