@@ -8,7 +8,7 @@ from persisting import persist_results, persist_leftover
 
 def main():
     extract = Path('resources', 'extract.xlsx')
-    leftover = Path('resources', 'shares-leftover-2022.xlsx')
+    leftover = Path('resources', 'shares-leftover-2022.csv')
     source = Path('resources', 'shares.csv')
     print("Starting conversion from " + str(source) + " to " + str(extract))
 
