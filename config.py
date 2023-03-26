@@ -21,12 +21,12 @@ def create_config():
     config = configparser.ConfigParser()
     config.optionxform = str
     config.allow_no_value = True
-    config["COMMON"] = {"TARGET CURRENCY": "EUR"}
-    config["EXCHANGE RATES"] = {"EUR/CAD": "0.69478",
-                                "EUR/USD": "0.88292",
-                                "EUR/GBP": "1.19008",
-                                "EUR/HKD": "0.11321",
-                                "EUR/PLN": "0.21754"}
+    config["COMMON"] = {"TARGET CURRENCY": "EUR", "YEAR": "2022"}
+    config["EXCHANGE RATES"] = {"EUR/CAD": "0.69252",
+                                "EUR/USD": "0.93756",
+                                "EUR/GBP": "1.12748",
+                                "EUR/HKD": "0.12025",
+                                "EUR/PLN": "0.21364"}
     with open('config.ini', 'w') as configfile:
         config.write(configfile)
 

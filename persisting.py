@@ -17,7 +17,7 @@ def persist_leftover(leftover: Union[str, os.PathLike[str]], leftover_trades: Tr
     with open(leftover, 'w', newline='') as right_obj:
         writer = csv.DictWriter(right_obj, fieldnames=["Trades", "Header", "DataDiscriminator", "Asset Category",
                                                        "Currency", "Symbol", "Date/Time", "Quantity", "T. Price",
-                                                       "Proceeds", "Comm/Fee"])
+                                                       "C. Price", "Proceeds", "Comm/Fee"])
         writer.writeheader()
         for currency_company, trade_cycle in leftover_trades.items():
             row["Currency"] = currency_company.currency.currency
