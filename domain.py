@@ -87,20 +87,20 @@ QuantitatedTradeActions = List[QuantitatedTradeAction]
 
 @dataclass
 class TradeCycle:
-    __bought: QuantitatedTradeActions = field(default_factory=list)
-    __sold: QuantitatedTradeActions = field(default_factory=list)
+    bought: QuantitatedTradeActions = field(default_factory=list)
+    sold: QuantitatedTradeActions = field(default_factory=list)
 
     def has_bought(self) -> bool:
-        return len(self.__bought) > 0
+        return len(self.bought) > 0
 
     def has_sold(self) -> bool:
-        return len(self.__sold) > 0
+        return len(self.sold) > 0
 
     def validate(self, currency: Currency, company: Company) -> bool:
         if self.has_sold():
-            any_action = self.__sold[0].action
+            any_action = self.sold[0].action
             return any_action.currency == currency and any_action.company == company
-        any_action = self.__bought[0].action
+        any_action = self.bought[0].action
         return any_action.currency == currency and any_action.company == company
 
     def has(self, trade_type: TradeType) -> bool:
@@ -108,10 +108,10 @@ class TradeCycle:
             return self.has_sold()
         return self.has_bought()
 
-    def get(self, trade_type: TradeType) -> QuantitatedTradeActions | List:
+    def get(self, trade_type: TradeType) -> QuantitatedTradeActions:
         if trade_type == TradeType.SELL:
-            return self.__sold
-        return self.__bought
+            return self.sold
+        return self.bought
 
     def is_empty(self) -> bool:
         return not (self.has_bought() or self.has_sold())
@@ -127,67 +127,67 @@ TradeCyclePerCompany = Dict[CurrencyCompany, TradeCycle]
 
 @dataclass
 class CapitalGainLine:
-    __ticker: str
-    __currency: Currency
-    __sell_date: YearMonth
-    __sell_quantities: List[Decimal]
-    __sell_trades: List[TradeAction]
-    __buy_date: YearMonth
-    __buy_quantities: List[Decimal]
-    __buy_trades: List[TradeAction]
+    ticker: str
+    currency: Currency
+    sell_date: YearMonth
+    sell_quantities: List[Decimal]
+    sell_trades: List[TradeAction]
+    buy_date: YearMonth
+    buy_quantities: List[Decimal]
+    buy_trades: List[TradeAction]
 
     def get_ticker(self):
-        return self.__ticker
+        return self.ticker
 
     def get_currency(self):
-        return self.__currency
+        return self.currency
 
     def sell_quantity(self) -> Decimal:
-        return sum(self.__sell_quantities)
+        return sum(self.sell_quantities)
 
     def buy_quantity(self) -> Decimal:
-        return sum(self.__buy_quantities)
+        return sum(self.buy_quantities)
 
     def validate(self):
         if self.sell_quantity() != self.buy_quantity():
             raise ValueError("Different counts for sales ["
-                             + str(self.__sell_quantities) + "] " + " and buys [" +
-                             str(self.__buy_quantities) + "] in capital gain line!")
-        if len(self.__sell_quantities) != len(self.__sell_trades):
+                             + str(self.sell_quantities) + "] " + " and buys [" +
+                             str(self.buy_quantities) + "] in capital gain line!")
+        if len(self.sell_quantities) != len(self.sell_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__sell_quantities)) + "] " + " and trades [" +
-                             str(len(self.__sell_trades)) + "] for sales in capital gain line!")
-        if len(self.__buy_quantities) != len(self.__buy_trades):
+                             + str(len(self.sell_quantities)) + "] " + " and trades [" +
+                             str(len(self.sell_trades)) + "] for sales in capital gain line!")
+        if len(self.buy_quantities) != len(self.buy_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__buy_quantities)) + "] " + " and trades [" +
-                             str(len(self.__buy_trades)) + "] for buys in capital gain line!")
+                             + str(len(self.buy_quantities)) + "] " + " and trades [" +
+                             str(len(self.buy_trades)) + "] for buys in capital gain line!")
 
     def get_sell_date(self) -> YearMonth:
-        return self.__sell_date
+        return self.sell_date
 
     def get_buy_date(self) -> YearMonth:
-        return self.__buy_date
+        return self.buy_date
 
     def get_sell_amount(self) -> str:
         result = "0"
-        for i in range(len(self.__sell_quantities)):
-            result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].price)
+        for i in range(len(self.sell_quantities)):
+            result += "+" + str(self.sell_quantities[i]) + "*" + str(self.sell_trades[i].price)
         return result
 
     def get_buy_amount(self) -> str:
         result = "0"
-        for i in range(len(self.__buy_quantities)):
-            result += "+" + str(self.__buy_quantities[i]) + "*" + str(self.__buy_trades[i].price)
+        for i in range(len(self.buy_quantities)):
+            result += "+" + str(self.buy_quantities[i]) + "*" + str(self.buy_trades[i].price)
         return result
 
     def get_expense_amount(self) -> str:
         result = "0"
-        for i in range(len(self.__sell_quantities)):
-            result += "+" + str(self.__sell_quantities[i]) + "*" + str(self.__sell_trades[i].fee) \
-                      + "/" + str(self.__sell_trades[i].quantity)
-        for i in range(len(self.__buy_quantities)):
-            result += "+" + str(self.__buy_quantities[i]) + "*" + str(self.__buy_trades[i].fee) \
-                      + "/" + str(self.__buy_trades[i].quantity)
+        for i in range(len(self.sell_quantities)):
+            result += "+" + str(self.sell_quantities[i]) + "*" + str(self.sell_trades[i].fee) \
+                      + "/" + str(self.sell_trades[i].quantity)
+        for i in range(len(self.buy_quantities)):
+            result += "+" + str(self.buy_quantities[i]) + "*" + str(self.buy_trades[i].fee) \
+                      + "/" + str(self.buy_trades[i].quantity)
 
         return result
 
@@ -195,62 +195,62 @@ class CapitalGainLine:
 @dataclass
 class CapitalGainLineAccumulator:
     company: Company
-    __currency: Currency
-    __sell_date: YearMonth = None
-    __sell_counts: List[Decimal] = field(default_factory=list)
-    __sell_trades: List[TradeAction] = field(default_factory=list)
-    __buy_date: YearMonth = None
-    __buy_counts: List[Decimal] = field(default_factory=list)
-    __buy_trades: List[TradeAction] = field(default_factory=list)
+    currency: Currency
+    sell_date: YearMonth = None
+    sell_counts: List[Decimal] = field(default_factory=list)
+    sell_trades: List[TradeAction] = field(default_factory=list)
+    buy_date: YearMonth = None
+    buy_counts: List[Decimal] = field(default_factory=list)
+    buy_trades: List[TradeAction] = field(default_factory=list)
 
     def get_ticker(self):
         return self.company
 
     def get_currency(self):
-        return self.__currency
+        return self.currency
 
     def add_trade(self, count: Decimal, ta: TradeAction):
         year_month = get_year_month(ta.date_time)
         if ta.trade_type == TradeType.SELL:
-            if self.__sell_date is None:
-                self.__sell_date = year_month
+            if self.sell_date is None:
+                self.sell_date = year_month
             else:
-                if self.__sell_date != year_month:
+                if self.sell_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.__sell_date) + "] " +
+                                     + str(self.sell_date) + "] " +
                                      " and got [" + str(year_month) + "]")
-            self.__sell_counts.append(count)
-            self.__sell_trades.append(ta)
+            self.sell_counts.append(count)
+            self.sell_trades.append(ta)
 
         else:
-            if self.__buy_date is None:
-                self.__buy_date = year_month
+            if self.buy_date is None:
+                self.buy_date = year_month
             else:
-                if self.__buy_date != year_month:
+                if self.buy_date != year_month:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.__buy_date) + "] " + " and got ["
+                                     + str(self.buy_date) + "] " + " and got ["
                                      + str(year_month) + "]")
-            self.__buy_counts.append(count)
-            self.__buy_trades.append(ta)
+            self.buy_counts.append(count)
+            self.buy_trades.append(ta)
 
     def sold_quantity(self) -> Decimal:
-        return sum(self.__sell_counts)
+        return sum(self.sell_counts)
 
     def bought_quantity(self) -> Decimal:
-        return sum(self.__buy_counts)
+        return sum(self.buy_counts)
 
     # noinspection PyTypeChecker
     def finalize(self) -> CapitalGainLine:
         self.validate()
-        result = CapitalGainLine(self.company, self.__currency,
-                                 self.__sell_date, self.__sell_counts, self.__sell_trades,
-                                 self.__buy_date, self.__buy_counts, self.__buy_trades)
-        self.__sell_date = None
-        self.__sell_counts = []
-        self.__sell_trades = []
-        self.__buy_date = None
-        self.__buy_counts = []
-        self.__buy_trades = []
+        result = CapitalGainLine(self.company, self.currency,
+                                 self.sell_date, self.sell_counts, self.sell_trades,
+                                 self.buy_date, self.buy_counts, self.buy_trades)
+        self.sell_date = None
+        self.sell_counts = []
+        self.sell_trades = []
+        self.buy_date = None
+        self.buy_counts = []
+        self.buy_trades = []
         return result
 
     def validate(self):
@@ -258,11 +258,11 @@ class CapitalGainLineAccumulator:
             raise ValueError("Cannot finalize empty Accumulator object!")
         if self.sold_quantity() != self.bought_quantity():
             raise ValueError("Different counts for sales ["
-                             + str(self.__sell_counts) + "] " + " and buys [" + str(self.__buy_counts) +
+                             + str(self.sell_counts) + "] " + " and buys [" + str(self.buy_counts) +
                              "] in capital gain line!")
-        if len(self.__sell_counts) != len(self.__sell_trades):
+        if len(self.sell_counts) != len(self.sell_trades):
             raise ValueError("Different number of counts ["
-                             + str(len(self.__sell_counts)) + "] " + " and trades [" + str(len(self.__sell_trades)) +
+                             + str(len(self.sell_counts)) + "] " + " and trades [" + str(len(self.sell_trades)) +
                              "] for sales in capital gain line!")
 
 
@@ -273,13 +273,13 @@ SortedDateRanges = List[YearMonth]
 
 @dataclass
 class TradePartsWithinMonth:
-    company: Company | None = None
-    currency: Currency | None = None
-    year_month: YearMonth | None = None
-    trade_type: TradeType | None = None
-    __dates: List[datetime] = field(default_factory=list)
-    __quantities: List[Decimal] = field(default_factory=list)
-    __trades: List[TradeAction] = field(default_factory=list)
+    company: Company= None
+    currency: Currency = None
+    year_month: YearMonth = None
+    trade_type: TradeType = None
+    dates: List[datetime] = field(default_factory=list)
+    quantities: List[Decimal] = field(default_factory=list)
+    trades: List[TradeAction] = field(default_factory=list)
 
     def push_trade_part(self, quantity: Decimal, ta: TradeAction):
         assert quantity > 0
@@ -292,9 +292,9 @@ class TradePartsWithinMonth:
 
         if self.company == ta.company and self.currency == ta.currency \
                 and self.trade_type == ta.trade_type and self.year_month == get_year_month(ta.date_time):
-            self.__dates.append(ta.date_time)
-            self.__quantities.append(quantity)
-            self.__trades.append(ta)
+            self.dates.append(ta.date_time)
+            self.quantities.append(quantity)
+            self.trades.append(ta)
         else:
             print(str(quantity))
             raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
@@ -303,18 +303,18 @@ class TradePartsWithinMonth:
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
         idx: int = self.__get_top_index()
-        self.__dates.pop(idx)
-        return QuantitatedTradeAction(quantity=self.__quantities.pop(idx), action=self.__trades.pop(idx))
+        self.dates.pop(idx)
+        return QuantitatedTradeAction(quantity=self.quantities.pop(idx), action=self.trades.pop(idx))
 
     def get_top_count(self) -> Decimal:
         idx: int = self.__get_top_index()
-        return self.__quantities[idx]
+        return self.quantities[idx]
 
     def __get_top_index(self) -> int:
-        return self.__dates.index(self.__earliest_date())
+        return self.dates.index(self.__earliest_date())
 
     def __earliest_date(self) -> datetime:
-        t = self.__dates.copy()
+        t = self.dates.copy()
         t.sort()
         return t[0]
 
@@ -322,13 +322,13 @@ class TradePartsWithinMonth:
         return self.quantity() > 0
 
     def quantity(self) -> Decimal:
-        return sum(self.__quantities)
+        return sum(self.quantities)
 
     def get_trades(self) -> List[TradeAction]:
-        return self.__trades
+        return self.trades
 
     def get_quantities(self) -> Decimal:
-        return sum(self.__quantities)
+        return sum(self.quantities)
 
 
 MonthPartitionedTrades = Dict[YearMonth, TradePartsWithinMonth]

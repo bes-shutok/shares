@@ -7,7 +7,7 @@ from domain import TradeCyclePerCompany, TradeCycle, TradeAction, QuantitatedTra
     QuantitatedTradeAction, get_company
 
 
-def parse_data(path: Union[str, Path[str]]) -> TradeCyclePerCompany:
+def parse_data(path: Union[str, Path]) -> TradeCyclePerCompany:
     print("This line will be printed.")
     print(path)
 

@@ -9,7 +9,7 @@ from config import Config, read_config, ConversionRate
 from domain import CapitalGainLinesPerCompany, TradeCyclePerCompany, CurrencyCompany, TradeCycle, TradeType
 
 
-def persist_leftover(leftover: Union[str, os.PathLike[str]], leftover_trades: TradeCyclePerCompany):
+def persist_leftover(leftover: Union[str, os.PathLike], leftover_trades: TradeCyclePerCompany):
     safe_remove_file(leftover)
     row = {"Trades": "Trades", "Header": "Data", "DataDiscriminator": "Order", "Asset Category": "Stock"}
     currency_company: CurrencyCompany
@@ -34,7 +34,7 @@ def persist_leftover(leftover: Union[str, os.PathLike[str]], leftover_trades: Tr
                     writer.writerow(row)
 
 
-def persist_results(extract: Union[str, os.PathLike[str]], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
+def persist_results(extract: Union[str, os.PathLike], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
     first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "PURCHASE", "", "",
                     "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
                     "Symbol", "Currency", "Sale amount", "Buy amount", "Expenses amount"]
@@ -104,7 +104,7 @@ def persist_results(extract: Union[str, os.PathLike[str]], capital_gain_lines_pe
     workbook.close()
 
 
-def safe_remove_file(path: Union[str, os.PathLike[str]]):
+def safe_remove_file(path: Union[str, os.PathLike]):
     if os.path.exists(path):
         os.remove(path)
 

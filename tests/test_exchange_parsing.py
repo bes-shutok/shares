@@ -1,4 +1,3 @@
-import unittest
 from typing import List
 
 import requests
@@ -11,16 +10,10 @@ def get_html(url: str) -> List[str]:
     return soup.find('div', class_='form-item form-type-textfield form-item-result-value').text.split()
 
 
-class MyTestCase(unittest.TestCase):
-
-    def test_exchange_parsing(self):
-        # date 31/12/2021
-        url = "https://www.bportugal.pt/en/conversor-moeda?from=EUR&to=USD&date=1640908800&value=1.00"
-        expected = ['1', 'EUR', '=', '1.13260', 'USD']
-        result = get_html(url)
-        print(result)
-        self.assertEqual(result, expected)
-
-
-if __name__ == '__main__':
-    unittest.main()
+def test_exchange_parsing():
+    # date 31/12/2021
+    url = "https://www.bportugal.pt/en/conversor-moeda?from=EUR&to=USD&date=1640908800&value=1.00"
+    expected = ['1', 'EUR', '=', '1.13260', 'USD']
+    result = get_html(url)
+    print(result)
+    assert result == expected

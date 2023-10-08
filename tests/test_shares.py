@@ -1,30 +1,15 @@
-import unittest
 from pathlib import Path
 
-import extraction
-import data
-import domain
+import extraction as extraction
+import test_data as test_data
+import domain as domain
 
 
-class MyTestCase(unittest.TestCase):
-
-    def test_parsing(self):
-        source_file = Path('resources', 'simple.csv')
-        actual_trades: domain.TradeCyclePerCompany = extraction.parse_data(source_file)
-        self.assertEqual(
-            data.simple_trade[data.currency_company].get(domain.TradeType.BUY),
-            actual_trades[data.currency_company].get(domain.TradeType.BUY)
-        )
-        self.assertEqual(
-            data.simple_trade[data.currency_company].get(domain.TradeType.SELL)[1],
-            actual_trades[data.currency_company].get(domain.TradeType.SELL)[1]
-        )
-        self.assertEqual(
-            data.simple_trade[data.currency_company].get(domain.TradeType.SELL),
-            actual_trades[data.currency_company].get(domain.TradeType.SELL)
-        )
-        self.assertEqual(data.simple_trade, actual_trades)
-
-
-if __name__ == '__main__':
-    unittest.main()
+def test_parsing():
+    source_file = Path('tests', 'resources', 'simple.csv')
+    actual_trades: domain.TradeCyclePerCompany = extraction.parse_data(source_file)
+    assert test_data.simple_trade[test_data.currency_company].get(domain.TradeType.BUY) == actual_trades[test_data.currency_company].get(domain.TradeType.BUY)
+    assert test_data.simple_trade[test_data.currency_company].get(domain.TradeType.SELL)[1] == actual_trades[test_data.currency_company].get(domain.TradeType.SELL)[1]
+    assert test_data.simple_trade[test_data.currency_company].get(domain.TradeType.SELL) == actual_trades[test_data.currency_company].get(domain.TradeType.SELL)
+    assert test_data.simple_trade == actual_trades
+    
