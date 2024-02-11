@@ -20,7 +20,7 @@
 Main script which processes data and create resulting reports
 
 ### domain
-Domain classes used
+Domain data classes
 
 ### extraction
 Utils for extracting data from source files
@@ -33,7 +33,7 @@ Utils that persist the data
 
 
 ## Usage
-**To run open a shell**
+**To run tests rebuild image and run terminal on the docker container**
 
   ```bash
 
