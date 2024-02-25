@@ -1,4 +1,6 @@
 *__pycache__/*
 resources/tmp/*
 */__pycache__/*
-.idea
+/.idea/*
+/.pytest_cache/*
+/.vscode/*
