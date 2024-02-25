@@ -1,7 +1,7 @@
 # pytest_project
 
 - [Prerequisites](#prerequisites)
-- [Modules](modules)
+- [Modules](#modules)
 - [Usage](#usage)
 - [Debugging](#debugging)
 - [Additional Practice](#additional-practice)
@@ -9,8 +9,11 @@
 
 
 ## Prerequisites
+**Add source file**
+  - Add source file to /resources/source folder. See /resources/shares_example.csv for an example of the file format.
+
 **Install Docker**
-  - These tests have been packaged to run with all dependencies
+  - The tests have been packaged to run with all dependencies
     installed within a Docker container. Due to the use of f-strings,
     this must be run with python 3.6+. The Docker image is based on python 3.7
 

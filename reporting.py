@@ -7,9 +7,9 @@ from persisting import persist_results, persist_leftover
 
 
 def main():
-    extract = Path('resources', 'extract.xlsx')
-    leftover = Path('resources', 'shares-leftover.csv')
-    source = Path('resources', 'shares.csv')
+    extract = Path('resources/result', 'extract.xlsx')
+    leftover = Path('resources/result', 'shares-leftover.csv')
+    source = Path('resources/source', 'shares.csv')
     print("Starting conversion from " + str(source) + " to " + str(extract))
 
     trade_lines_per_company: TradeCyclePerCompany = parse_data(source)

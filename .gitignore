@@ -2,5 +2,7 @@
 resources/tmp/*
 */__pycache__/*
 /.idea/*
-/.pytest_cache/*
-/.vscode/*
+/.pytest_cache/
+/.vscode/
+/resources/source/*
+/resources/result/*
