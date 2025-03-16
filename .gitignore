@@ -6,3 +6,4 @@ resources/tmp/*
 /.vscode/
 /resources/source/*
 /resources/result/*
+/tests/resources/tmp.*

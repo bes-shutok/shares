@@ -19,14 +19,32 @@ The initial implementation of the shares reporting tool uses standard yearly rep
 
 
 ## Prerequisites
-**Add source file**
+### **Update source files**
   - Add source file to /resources/source folder. See /resources/shares_example.csv for an example of the file format.
+  - Update config.ini with all required currency exchange pairs.
+    E.g. for Portugal it can be the exchange rates from the last day of the year (https://www.bportugal.pt/en/page/currency-converter) 
 
-**Install Docker**
+### **Install Docker**
   - The tests have been packaged to run with all dependencies
     installed within a Docker container. Due to the use of f-strings,
     this must be run with python 3.6+. The Docker image is based on python 3.7
 
+### Setting Up Virtual Environment (venv)
+
+Instead of Docker, you can also run the project locally using a virtual environment.
+
+#### **Step 1: Create and Activate venv**
+```bash
+python -m venv venv
+pip install -r requirements.txt
+```
+
+## Usage
+```bash
+cd ../shares-reporting
+source ../shares-reporting/venv/Scripts/activate
+python ./reporting.py
+```
 
 ## Modules
 ### reporting
@@ -38,7 +56,7 @@ Domain data classes
 ### extraction
 Utils for extracting data from source files
 
-### transofrmation
+### transformation
 Utils used to massage the shares data
 
 ### persisting
