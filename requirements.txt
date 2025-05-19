@@ -1,4 +1,4 @@
 beautifulsoup4==4.12.3
 openpyxl==3.0.10
 Requests==2.32.0
-setuptools==70.0.0
+setuptools==78.1.1
