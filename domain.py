@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Dict, List, NamedTuple
 
 
-class YearMonthDate(NamedTuple):
+class TradeDate(NamedTuple):
     year: int
     month: int
     day: int
@@ -18,8 +18,8 @@ class YearMonthDate(NamedTuple):
         return "[" + str(self.day) + " " + calendar.month_name[self.month] + ", " + str(self.year) + "]"
 
 
-def get_year_month_day(date: datetime) -> YearMonthDate:
-    return YearMonthDate(date.year, date.month, date.day)
+def get_trade_date(date: datetime) -> TradeDate:
+    return TradeDate(date.year, date.month, date.day)
 
 
 class TradeType(Enum):
@@ -130,10 +130,10 @@ TradeCyclePerCompany = Dict[CurrencyCompany, TradeCycle]
 class CapitalGainLine:
     ticker: str
     currency: Currency
-    sell_date: YearMonthDate
+    sell_date: TradeDate
     sell_quantities: List[Decimal]
     sell_trades: List[TradeAction]
-    buy_date: YearMonthDate
+    buy_date: TradeDate
     buy_quantities: List[Decimal]
     buy_trades: List[TradeAction]
 
@@ -163,10 +163,10 @@ class CapitalGainLine:
                              + str(len(self.buy_quantities)) + "] " + " and trades [" +
                              str(len(self.buy_trades)) + "] for buys in capital gain line!")
 
-    def get_sell_date(self) -> YearMonthDate:
+    def get_sell_date(self) -> TradeDate:
         return self.sell_date
 
-    def get_buy_date(self) -> YearMonthDate:
+    def get_buy_date(self) -> TradeDate:
         return self.buy_date
 
     def get_sell_amount(self) -> str:
@@ -197,10 +197,10 @@ class CapitalGainLine:
 class CapitalGainLineAccumulator:
     company: Company
     currency: Currency
-    sell_date: YearMonthDate = None
+    sell_date: TradeDate = None
     sell_counts: List[Decimal] = field(default_factory=list)
     sell_trades: List[TradeAction] = field(default_factory=list)
-    buy_date: YearMonthDate = None
+    buy_date: TradeDate = None
     buy_counts: List[Decimal] = field(default_factory=list)
     buy_trades: List[TradeAction] = field(default_factory=list)
 
@@ -211,26 +211,26 @@ class CapitalGainLineAccumulator:
         return self.currency
 
     def add_trade(self, count: Decimal, ta: TradeAction):
-        year_month_day = get_year_month_day(ta.date_time)
+        trade_date = get_trade_date(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.sell_date is None:
-                self.sell_date = year_month_day
+                self.sell_date = trade_date
             else:
-                if self.sell_date != year_month_day:
+                if self.sell_date != trade_date:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.sell_date) + "] " +
-                                     " and got [" + str(year_month_day) + "]")
+                                     " and got [" + str(trade_date) + "]")
             self.sell_counts.append(count)
             self.sell_trades.append(ta)
 
         else:
             if self.buy_date is None:
-                self.buy_date = year_month_day
+                self.buy_date = trade_date
             else:
-                if self.buy_date != year_month_day:
+                if self.buy_date != trade_date:
                     raise ValueError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.buy_date) + "] " + " and got ["
-                                     + str(year_month_day) + "]")
+                                     + str(trade_date) + "]")
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
 
@@ -269,14 +269,14 @@ class CapitalGainLineAccumulator:
 
 CapitalGainLines = List[CapitalGainLine]
 CapitalGainLinesPerCompany = Dict[CurrencyCompany, CapitalGainLines]
-SortedDateRanges = List[YearMonthDate]
+SortedDateRanges = List[TradeDate]
 
 
 @dataclass
-class TradePartsWithinMonth:
+class TradePartsWithinDay:
     company: Company= None
     currency: Currency = None
-    year_month: YearMonthDate = None
+    trade_date: TradeDate = None
     trade_type: TradeType = None
     dates: List[datetime] = field(default_factory=list)
     quantities: List[Decimal] = field(default_factory=list)
@@ -289,18 +289,18 @@ class TradePartsWithinMonth:
             self.company = ta.company
             self.currency = ta.currency
             self.trade_type = ta.trade_type
-            self.year_month = get_year_month_day(ta.date_time)
+            self.trade_date = get_trade_date(ta.date_time)
 
         if self.company == ta.company and self.currency == ta.currency \
-                and self.trade_type == ta.trade_type and self.year_month == get_year_month_day(ta.date_time):
+                and self.trade_type == ta.trade_type and self.trade_date == get_trade_date(ta.date_time):
             self.dates.append(ta.date_time)
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
             print(str(quantity))
-            raise ValueError("Incompatible trade_type or month in MonthlyTradeLine! Expected [" +
-                             str(self.trade_type) + " " + str(self.quantity) + " and " + str(self.year_month) + "] " +
-                             " and got [" + str(ta.trade_type) + " and " + str(self.year_month) + "]")
+            raise ValueError("Incompatible trade_type or date in DailyTradeLine! Expected [" +
+                             str(self.trade_type) + " " + str(self.quantity) + " and " + str(self.trade_date) + "] " +
+                             " and got [" + str(ta.trade_type) + " and " + str(self.trade_date) + "]")
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
         idx: int = self.__get_top_index()
@@ -332,8 +332,8 @@ class TradePartsWithinMonth:
         return sum(self.quantities, Decimal('0'))
 
 
-MonthPartitionedTrades = Dict[YearMonthDate, TradePartsWithinMonth]
-PartitionedTradesByType = Dict[TradeType, MonthPartitionedTrades]
+DayPartitionedTrades = Dict[TradeDate, TradePartsWithinDay]
+PartitionedTradesByType = Dict[TradeType, DayPartitionedTrades]
 
 
 class CurrencyToCoordinate(NamedTuple):

@@ -1,16 +1,16 @@
 from decimal import Decimal
 
 from domain import TradeType, TradeAction, TradeCycle, CapitalGainLines, QuantitatedTradeActions, \
-    MonthPartitionedTrades, TradePartsWithinMonth, SortedDateRanges, \
+    DayPartitionedTrades, TradePartsWithinDay, SortedDateRanges, \
     CapitalGainLineAccumulator, CapitalGainLine, TradeCyclePerCompany, CapitalGainLinesPerCompany, CurrencyCompany, \
-    get_year_month_day, Company, Currency, QuantitatedTradeAction
+    get_trade_date, Company, Currency, QuantitatedTradeAction
 
 
-def print_month_partitioned_trades(month_partitioned_trades: MonthPartitionedTrades):
-    print("MonthPartitionedTrades{")
-    keys = sorted(month_partitioned_trades.keys())
+def print_day_partitioned_trades(day_partitioned_trades: DayPartitionedTrades):
+    print("DayPartitionedTrades{")
+    keys = sorted(day_partitioned_trades.keys())
     for key in keys:
-        print(str(key) + " : " + str(month_partitioned_trades[key]))
+        print(str(key) + " : " + str(day_partitioned_trades[key]))
     print("}")
 
 
@@ -23,29 +23,29 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     if not buy_actions:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
-    sales_monthly_slices: MonthPartitionedTrades = split_by_months(sale_actions, TradeType.SELL)
-    print("\nsales_monthly_slices:")
-    print_month_partitioned_trades(sales_monthly_slices)
+    sales_daily_slices: DayPartitionedTrades = split_by_months(sale_actions, TradeType.SELL)
+    print("\nsales_daily_slices:")
+    print_day_partitioned_trades(sales_daily_slices)
 
-    buys_monthly_slices: MonthPartitionedTrades = split_by_months(buy_actions, TradeType.BUY)
-    print("\nbuys_monthly_slices:")
-    print_month_partitioned_trades(buys_monthly_slices)
+    buys_daily_slices: DayPartitionedTrades = split_by_months(buy_actions, TradeType.BUY)
+    print("\nbuys_daily_slices:")
+    print_day_partitioned_trades(buys_daily_slices)
 
     capital_gain_lines: CapitalGainLines = []
 
-    while len(sales_monthly_slices) > 0 and len(buys_monthly_slices) > 0:
-        sorted_sale_year_months: SortedDateRanges = sorted(sales_monthly_slices.keys())
-        sorted_buy_year_months: SortedDateRanges = sorted(buys_monthly_slices.keys())
-        # for sale_year_month in sorted_sale_year_months:
-        sale_year_month = sorted_sale_year_months[0]
-        # for buy_year_month in sorted_buy_year_months:
-        buy_year_month = sorted_buy_year_months[0]
+    while len(sales_daily_slices) > 0 and len(buys_daily_slices) > 0:
+        sorted_sale_dates: SortedDateRanges = sorted(sales_daily_slices.keys())
+        sorted_buy_dates: SortedDateRanges = sorted(buys_daily_slices.keys())
+        # for sale_date in sorted_sale_dates:
+        sale_date = sorted_sale_dates[0]
+        # for buy_date in sorted_buy_dates:
+        buy_date = sorted_buy_dates[0]
 
-        sale_trade_parts: TradePartsWithinMonth = sales_monthly_slices[sale_year_month]
+        sale_trade_parts: TradePartsWithinDay = sales_daily_slices[sale_date]
         print("sale_trade_parts")
         print(sale_trade_parts)
 
-        buy_trade_parts: TradePartsWithinMonth = buys_monthly_slices[buy_year_month]
+        buy_trade_parts: TradePartsWithinDay = buys_daily_slices[buy_date]
         print("buy_trade_parts")
         print(buy_trade_parts)
 
@@ -65,29 +65,29 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
 
             if sale_trade_parts.quantity() == 0:
                 # remove empty trades
-                sales_monthly_slices.pop(sale_year_month)
+                sales_daily_slices.pop(sale_date)
 
             if buy_trade_parts.quantity() == 0:
                 # remove empty trades
-                buys_monthly_slices.pop(buy_year_month)
+                buys_daily_slices.pop(buy_date)
 
         capital_gain_line: CapitalGainLine = capital_gain_line_accumulator.finalize()
         capital_gain_lines.append(capital_gain_line)
 
     sale_actions.clear()
-    if len(sales_monthly_slices) > 0:
-        for trade_part in sales_monthly_slices.values():
+    if len(sales_daily_slices) > 0:
+        for trade_part in sales_daily_slices.values():
             add_leftover(sale_actions, trade_part)
-        print("Leftover sales_monthly_slices:")
-        print_month_partitioned_trades(sales_monthly_slices)
+        print("Leftover sales_daily_slices:")
+        print_day_partitioned_trades(sales_daily_slices)
         print(f"Leftover sale_actions: {sale_actions}")
 
     buy_actions.clear()
-    if len(buys_monthly_slices) > 0:
-        for trade_part in buys_monthly_slices.values():
+    if len(buys_daily_slices) > 0:
+        for trade_part in buys_daily_slices.values():
             add_leftover(buy_actions, trade_part)
-        print("Leftover buys_monthly_slices:")
-        print_month_partitioned_trades(buys_monthly_slices)
+        print("Leftover buys_daily_slices:")
+        print_day_partitioned_trades(buys_daily_slices)
         print(f"Leftover buy_actions: {buy_actions}")
 
     print(capital_gain_lines)
@@ -95,7 +95,7 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     return capital_gain_lines
 
 
-def add_leftover(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinMonth):
+def add_leftover(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay):
     total: Decimal = trade_part.quantity()
     for trade in trade_part.get_trades():
         if total == 0:
@@ -120,8 +120,8 @@ def extract_trades(quantity_left, trade_parts, capital_gain_line_accumulator):
             quantity_left = 0
 
 
-def split_by_months(actions: QuantitatedTradeActions, trade_type: TradeType) -> MonthPartitionedTrades:
-    month_partitioned_trades: MonthPartitionedTrades = {}
+def split_by_months(actions: QuantitatedTradeActions, trade_type: TradeType) -> DayPartitionedTrades:
+    day_partitioned_trades: DayPartitionedTrades = {}
 
     if not actions:
         return {}
@@ -132,13 +132,13 @@ def split_by_months(actions: QuantitatedTradeActions, trade_type: TradeType) -> 
         if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
             raise ValueError("Incompatible trade types! Got " + trade_type.name + "for expected output and " +
                              trade_action.trade_type + " for the trade_action" + str(trade_action))
-        year_month = get_year_month_day(trade_action.date_time)
-        trades_within_month: TradePartsWithinMonth = month_partitioned_trades.get(year_month, TradePartsWithinMonth())
+        trade_date = get_trade_date(trade_action.date_time)
+        trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(trade_date, TradePartsWithinDay())
         print("pushing trade action " + str(trade_action))
-        trades_within_month.push_trade_part(quantity, trade_action)
-        month_partitioned_trades[year_month] = trades_within_month
+        trades_within_day.push_trade_part(quantity, trade_action)
+        day_partitioned_trades[trade_date] = trades_within_day
 
-    return month_partitioned_trades
+    return day_partitioned_trades
 
 
 def calculate(trade_cycle_per_company: TradeCyclePerCompany, leftover_trades: TradeCyclePerCompany,

@@ -4,8 +4,8 @@ from decimal import Decimal
 from extraction import parse_data
 from persisting import persist_results
 from reporting import calculate
-from domain import YearMonthDate, TradeType, TradePartsWithinMonth, MonthPartitionedTrades, TradeCyclePerCompany, \
-    CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions, get_year_month_day
+from domain import TradeDate, TradeType, TradePartsWithinDay, DayPartitionedTrades, TradeCyclePerCompany, \
+    CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions, get_trade_date
 from test_data import sell_action1
 from transformation import split_by_months
 
@@ -15,10 +15,10 @@ date_time1 = datetime.strptime("2021-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time2 = datetime.strptime("2022-05-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time3 = datetime.strptime("2021-01-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
 date_time4 = datetime.strptime("2021-12-18, 14:53:23", '%Y-%m-%d, %H:%M:%S')
-test_dict4 = [YearMonthDate(date_time1.year, date_time1.month, date_time1.day),
-              YearMonthDate(date_time2.year, date_time2.month, date_time2.day),
-              YearMonthDate(date_time3.year, date_time3.month, date_time3.day),
-              YearMonthDate(date_time4.year, date_time4.month, date_time4.day)]
+test_dict4 = [TradeDate(date_time1.year, date_time1.month, date_time1.day),
+              TradeDate(date_time2.year, date_time2.month, date_time2.day),
+              TradeDate(date_time3.year, date_time3.month, date_time3.day),
+              TradeDate(date_time4.year, date_time4.month, date_time4.day)]
 
 def test_sorting():
     print(str(test_dict1))
@@ -30,14 +30,14 @@ def test_sorting():
     assert 1 == 1
 
 def test_partitioning():
-        trades_within_month1 = TradePartsWithinMonth()
-        trades_within_month1.push_trade_part(Decimal(1), sell_action1)
-        month_partitioned_trades1: MonthPartitionedTrades = {get_year_month_day(sell_action1.date_time): trades_within_month1}
+        trades_within_day1 = TradePartsWithinDay()
+        trades_within_day1.push_trade_part(Decimal(1), sell_action1)
+        day_partitioned_trades1: DayPartitionedTrades = {get_trade_date(sell_action1.date_time): trades_within_day1}
 
         actions: QuantitatedTradeActions = [QuantitatedTradeAction(quantity=Decimal(1.0), action=sell_action1)]
-        actual: MonthPartitionedTrades = split_by_months(actions, TradeType.SELL)
+        actual: DayPartitionedTrades = split_by_months(actions, TradeType.SELL)
         # print(actual)
-        assert actual == month_partitioned_trades1
+        assert actual == day_partitioned_trades1
 
 # https://stackoverflow.com/questions/52089716/comparing-two-excel-files-using-openpyxl
 def test_comparing():

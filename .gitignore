@@ -2,8 +2,10 @@
 resources/tmp/*
 */__pycache__/*
 /.idea/*
+/.claude/*
 /.pytest_cache/
 /.vscode/
 /resources/source/*
 /resources/result/*
 /tests/resources/tmp.*
+.claude/settings.local.json

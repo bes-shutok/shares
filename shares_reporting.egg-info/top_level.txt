@@ -1,0 +1,6 @@
+config
+domain
+extraction
+persisting
+reporting
+transformation
