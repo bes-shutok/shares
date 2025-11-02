@@ -1,13 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
 
-from extraction import parse_data
-from persisting import persist_results
-from reporting import calculate
-from domain import TradeDate, TradeType, TradePartsWithinDay, DayPartitionedTrades, TradeCyclePerCompany, \
-    CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions, get_trade_date
+from shares_reporting.application.extraction import parse_data
+from shares_reporting.application.persisting import persist_results
+from shares_reporting.application.transformation import calculate, split_by_months
+from shares_reporting.domain.value_objects import TradeDate, TradeType, get_trade_date
+from shares_reporting.domain.accumulators import TradePartsWithinDay
+from shares_reporting.domain.collections import DayPartitionedTrades, TradeCyclePerCompany, CapitalGainLinesPerCompany, QuantitatedTradeAction, QuantitatedTradeActions
 from test_data import sell_action1
-from transformation import split_by_months
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
 test_dict2 = ["202201", "202112", "202102"]

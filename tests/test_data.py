@@ -1,7 +1,9 @@
 from decimal import Decimal
 
-from domain import TradeAction, TradeCyclePerCompany, CapitalGainLineAccumulator, CurrencyCompany, \
-    QuantitatedTradeAction, get_currency, get_company, TradeCycle
+from shares_reporting.domain.entities import TradeAction, QuantitatedTradeAction, CurrencyCompany, TradeCycle
+from shares_reporting.domain.collections import TradeCyclePerCompany
+from shares_reporting.domain.accumulators import CapitalGainLineAccumulator
+from shares_reporting.domain.value_objects import get_currency, get_company
 
 currency = get_currency("USD")
 company = get_company("BTU")

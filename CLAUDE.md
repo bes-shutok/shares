@@ -11,11 +11,14 @@ Shares reporting tool is a financial application that processes Interactive Brok
 ### Running the Application
 ```bash
 # Using Poetry (recommended)
-poetry run python ./reporting.py
+poetry run shares-reporting
 
 # Using Poetry shell
 poetry shell
-python ./reporting.py
+shares-reporting
+
+# Direct execution (alternative)
+poetry run python ./src/shares_reporting/main.py
 
 # Ensure config.ini has all required currency exchange pairs
 # Update source files in /resources/source folder
@@ -68,26 +71,36 @@ poetry outdated
 
 ## Architecture
 
-### Layered Architecture Pattern
-- **Domain Layer** (`domain.py`): Rich domain models with business logic (TradeAction, TradeCycle, CapitalGainLine)
-- **Data Access Layer** (`extraction.py`): CSV parsing and data loading utilities
-- **Business Logic Layer** (`transformation.py`): Capital gains calculations and trade matching
-- **Presentation Layer** (`persisting.py`): Excel/CSV report generation with formulas
-- **Configuration Layer** (`config.py`): Settings and currency exchange rate management
+### Clean Architecture with Domain-Driven Design
 
-### Core Business Logic
+The project follows **professional layered architecture** with **Domain-Driven Design** principles:
+
+#### **Layered Architecture**
+- **Domain Layer** (`src/shares_reporting/domain/`): Core business entities and rules
+  - `value_objects.py` - TradeDate, Currency, Company, TradeType
+  - `entities.py` - TradeAction, TradeCycle, CapitalGainLine
+  - `accumulators.py` - CapitalGainLineAccumulator, TradePartsWithinDay
+  - `collections.py` - Type aliases and collections
+- **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
+  - `extraction.py` - CSV data parsing and domain object creation
+  - `transformation.py` - Capital gains calculation and trade matching
+  - `persisting.py` - Excel/CSV report generation with formulas
+- **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns
+  - `config.py` - Configuration management and currency exchange rates
+- **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point and orchestration
+
+### Core Business Logic Pipeline
 The system processes trades in this pipeline:
 1. **Extraction**: Parse Interactive Brokers CSV files into domain objects
 2. **Transformation**: Group trades by company/currency, match buys/sells chronologically using FIFO within daily buckets
 3. **Persistence**: Generate Excel reports with calculated capital gains + CSV files for unmatched shares
 
-### Domain Model
-Key domain objects use NamedTuple/dataclass patterns:
-- `TradeAction`: Individual buy/sell transactions
-- `TradeCycle`: Collection of trades for a company
-- `CapitalGainLine`: Matched buy/sell pairs for tax reporting
-- `CurrencyCompany`: Composite key for grouping trades
-- `TradePartsWithinDay`: Daily aggregation structure
+### Domain Model Architecture
+Rich domain models with proper separation of concerns:
+- **Value Objects** (Immutable): TradeDate, Currency, Company, TradeType with validation
+- **Entities** (Rich): TradeAction, TradeCycle, CapitalGainLine with business behavior
+- **Accumulators**: CapitalGainLineAccumulator, TradePartsWithinDay for complex calculations
+- **Collections**: Type aliases for better code readability and maintainability
 
 ## Configuration Management
 
@@ -102,40 +115,105 @@ Key domain objects use NamedTuple/dataclass patterns:
 **Processing**: Domain-driven transformation pipeline with currency conversion
 **Output**: Excel reports with formulas in `/resources/result/` + CSV leftover files
 
-## Testing Notes
+## Testing Strategy
 
-- Tests use pytest framework with fixtures in `test_data.py`
-- Integration tests cover end-to-end workflows
-- For debugging: use `breakpoint()` or `import pdb; pdb.set_trace()`
-- Test names follow pytest conventions with descriptive function names
+### **Comprehensive Test Suite**
+The project follows **professional testing best practices** with **high unit test coverage**:
+
+#### **Test Structure** (Mirrors Package Structure)
+```
+tests/
+├── domain/                     # Domain layer unit tests
+│   ├── test_value_objects.py   # 29 tests - Value objects and validation
+│   ├── test_collections.py    # 15 tests - Type aliases and collections
+│   ├── test_accumulators.py   # 56 tests - Business accumulators
+│   └── test_entities.py       # 44 tests - Core entities
+├── application/                # Application layer tests
+│   └── test_extraction.py     # CSV parsing edge cases
+├── infrastructure/             # Infrastructure layer tests
+│   └── test_config.py         # Configuration management
+├── test_shares.py             # Integration tests (existing)
+└── test_reporting.py          # End-to-end tests (existing)
+```
+
+#### **Testing Commands**
+```bash
+# Run all tests
+poetry run pytest
+
+# Run tests by layer
+poetry run pytest tests/domain/           # Domain layer unit tests
+poetry run pytest tests/application/        # Application layer tests
+poetry run pytest tests/infrastructure/     # Infrastructure tests
+
+# Run with coverage
+poetry run pytest --cov=src --cov-report=html
+
+# Run only unit tests (excluding integration)
+poetry run pytest tests/domain/ tests/application/ tests/infrastructure/
+
+# Run existing integration tests
+poetry run pytest tests/test_shares.py tests/test_reporting.py
+```
+
+#### **Testing Best Practices**
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test component interactions
+- **Edge Cases**: Comprehensive error handling and boundary conditions
+- **Test Coverage**: High coverage of business logic and validation
+- **Descriptive Naming**: Clear test names that document behavior
+- **Debugging**: Use `breakpoint()` or `import pdb; pdb.set_trace()`
 
 ## Development Environment
 
 - **Python 3.11+ required** (f-string usage and modern features)
 - **Poetry for dependency management** (recommended approach)
-- **Flat module structure** with direct Python module imports
+- **Professional package structure** with `src/` layout
+- **Clean Architecture** with Domain-Driven Design
 - **Type hints extensively used** throughout codebase
-- **pytest framework** with comprehensive test coverage
-- **Modern tooling**: Coverage reporting, linting, formatting support
+- **pytest framework** with comprehensive unit and integration tests
+- **Modern tooling**: Coverage reporting, professional packaging
 
 ## Project Structure
 
 ```
 shares-reporting/
-├── pyproject.toml          # Poetry configuration and dependencies
-├── config.ini              # Application configuration
-├── reporting.py            # Main application entry point
-├── domain.py               # Domain models and business logic
-├── extraction.py           # Data parsing utilities
-├── transformation.py       # Business logic for calculations
-├── persisting.py           # Report generation utilities
-├── config.py               # Configuration management
+├── src/                     # Source code (src layout)
+│   └── shares_reporting/
+│       ├── __init__.py        # Package exports
+│       ├── main.py           # Application entry point
+│       ├── domain/           # Domain layer
+│       │   ├── __init__.py
+│       │   ├── value_objects.py   # TradeDate, Currency, Company, TradeType
+│       │   ├── entities.py      # TradeAction, TradeCycle, CapitalGainLine
+│       │   ├── accumulators.py   # CapitalGainLineAccumulator, TradePartsWithinDay
+│       │   └── collections.py    # Type aliases and utilities
+│       ├── application/      # Application layer
+│       │   ├── __init__.py
+│       │   ├── extraction.py    # CSV data parsing
+│       │   ├── transformation.py # Capital gains calculation
+│       │   └── persisting.py    # Excel/CSV generation
+│       └── infrastructure/    # Infrastructure layer
+│           ├── __init__.py
+│           └── config.py        # Configuration management
 ├── tests/                  # Test suite
-│   ├── test_data.py        # Test fixtures
-│   ├── test_reporting.py   # Integration tests
-│   └── test_shares.py      # Unit tests
+│   ├── domain/             # Domain layer unit tests
+│   │   ├── test_value_objects.py
+│   │   ├── test_collections.py
+│   │   ├── test_accumulators.py
+│   │   └── test_entities.py
+│   ├── application/        # Application layer tests
+│   │   └── test_extraction.py
+│   ├── infrastructure/     # Infrastructure layer tests
+│   │   └── test_config.py
+│   ├── test_shares.py       # Integration tests (existing)
+│   ├── test_reporting.py    # End-to-end tests (existing)
+│   └── test_data.py         # Test fixtures (existing)
 ├── resources/              # Data directories
 │   ├── source/             # Input CSV files
 │   └── result/             # Generated reports
-└── README.md               # Project documentation
+├── pyproject.toml          # Poetry configuration and dependencies
+├── config.ini              # Application configuration
+├── README.md               # Project documentation
+└── CLAUDE.md              # This file - Claude Code guidance
 ```

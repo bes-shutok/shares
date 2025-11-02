@@ -5,7 +5,8 @@ description = "Shares reporting tool for tax reporting in Portugal"
 authors = ["Andrey Dmitriev <dmitriev.andrey.vitalyevich@gmail.com>"]
 readme = "README.md"
 license = "MIT"
-package-mode = false
+package-mode = true
+packages = [{include = "shares_reporting", from = "src"}]
 homepage = "https://github.com/bes-shutok/shares"
 repository = "https://github.com/bes-shutok/shares"
 keywords = ["finance", "tax", "reporting", "shares", "trading"]
@@ -37,7 +38,7 @@ pytest-pythonpath = "^0.7.3"
 bs4 = "^0.0.2"
 
 [tool.poetry.scripts]
-shares-reporting = "reporting:main"
+shares-reporting = "shares_reporting.main:main"
 
 [build-system]
 requires = ["poetry-core"]
@@ -59,7 +60,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["."]
+source = ["src"]
 omit = [
     "tests/*",
     "venv/*",

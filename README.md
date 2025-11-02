@@ -5,9 +5,34 @@
 The shares reporting tool is designed to provide a simple and efficient way to generate preliminary data for tax reporting in Portugal. The same tool can be used for reporting in other countries with similar requirements of grouping bought/sold shares.
 Currently, the tool joins shares bought/sold within a day.
 
-## Initial Implementation
+## Architecture
 
-The initial implementation of the shares reporting tool uses standard yearly reports generated from my own Interactive Brokers' account. The report is generated in the form of an Excel file, where each share is accumulated in one line with the same amount of shares bought and sold.
+This project follows **Clean Architecture** principles with **Domain-Driven Design** and professional Python package structure:
+
+### **Layered Architecture**
+- **Domain Layer** (`src/shares_reporting/domain/`): Core business entities and rules
+- **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
+- **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns (config, I/O)
+- **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point
+
+### **Professional Package Structure**
+```
+src/shares_reporting/
+├── domain/                    # Domain Layer
+│   ├── value_objects.py       # TradeDate, Currency, Company, TradeType
+│   ├── entities.py            # TradeAction, TradeCycle, CapitalGainLine
+│   ├── accumulators.py        # CapitalGainLineAccumulator, TradePartsWithinDay
+│   └── collections.py         # Type aliases and collections
+├── application/               # Application Layer
+│   ├── extraction.py          # CSV data parsing
+│   ├── transformation.py      # Capital gains calculation
+│   └── persisting.py          # Excel/CSV report generation
+├── infrastructure/             # Infrastructure Layer
+│   └── config.py              # Configuration management
+└── main.py                    # Application entry point
+```
+
+The initial implementation has been **refactored** from a flat structure to a professional modular architecture while maintaining the same business functionality and backward compatibility.
 
 # Table of Contents
 - [Prerequisites](#prerequisites)
@@ -55,9 +80,11 @@ poetry shell
 
 **Step 4: Run the Application**
 ```bash
-python ./reporting.py
-# Or using Poetry
-poetry run python ./reporting.py
+# Using Poetry (recommended)
+poetry run shares-reporting
+
+# Or directly
+poetry run python ./src/shares_reporting/main.py
 ```
 
 
@@ -67,7 +94,7 @@ poetry run python ./reporting.py
 ```bash
 cd shares-reporting
 poetry install
-poetry run python ./reporting.py
+poetry run shares-reporting
 ```
 
 
@@ -76,32 +103,63 @@ poetry run python ./reporting.py
 - Update source files in `/resources/source` folder
 - For Portugal, use exchange rates from Banco de Portugal (last day of the year)
 
-## Modules
-### reporting
-Main script which processes data and create resulting reports
+## Architecture & Modules
 
-### domain
-Domain data classes
+### **Domain Layer** (`src/shares_reporting/domain/`)
+Core business entities and rules that are independent of external concerns:
+- **`value_objects.py`** - Value objects: TradeDate, Currency, Company, TradeType
+- **`entities.py`** - Core entities: TradeAction, TradeCycle, CapitalGainLine
+- **`accumulators.py`** - Business accumulators: CapitalGainLineAccumulator, TradePartsWithinDay
+- **`collections.py`** - Type aliases and collection utilities
 
-### extraction
-Utils for extracting data from source files
+### **Application Layer** (`src/shares_reporting/application/`)
+Business logic services and orchestration components:
+- **`extraction.py`** - CSV data parsing utilities
+- **`transformation.py`** - Capital gains calculation and trade matching algorithms
+- **`persisting.py`** - Excel/CSV report generation with formulas
 
-### transformation
-Utils used to massage the shares data
+### **Infrastructure Layer** (`src/shares_reporting/infrastructure/`)
+External concerns and technical details:
+- **`config.py`** - Configuration management and currency exchange rates
 
-### persisting
-Utils that persist the data
+### **Presentation Layer**
+- **`main.py`** - Application entry point and main orchestration
 
 
-## Tests
+## Testing
 
-### **Using Poetry (Recommended)**
+The project follows **comprehensive testing best practices** with a well-organized test structure:
+
+### **Test Structure**
+```
+tests/
+├── domain/                     # Domain layer unit tests
+│   ├── test_value_objects.py   # 29 tests - Value objects and validation
+│   ├── test_collections.py    # 15 tests - Type aliases and collections
+│   ├── test_accumulators.py   # 56 tests - Business accumulators
+│   └── test_entities.py       # 44 tests - Core entities
+├── application/                # Application layer tests
+│   └── test_extraction.py     # CSV parsing edge cases
+├── infrastructure/             # Infrastructure layer tests
+│   └── test_config.py         # Configuration management
+├── test_shares.py             # Integration tests (existing)
+└── test_reporting.py          # End-to-end tests (existing)
+```
+
+### **Running Tests**
+
+#### **Using Poetry (Recommended)**
 ```bash
 # Run all tests
 poetry run pytest
 
 # Run tests with coverage
-poetry run pytest --cov=. --cov-report=html
+poetry run pytest --cov=src --cov-report=html
+
+# Run tests by layer
+poetry run pytest tests/domain/           # Domain layer tests
+poetry run pytest tests/application/        # Application layer tests
+poetry run pytest tests/infrastructure/     # Infrastructure tests
 
 # Run tests matching a keyword
 poetry run pytest -k <test_keyword>
@@ -110,20 +168,26 @@ poetry run pytest -k <test_keyword>
 poetry run pytest -vvl
 
 # Run specific test file
-poetry run pytest tests/test_reporting.py
-```
+poetry run pytest tests/domain/test_value_objects.py
 
+# Run only unit tests (exclude integration)
+poetry run pytest tests/domain/ tests/application/ tests/infrastructure/
+```
 
 ### **Test Coverage**
 ```bash
 # Generate coverage report
-poetry run pytest --cov=. --cov-report=html
+poetry run pytest --cov=src --cov-report=html
+
+# Check coverage statistics
+poetry run pytest --cov=src --cov-report=term-missing
 ```
 
 ### **Debugging Tests**
 - Add `breakpoint()` or `import pdb; pdb.set_trace()` to debug
 - Use `pytest -vvl` for maximum verbosity
 - Use `pytest -s` to see print statements during tests
+- Use `pytest --tb=short` for concise error output
 
 
 ## Debugging
