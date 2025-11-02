@@ -1,7 +1,7 @@
 import os
 import csv
 import openpyxl
-from typing import Union, List, Dict, TextIO
+from typing import Union, List, Dict
 
 from openpyxl.worksheet.worksheet import Worksheet
 

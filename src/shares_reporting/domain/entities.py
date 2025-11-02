@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, NamedTuple
+from typing import List, NamedTuple
 
 from .value_objects import Currency, Company, TradeDate, get_trade_date, TradeType
 
