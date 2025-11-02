@@ -10,34 +10,60 @@ Shares reporting tool is a financial application that processes Interactive Brok
 
 ### Running the Application
 ```bash
-# Using virtual environment
+# Using Poetry (recommended)
+poetry run python ./reporting.py
+
+# Using Poetry shell
+poetry shell
 python ./reporting.py
 
 # Ensure config.ini has all required currency exchange pairs
 # Update source files in /resources/source folder
 ```
 
-### Testing
+### Environment Setup
 ```bash
-# Using Docker (recommended)
-docker compose build
-docker compose run test sh
-pytest                    # Run all tests
-pytest -k <keyword>       # Run tests matching keyword
-pytest -vvl              # Verbose output with all variables
+# Install Poetry (one-time setup)
+See https://python-poetry.org/docs/#installing-with-pipx
 
-# Local testing (alternative)
-pip install -r test-requirements.txt
-pytest
+# Install all dependencies (production + development)
+poetry install
+
+# Install only production dependencies
+poetry install --only main
+
+# Activate virtual environment
+poetry shell
+
+# Exit virtual environment
+exit
 ```
 
-### Dependencies
+### Testing
 ```bash
-# Production dependencies
-pip install -r requirements.txt
+# Using Poetry (recommended)
+poetry run pytest                    # Run all tests
+poetry run pytest -k <keyword>       # Run tests matching keyword
+poetry run pytest -vvl              # Verbose output with all variables
+poetry run pytest --cov=.           # Run with coverage
+```
 
-# Test dependencies  
-pip install -r test-requirements.txt
+### Dependency Management
+```bash
+# Add new dependency
+poetry add <package_name>
+
+# Add development dependency
+poetry add --group dev <package_name>
+
+# Update dependencies
+poetry update
+
+# Show dependency tree
+poetry show --tree
+
+# Check for outdated dependencies
+poetry outdated
 ```
 
 ## Architecture
@@ -80,13 +106,36 @@ Key domain objects use NamedTuple/dataclass patterns:
 
 - Tests use pytest framework with fixtures in `test_data.py`
 - Integration tests cover end-to-end workflows
-- Containerized testing environment via Docker Compose
 - For debugging: use `breakpoint()` or `import pdb; pdb.set_trace()`
 - Test names follow pytest conventions with descriptive function names
 
 ## Development Environment
 
-- Python 3.11 required (f-string usage)
-- Docker container available for consistent testing
-- Flat module structure with py_modules in setup.py
-- Type hints extensively used throughout codebase
+- **Python 3.11+ required** (f-string usage and modern features)
+- **Poetry for dependency management** (recommended approach)
+- **Flat module structure** with direct Python module imports
+- **Type hints extensively used** throughout codebase
+- **pytest framework** with comprehensive test coverage
+- **Modern tooling**: Coverage reporting, linting, formatting support
+
+## Project Structure
+
+```
+shares-reporting/
+├── pyproject.toml          # Poetry configuration and dependencies
+├── config.ini              # Application configuration
+├── reporting.py            # Main application entry point
+├── domain.py               # Domain models and business logic
+├── extraction.py           # Data parsing utilities
+├── transformation.py       # Business logic for calculations
+├── persisting.py           # Report generation utilities
+├── config.py               # Configuration management
+├── tests/                  # Test suite
+│   ├── test_data.py        # Test fixtures
+│   ├── test_reporting.py   # Integration tests
+│   └── test_shares.py      # Unit tests
+├── resources/              # Data directories
+│   ├── source/             # Input CSV files
+│   └── result/             # Generated reports
+└── README.md               # Project documentation
+```

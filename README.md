@@ -24,27 +24,57 @@ The initial implementation of the shares reporting tool uses standard yearly rep
   - Update config.ini with all required currency exchange pairs.
     E.g. for Portugal it can be the exchange rates from the last day of the year (https://www.bportugal.pt/en/page/currency-converter) 
 
-### **Install Docker**
-  - The tests have been packaged to run with all dependencies
-    installed within a Docker container. Due to the use of f-strings,
-    this must be run with python 3.6+. The Docker image is based on python 3.7
+### Setting Up Development Environment
 
-### Setting Up Virtual Environment (venv)
+#### **Option 1: Using Poetry (Recommended)**
 
-Instead of Docker, you can also run the project locally using a virtual environment.
+Poetry provides modern dependency management and virtual environment handling.
 
-#### **Step 1: Create and Activate venv**
+**Step 1: Install Poetry**
 ```bash
-python -m venv venv
-pip install -r requirements.txt
+# For macOS/Linux
+curl -sSL https://install.python-poetry.org | python3 -
+
+# For Windows (PowerShell)
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python3 -
+
+# Or via pip (less recommended)
+pip install poetry
 ```
+
+**Step 2: Install Dependencies**
+```bash
+cd shares-reporting
+poetry install
+```
+
+**Step 3: Activate Virtual Environment**
+```bash
+poetry shell
+```
+
+**Step 4: Run the Application**
+```bash
+python ./reporting.py
+# Or using Poetry
+poetry run python ./reporting.py
+```
+
 
 ## Usage
+
+### **Using Poetry (Recommended)**
 ```bash
-cd ../shares-reporting
-source ../shares-reporting/venv/Scripts/activate
-python ./reporting.py
+cd shares-reporting
+poetry install
+poetry run python ./reporting.py
 ```
+
+
+### **Configuration**
+- Ensure `config.ini` has all required currency exchange pairs
+- Update source files in `/resources/source` folder
+- For Portugal, use exchange rates from Banco de Portugal (last day of the year)
 
 ## Modules
 ### reporting
@@ -64,51 +94,41 @@ Utils that persist the data
 
 
 ## Tests
-**To run tests rebuild image and run terminal on the docker container**
 
-  ```bash
+### **Using Poetry (Recommended)**
+```bash
+# Run all tests
+poetry run pytest
 
-  $ docker compose build
-  $ docker compose run test sh
-  ```
+# Run tests with coverage
+poetry run pytest --cov=. --cov-report=html
+
+# Run tests matching a keyword
+poetry run pytest -k <test_keyword>
+
+# Run tests with verbose output
+poetry run pytest -vvl
+
+# Run specific test file
+poetry run pytest tests/test_reporting.py
+```
 
 
-**This will open the docker shell and you can run one of the following commands:**
+### **Test Coverage**
+```bash
+# Generate coverage report
+poetry run pytest --cov=. --cov-report=html
+```
 
-
-  *Run the entire test suite*
-    
-  ``` bash
-  $ pytest 
-  ```
-
-  *Run the tests for a certain file matching a keyword*
-    
-  ``` bash
-  $ pytest -k <test_file_name>
-  ```
-
-  *Run tests while printing all variables and verbose output*
-
-  ``` bash
-  $ pytest -vvl
-  ```
-
-**To exit the shell**
-  ```bash
-  $ exit
-  ```
+### **Debugging Tests**
+- Add `breakpoint()` or `import pdb; pdb.set_trace()` to debug
+- Use `pytest -vvl` for maximum verbosity
+- Use `pytest -s` to see print statements during tests
 
 
 ## Debugging
 
-1. If you page up `(ctrl + fn)` within the debug output when running `pytest -vvl` or
-when encountering test errors, your cursor may stick and be unable to continue 
-writing in the docker shell. You can get past this by typing `q` to return to
-entry mode in the docker container.
-
-
-1. If you'd like to debug a piece of code, you can add either of the following built-in functions
-   to a section of the code to enter into the pdb debugger while running pytest. 
-   * `breakpoint()` (python 3)
-   * `import pdb; pdb.set_trace()` (python 2)
+If you'd like to debug a piece of code, you can add either of the following built-in functions
+to a section of the code to enter into the pdb debugger while running tests:
+- `breakpoint()` (Python 3.7+)
+- `import pdb; pdb.set_trace()` (compatible with older versions)
