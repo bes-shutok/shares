@@ -1,43 +1,61 @@
-# Shares Reporting Tool
+# Investment Reporting Tool
 
 ## Overview
 
-The shares reporting tool is designed to provide a simple and efficient way to generate preliminary data for tax reporting in Portugal. The same tool can be used for reporting in other countries with similar requirements of grouping bought/sold shares.
-Currently, the tool joins shares bought/sold within a day.
+The investment reporting tool is designed to provide a simple and efficient way to generate preliminary data for tax reporting in Portugal. The same tool can be used for reporting in other countries with similar requirements of grouping bought/sold investments.
 
-## Architecture
+**Current Capabilities:**
+- ✅ **Share Trading**: Processes Interactive Brokers CSV reports for stock trading
+- ✅ **Capital Gains Calculation**: FIFO-based matching of buy/sell transactions within daily buckets
+- ✅ **Tax Reporting**: Generates Excel reports with currency conversion for Portuguese tax requirements
+- ✅ **Multi-Currency Support**: Handles multiple currencies with manual exchange rate configuration
 
-This project follows **Clean Architecture** principles with **Domain-Driven Design** and professional Python package structure:
+**Future Vision:**
+- 🚀 **Multiple Investment Types**: Support for dividends, crypto currency trading, DeFi protocols, staking rewards, and other investment vehicles
+- 🚀 **Multiple Data Sources**: Integration with crypto exchanges (Binance, Coinbase, Kraken), DeFi platforms, and other financial APIs
+- 🚀 **Advanced Matching**: Sophisticated algorithms for different investment types and tax optimization strategies
+- 🚀 **Automated Exchange Rates**: Real-time currency conversion from multiple financial data providers
+
+## Architecture & Design Philosophy
+
+This project follows **Clean Architecture** principles with **Domain-Driven Design** and professional Python package structure. The architecture is designed to be extensible for future investment types and data sources.
 
 ### **Layered Architecture**
-- **Domain Layer** (`src/shares_reporting/domain/`): Core business entities and rules
+- **Domain Layer** (`src/shares_reporting/domain/`): Core business entities and rules (investment-agnostic)
 - **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
-- **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns (config, I/O)
+- **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns (config, APIs, data sources)
 - **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point
+
+### **Extensibility Design**
+The clean architecture ensures that adding new investment types and data sources requires minimal changes:
+- **New Investment Types**: Add domain entities and application services without affecting existing code
+- **New Data Sources**: Implement new extraction adapters in the infrastructure layer
+- **New Tax Rules**: Extend transformation logic with country-specific calculations
 
 ### **Professional Package Structure**
 ```
 src/shares_reporting/
-├── domain/                    # Domain Layer
+├── domain/                    # Domain Layer (investment-agnostic)
 │   ├── value_objects.py       # TradeDate, Currency, Company, TradeType
 │   ├── entities.py            # TradeAction, TradeCycle, CapitalGainLine
 │   ├── accumulators.py        # CapitalGainLineAccumulator, TradePartsWithinDay
 │   └── collections.py         # Type aliases and collections
 ├── application/               # Application Layer
-│   ├── extraction.py          # CSV data parsing
-│   ├── transformation.py      # Capital gains calculation
-│   └── persisting.py          # Excel/CSV report generation
+│   ├── extraction.py          # Data parsing (currently CSV, extensible to APIs)
+│   ├── transformation.py      # Investment calculations and matching
+│   └── persisting.py          # Report generation (Excel, CSV, future formats)
 ├── infrastructure/             # Infrastructure Layer
-│   └── config.py              # Configuration management
+│   └── config.py              # Configuration and external service management
 └── main.py                    # Application entry point
 ```
 
-The initial implementation has been **refactored** from a flat structure to a professional modular architecture while maintaining the same business functionality and backward compatibility.
+The initial implementation has been **refactored** from a flat structure to a professional modular architecture while maintaining the same business functionality and backward compatibility. This architecture prepares the codebase for future expansion into multiple investment types and data sources.
 
 # Table of Contents
 - [Prerequisites](#prerequisites)
 - [Modules](#modules)
 - [Usage](#usage)
+- [Roadmap & Future Development](#roadmap--future-development)
 - [Debugging](#debugging)
 - [Additional Practice](#additional-practice)
 - [Feedback](#feedback) - Please create issues to provide feedback!
@@ -45,7 +63,8 @@ The initial implementation has been **refactored** from a flat structure to a pr
 
 ## Prerequisites
 ### **Update source files**
-  - Add source file to /resources/source folder. See /resources/shares_example.csv for an example of the file format.
+  - **Current**: Add Interactive Brokers CSV file to `/resources/source` folder. See `/resources/shares_example.csv` for an example of the file format.
+  - **Future**: Additional data sources will be supported (crypto exchanges, DeFi platforms, etc.)
   - Update config.ini with all required currency exchange pairs.
     E.g. for Portugal it can be the exchange rates from the last day of the year (https://www.bportugal.pt/en/page/currency-converter) 
 
@@ -107,23 +126,23 @@ poetry run shares-reporting
 
 ### **Domain Layer** (`src/shares_reporting/domain/`)
 Core business entities and rules that are independent of external concerns:
-- **`value_objects.py`** - Value objects: TradeDate, Currency, Company, TradeType
-- **`entities.py`** - Core entities: TradeAction, TradeCycle, CapitalGainLine
+- **`value_objects.py`** - Value objects: TradeDate, Currency, Company, TradeType (extensible for new investment types)
+- **`entities.py`** - Core entities: TradeAction, TradeCycle, CapitalGainLine (foundation for other investment vehicles)
 - **`accumulators.py`** - Business accumulators: CapitalGainLineAccumulator, TradePartsWithinDay
 - **`collections.py`** - Type aliases and collection utilities
 
 ### **Application Layer** (`src/shares_reporting/application/`)
 Business logic services and orchestration components:
-- **`extraction.py`** - CSV data parsing utilities
-- **`transformation.py`** - Capital gains calculation and trade matching algorithms
-- **`persisting.py`** - Excel/CSV report generation with formulas
+- **`extraction.py`** - Data parsing utilities (currently CSV, extensible to APIs and other formats)
+- **`transformation.py`** - Investment calculations and matching algorithms (extensible for different investment types)
+- **`persisting.py`** - Report generation with formulas (Excel, CSV, future formats)
 
 ### **Infrastructure Layer** (`src/shares_reporting/infrastructure/`)
 External concerns and technical details:
-- **`config.py`** - Configuration management and currency exchange rates
+- **`config.py`** - Configuration management and currency exchange rates (future: API clients, data adapters)
 
 ### **Presentation Layer**
-- **`main.py`** - Application entry point and main orchestration
+- **`main.py`** - Application entry point and main orchestration (future: web interface, API endpoints)
 
 
 ## Testing
@@ -189,6 +208,23 @@ poetry run pytest --cov=src --cov-report=term-missing
 - Use `pytest -s` to see print statements during tests
 - Use `pytest --tb=short` for concise error output
 
+
+## Roadmap & Future Development
+
+### **Planned Investment Type Support**
+- **Dividends**: Dividend income tracking and tax reporting
+- **Crypto Currency Trading**: Buy/sell transactions across different exchanges
+- **Earnings**: Various forms of investment earnings and rewards
+
+### **Planned Data Source Integration**
+- **Crypto Exchanges**: Direct API integration with major cryptocurrency exchanges
+- **DeFi Platforms**: Support for decentralized finance protocols and platforms
+- **Additional Brokers**: Support for other traditional broker CSV formats
+
+### **Development Focus**
+The clean architecture design ensures that adding new investment types and data sources can be done with minimal impact on existing functionality, allowing for gradual expansion of capabilities.
+
+---
 
 ## Debugging
 
