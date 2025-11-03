@@ -24,18 +24,12 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.13"
-beautifulsoup4 = "^4.14.2"
 openpyxl = "^3.1.5"
-requests = "^2.32.5"
-setuptools = "70.0.0"
 
 [tool.poetry.group.dev.dependencies]
-coverage = "^7.0.0"
 pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
 pytest-flakes = "^4.0.5"
-pytest-pythonpath = "^0.7.3"
-bs4 = "^0.0.2"
 
 [tool.poetry.scripts]
 shares-reporting = "shares_reporting.main:main"
