@@ -1,0 +1,13 @@
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,Proceeds,Comm/Fee,Basis,Realized P/L,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2021-01-15, 09:30:00",50,120.50,-6025,-2.5,6027.5,0,O
+Trades,Data,Order,Stocks,USD,AAPL,"2021-03-10, 11:45:00",75,185.25,-13893.75,-3.2,13896.95,0,O
+Trades,Data,Order,Stocks,USD,AAPL,"2021-05-20, 14:20:00",30,95.75,-2872.5,-1.8,2874.3,0,O
+Trades,Data,Order,Stocks,USD,AAPL,"2021-07-08, 10:15:00",-40,142.80,5712,-1.5,-5696.8,15.3,C
+Trades,Data,Order,Stocks,USD,AAPL,"2021-09-15, 15:30:00",-60,178.50,10710,-2.0,-11115,475,C
+Trades,Data,Order,Stocks,USD,AAPL,"2021-11-22, 11:00:00",-35,195.75,6851.25,-1.2,-2872.5,3978.75,C
+Trades,Data,Order,Stocks,USD,TSLA,"2021-02-01, 10:00:00",25,850.00,-21250,-5.0,21255,0,O
+Trades,Data,Order,Stocks,USD,TSLA,"2021-04-15, 13:30:00",40,720.50,-28820,-3.5,28823.5,0,O
+Trades,Data,Order,Stocks,USD,TSLA,"2021-06-30, 09:45:00",20,950.75,-19015,-2.8,19017.8,0,O
+Trades,Data,Order,Stocks,USD,TSLA,"2021-08-12, 14:20:00",-35,810.25,28358.75,-4.0,-24847.5,3515.25,C
+Trades,Data,Order,Stocks,USD,TSLA,"2021-10-25, 10:30:00",-30,980.00,29400,-3.5,-28515.75,888.75,C
+Trades,Data,Order,Stocks,USD,TSLA,"2021-12-15, 15:45:00",-20,1100.50,22010,-2.2,-19007.5,3002.5,C

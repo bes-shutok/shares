@@ -2,12 +2,12 @@
 
 ## Overview
 
-The investment reporting tool is designed to provide a simple and efficient way to generate preliminary data for tax reporting in Portugal. The same tool can be used for reporting in other countries with similar requirements of grouping bought/sold investments.
+The investment reporting tool is designed to provide a simple and efficient way to generate capital gains data for tax reporting purposes. The tool can be used for reporting in various countries with similar requirements of grouping bought/sold investments.
 
 **Current Capabilities:**
 - ✅ **Share Trading**: Processes Interactive Brokers CSV reports for stock trading
 - ✅ **Capital Gains Calculation**: FIFO-based matching of buy/sell transactions within daily buckets
-- ✅ **Tax Reporting**: Generates Excel reports with currency conversion for Portuguese tax requirements
+- ✅ **Capital Gains Reporting**: Generates Excel reports with capital gains data for tax authority submission
 - ✅ **Multi-Currency Support**: Handles multiple currencies with manual exchange rate configuration
 
 **Future Vision:**
@@ -30,7 +30,7 @@ This project follows **Clean Architecture** principles with **Domain-Driven Desi
 The clean architecture ensures that adding new investment types and data sources requires minimal changes:
 - **New Investment Types**: Add domain entities and application services without affecting existing code
 - **New Data Sources**: Implement new extraction adapters in the infrastructure layer
-- **New Tax Rules**: Extend transformation logic with country-specific calculations
+- **New Capital Gains Rules**: Extend transformation logic with country-specific capital gains calculations
 
 ### **Professional Package Structure**
 ```
@@ -66,7 +66,7 @@ The initial implementation has been **refactored** from a flat structure to a pr
   - **Current**: Add Interactive Brokers CSV file to `/resources/source` folder. See `/resources/shares_example.csv` for an example of the file format.
   - **Future**: Additional data sources will be supported (crypto exchanges, DeFi platforms, etc.)
   - Update config.ini with all required currency exchange pairs.
-    E.g. for Portugal it can be the exchange rates from the last day of the year (https://www.bportugal.pt/en/page/currency-converter) 
+    E.g. you can use the exchange rates from the last day of the year from your national central bank or financial institution 
 
 ### Setting Up Development Environment
 
@@ -120,7 +120,7 @@ poetry run shares-reporting
 ### **Configuration**
 - Ensure `config.ini` has all required currency exchange pairs
 - Update source files in `/resources/source` folder
-- For Portugal, use exchange rates from Banco de Portugal (last day of the year)
+- Use exchange rates from your national central bank or financial institution (typically from the last day of the year)
 
 ## Architecture & Modules
 
@@ -220,6 +220,10 @@ poetry run pytest --cov=src --cov-report=term-missing
 - **Crypto Exchanges**: Direct API integration with major cryptocurrency exchanges
 - **DeFi Platforms**: Support for decentralized finance protocols and platforms
 - **Additional Brokers**: Support for other traditional broker CSV formats
+
+### **Potential Future Enhancements (Low Priority)**
+- **Trade Matching Strategies**: Support for LIFO (Last In, First Out) and HIFO (Highest In, First Out) strategies for users in jurisdictions with different tax regulations
+  - *Note: Portugal requires/strongly suggests FIFO for shares and crypto markets, making this a low-priority feature for the main user base*
 
 ### **Development Focus**
 The clean architecture design ensures that adding new investment types and data sources can be done with minimal impact on existing functionality, allowing for gradual expansion of capabilities.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Shares reporting tool is a financial application that processes Interactive Brokers CSV reports to generate tax reporting data for Portugal. It matches buy/sell transactions within the same day to calculate capital gains and generates Excel reports with currency conversion.
+Shares reporting tool is a financial application that processes Interactive Brokers CSV reports to generate tax reporting data for capital gains calculations. It matches buy/sell transactions within the same day to calculate capital gains and generates Excel reports with currency conversion.
 
 ## Development Commands
 
@@ -107,7 +107,7 @@ Rich domain models with proper separation of concerns:
 - Uses Python's `configparser` for INI file handling
 - Configuration files: `config.ini` (production) and `tests/config.ini` (testing)
 - Supports target currency specification and exchange rate management
-- Currency exchange rates should be updated annually (e.g., from Banco de Portugal)
+- Currency exchange rates should be updated annually (e.g., from your national central bank or financial institution)
 
 ## Data Flow
 
