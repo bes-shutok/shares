@@ -110,7 +110,7 @@ class TestTradeAction:
         currency = get_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
-        expected = "TradeAction(company=Company(ticker='AAPL'), date_time=datetime.datetime(2024, 3, 28, 14, 30, 45), currency=Currency(currency='USD'), quantity=Decimal('10'), price=Decimal('150.25'), fee=Decimal('1.50'))"
+        expected = "TradeAction(company=Company(ticker='AAPL', isin='', country_of_issuance='Unknown'), date_time=datetime.datetime(2024, 3, 28, 14, 30, 45), currency=Currency(currency='USD'), quantity=Decimal('10'), price=Decimal('150.25'), fee=Decimal('1.50'))"
         assert repr(trade) == expected
 
 

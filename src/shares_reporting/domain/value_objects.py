@@ -39,12 +39,14 @@ def get_currency(currency: str) -> Currency:
 
 class Company(NamedTuple):
     ticker: str
+    isin: str = ""
+    country_of_issuance: str = "Unknown"
 
 
-def get_company(ticker: str) -> Company:
+def get_company(ticker: str, isin: str = "", country_of_issuance: str = "Unknown") -> Company:
     if (len(ticker)) > 0:
         pass
     else:
         raise ValueError("Company is expected to be not empty, instead got empty string!")
     # Not just uppercase because IB sometimes use abridgements like TKAd (Thyssen-Krupp Ag deutsch?)
-    return Company(ticker)
+    return Company(ticker, isin, country_of_issuance)

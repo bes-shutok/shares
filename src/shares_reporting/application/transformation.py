@@ -24,11 +24,11 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     if not buy_actions:
         raise ValueError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
-    sales_daily_slices: DayPartitionedTrades = split_by_months(sale_actions, TradeType.SELL)
+    sales_daily_slices: DayPartitionedTrades = split_by_days(sale_actions, TradeType.SELL)
     print("\nsales_daily_slices:")
     print_day_partitioned_trades(sales_daily_slices)
 
-    buys_daily_slices: DayPartitionedTrades = split_by_months(buy_actions, TradeType.BUY)
+    buys_daily_slices: DayPartitionedTrades = split_by_days(buy_actions, TradeType.BUY)
     print("\nbuys_daily_slices:")
     print_day_partitioned_trades(buys_daily_slices)
 
@@ -78,7 +78,7 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     sale_actions.clear()
     if len(sales_daily_slices) > 0:
         for trade_part in sales_daily_slices.values():
-            add_leftover(sale_actions, trade_part)
+            process_remaining_trades(sale_actions, trade_part)
         print("Leftover sales_daily_slices:")
         print_day_partitioned_trades(sales_daily_slices)
         print(f"Leftover sale_actions: {sale_actions}")
@@ -86,7 +86,7 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     buy_actions.clear()
     if len(buys_daily_slices) > 0:
         for trade_part in buys_daily_slices.values():
-            add_leftover(buy_actions, trade_part)
+            process_remaining_trades(buy_actions, trade_part)
         print("Leftover buys_daily_slices:")
         print_day_partitioned_trades(buys_daily_slices)
         print(f"Leftover buy_actions: {buy_actions}")
@@ -96,7 +96,7 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     return capital_gain_lines
 
 
-def add_leftover(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay):
+def process_remaining_trades(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay):
     total: Decimal = trade_part.quantity()
     for trade in trade_part.get_trades():
         if total == 0:
@@ -121,7 +121,7 @@ def extract_trades(quantity_left, trade_parts, capital_gain_line_accumulator):
             quantity_left = 0
 
 
-def split_by_months(actions: QuantitatedTradeActions, trade_type: TradeType) -> DayPartitionedTrades:
+def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> DayPartitionedTrades:
     day_partitioned_trades: DayPartitionedTrades = {}
 
     if not actions:

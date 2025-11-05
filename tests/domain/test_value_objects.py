@@ -162,12 +162,32 @@ class TestCompany:
         """Test that Company can be created with valid ticker."""
         company = Company("AAPL")
         assert company.ticker == "AAPL"
+        assert company.isin == ""
+        assert company.country_of_issuance == "Unknown"
+
+    def test_company_creation_with_isin_and_country(self):
+        """Test that Company can be created with ISIN and country."""
+        company = Company("AAPL", "US0378331005", "United States")
+        assert company.ticker == "AAPL"
+        assert company.isin == "US0378331005"
+        assert company.country_of_issuance == "United States"
+
+    def test_company_creation_with_empty_isin(self):
+        """Test that Company can be created with empty ISIN."""
+        company = Company("TSLA", "", "Unknown")
+        assert company.ticker == "TSLA"
+        assert company.isin == ""
+        assert company.country_of_issuance == "Unknown"
 
     def test_company_immutability(self):
         """Test that Company is immutable (NamedTuple)."""
-        company = Company("AAPL")
+        company = Company("AAPL", "US0378331005", "United States")
         with pytest.raises(AttributeError):
             company.ticker = "GOOGL"  # Should fail as NamedTuple is immutable
+        with pytest.raises(AttributeError):
+            company.isin = "US02079K3059"  # Should fail as NamedTuple is immutable
+        with pytest.raises(AttributeError):
+            company.country_of_issuance = "Canada"  # Should fail as NamedTuple is immutable
 
 
 class TestGetCompany:
@@ -212,3 +232,38 @@ class TestGetCompany:
         for ticker in valid_tickers:
             company = get_company(ticker)
             assert company.ticker == ticker
+
+    def test_get_company_with_isin_and_country(self):
+        """Test get_company with ISIN and country parameters."""
+        company = get_company("AAPL", "US0378331005", "United States")
+        assert company.ticker == "AAPL"
+        assert company.isin == "US0378331005"
+        assert company.country_of_issuance == "United States"
+
+    def test_get_company_with_only_isin(self):
+        """Test get_company with ISIN but default country."""
+        company = get_company("TSLA", "US88160R1014")
+        assert company.ticker == "TSLA"
+        assert company.isin == "US88160R1014"
+        assert company.country_of_issuance == "Unknown"  # Default value
+
+    def test_get_company_with_custom_country(self):
+        """Test get_company with custom country."""
+        company = get_company("RDS.A", "NL0000235190", "Netherlands")
+        assert company.ticker == "RDS.A"
+        assert company.isin == "NL0000235190"
+        assert company.country_of_issuance == "Netherlands"
+
+    def test_get_company_with_empty_isin_and_custom_country(self):
+        """Test get_company with empty ISIN but custom country."""
+        company = get_company("UNKNOWN", "", "Canada")
+        assert company.ticker == "UNKNOWN"
+        assert company.isin == ""
+        assert company.country_of_issuance == "Canada"
+
+    def test_get_company_backwards_compatibility(self):
+        """Test get_company with single parameter maintains backwards compatibility."""
+        company = get_company("MSFT")
+        assert company.ticker == "MSFT"
+        assert company.isin == ""  # Default
+        assert company.country_of_issuance == "Unknown"  # Default

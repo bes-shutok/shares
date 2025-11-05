@@ -1,25 +1,46 @@
-import os
 import csv
-import openpyxl
-from typing import Union, List, Dict
+import os
+from typing import Dict, List, Union
 
+import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
-from ..infrastructure.config import Config, read_config, ConversionRate
 from ..domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany
 from ..domain.entities import CurrencyCompany, TradeCycle
 from ..domain.value_objects import TradeType
+from ..infrastructure.config import Config, ConversionRate, read_config
 
 
-def persist_leftover(leftover: Union[str, os.PathLike], leftover_trades: TradeCyclePerCompany):
+def persist_leftover(
+    leftover: Union[str, os.PathLike], leftover_trades: TradeCyclePerCompany
+):
     safe_remove_file(leftover)
-    row = {"Trades": "Trades", "Header": "Data", "DataDiscriminator": "Order", "Asset Category": "Stock"}
+    row = {
+        "Trades": "Trades",
+        "Header": "Data",
+        "DataDiscriminator": "Order",
+        "Asset Category": "Stocks",
+    }
     currency_company: CurrencyCompany
     trade_cycle: TradeCycle
-    with open(leftover, 'w', newline='') as right_obj:
-        writer = csv.DictWriter(right_obj, fieldnames=["Trades", "Header", "DataDiscriminator", "Asset Category",
-                                                       "Currency", "Symbol", "Date/Time", "Quantity", "T. Price",
-                                                       "C. Price", "Proceeds", "Comm/Fee"])
+    with open(leftover, "w", newline="") as right_obj:
+        writer = csv.DictWriter(
+            right_obj,
+            fieldnames=[
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "C. Price",
+                "Proceeds",
+                "Comm/Fee",
+            ],
+        )
         writer.writeheader()
         for currency_company, trade_cycle in leftover_trades.items():
             row["Currency"] = currency_company.currency.currency
@@ -29,28 +50,74 @@ def persist_leftover(leftover: Union[str, os.PathLike], leftover_trades: TradeCy
                 for bought_trade in trade_cycle.get(TradeType.BUY):
                     row["Quantity"] = bought_trade.quantity
                     action = bought_trade.action
-                    row["Date/Time"] = str(action.date_time.date()) + ', ' + str(action.date_time.time())
+                    row["Date/Time"] = (
+                        str(action.date_time.date())
+                        + ", "
+                        + str(action.date_time.time())
+                    )
                     row["T. Price"] = action.price
                     row["Proceeds"] = action.price * bought_trade.quantity
                     row["Comm/Fee"] = action.fee
                     writer.writerow(row)
 
 
-def persist_results(extract: Union[str, os.PathLike], capital_gain_lines_per_company: CapitalGainLinesPerCompany):
-    first_header = ["Beneficiary", "Country of Source", "SALE", "", "", "", "PURCHASE", "", "", "",
-                    "WITHOLDING TAX", "", "Expenses incurred with obtaining the capital gains", "",
-                    "Symbol", "Currency", "Sale amount", "Buy amount", "Expenses amount"]
-    second_header = ["", "", "Day ", "Month ", "Year", "Amount", "Day ", "Month ", "Year", "Amount", "Country", "Amount",
-                     "", "", "", "", "", "", ""]
+def persist_results(
+    extract: Union[str, os.PathLike],
+    capital_gain_lines_per_company: CapitalGainLinesPerCompany,
+):
+    first_header = [
+        "Beneficiary",
+        "Country of Source",
+        "SALE",
+        "",
+        "",
+        "",
+        "PURCHASE",
+        "",
+        "",
+        "",
+        "WITHOLDING TAX",
+        "",
+        "Expenses incurred with obtaining the capital gains",
+        "",
+        "Symbol",
+        "Currency",
+        "Sale amount",
+        "Buy amount",
+        "Expenses amount",
+    ]
+    second_header = [
+        "",
+        "",
+        "Day ",
+        "Month ",
+        "Year",
+        "Amount",
+        "Day ",
+        "Month ",
+        "Year",
+        "Amount",
+        "Country",
+        "Amount",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+    ]
 
     last_column: int = max(len(first_header), len(second_header))
-    number_format = '0.000000'
+    number_format = "0.000000"
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Reporting"
 
     config: Config = read_config()
-    exchange_rates: Dict[str, str] = create_currency_table(worksheet, last_column + 2, 1, config)
+    exchange_rates: Dict[str, str] = create_currency_table(
+        worksheet, last_column + 2, 1, config
+    )
 
     for i in range(len(first_header)):
         worksheet.cell(1, i + 1, first_header[i])
@@ -64,14 +131,25 @@ def persist_results(extract: Union[str, os.PathLike], capital_gain_lines_per_com
         for line in capital_gain_lines:
             assert currency == line.get_currency()
             idx = start_column
+
+            # SALE information
             c = worksheet.cell(line_number, start_column, line.get_sell_date().day)
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_date().get_month_name())
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.currency] + "*(" + line.get_sell_amount() + ")")
+            c = worksheet.cell(
+                line_number,
+                idx,
+                "="
+                + exchange_rates[currency.currency]
+                + "*("
+                + line.get_sell_amount()
+                + ")",
+            )
+
+            # PURCHASE information
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().day)
             idx += 1
@@ -79,17 +157,38 @@ def persist_results(extract: Union[str, os.PathLike], capital_gain_lines_per_com
             idx += 1
             c = worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
-            c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.currency] + "*(" + line.get_buy_amount() + ")")
+            c = worksheet.cell(
+                line_number,
+                idx,
+                "="
+                + exchange_rates[currency.currency]
+                + "*("
+                + line.get_buy_amount()
+                + ")",
+            )
+
+            # WITHOLDING TAX information (skip Country and Amount columns for now)
             idx += 3
-            c = worksheet.cell(line_number, idx,
-                               "=" + exchange_rates[currency.currency] + "*(" + line.get_expense_amount() +
-                               ")")
+
+            # EXPENSES information
+            c = worksheet.cell(
+                line_number,
+                idx,
+                "="
+                + exchange_rates[currency.currency]
+                + "*("
+                + line.get_expense_amount()
+                + ")",
+            )
             idx += 2
+
+            # Symbol and Currency
             c = worksheet.cell(line_number, idx, company.ticker)
             idx += 1
             c = worksheet.cell(line_number, idx, currency.currency)
             idx += 1
+
+            # Amounts section
             c = worksheet.cell(line_number, idx, "=" + line.get_sell_amount())
             c.number_format = number_format
             idx += 1
@@ -98,6 +197,23 @@ def persist_results(extract: Union[str, os.PathLike], capital_gain_lines_per_com
             idx += 1
             c = worksheet.cell(line_number, idx, "=" + line.get_expense_amount())
             c.number_format = number_format
+
+            line_number += 1
+
+    # Populate Country of Source column for all rows
+    # This is done after the main loop to ensure we have all data
+    line_number = 3
+    for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
+        company = currency_company.company
+        for line in capital_gain_lines:
+            # Column 2 is "Country of Source" (according to first_header array)
+            country_cell = worksheet.cell(line_number, 2, company.country_of_issuance)
+
+            # Populate WITHOLDING TAX Country (Column 11 according to first_header array)
+            tax_country_cell = worksheet.cell(
+                line_number, 11, company.country_of_issuance
+            )
+
             line_number += 1
 
     # auto width for the populated cells
@@ -116,8 +232,9 @@ def safe_remove_file(path: Union[str, os.PathLike]):
 
 
 # https://openpyxl.readthedocs.io/en/latest/tutorial.html
-def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, config: Config) \
-        -> Dict[str, str]:
+def create_currency_table(
+    worksheet: Worksheet, column_no: int, row_no: int, config: Config
+) -> Dict[str, str]:
     currency_header = ["Base/target", "Rate"]
     rates: List[ConversionRate] = config.rates
     worksheet.cell(row_no, column_no, "Currency exchange rate")

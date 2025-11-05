@@ -1,0 +1,6 @@
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,BTU,PEABODY ENERGY CORP,32152171,US7045491033,BTU,NYSE,1,COMMON,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,Proceeds,Comm/Fee,Basis,Realized P/L,Code
+Trades,Data,Order,Stocks,USD,BTU,"2021-05-18, 14:53:23",15,6.77,-101.55,-0.36225725,101.9122573,0,O
+Trades,Data,Order,Stocks,USD,BTU,"2021-06-03, 11:44:04",-10,7.875,78.75,-0.353848875,-67.432504,10.963647,C
+Trades,Data,Order,Stocks,USD,BTU,"2021-10-04, 09:44:11",-5,17.36,86.8,-0.35229493,-63.795184,22.652521,C
