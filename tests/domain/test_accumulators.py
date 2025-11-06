@@ -1,4 +1,6 @@
 import pytest
+
+from shares_reporting.domain.exceptions import DataValidationError
 from decimal import Decimal
 from datetime import datetime
 
@@ -118,7 +120,7 @@ class TestCapitalGainLineAccumulator:
         # Try to add sell trade with different date
         trade2 = TradeAction(company, "2024-03-29, 14:30:45", currency, "-3", "151.00", "1.51")
 
-        with pytest.raises(ValueError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
             accumulator.add_trade(Decimal("2"), trade2)
 
     def test_add_trade_buy_with_different_date_should_raise_error(self):
@@ -134,7 +136,7 @@ class TestCapitalGainLineAccumulator:
         # Try to add buy trade with different date
         trade2 = TradeAction(company, "2023-01-16, 10:30:45", currency, "5", "142.00", "1.42")
 
-        with pytest.raises(ValueError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
             accumulator.add_trade(Decimal("3"), trade2)
 
     def test_sold_quantity_should_sum_sell_counts(self):
@@ -244,7 +246,7 @@ class TestCapitalGainLineAccumulator:
         currency = get_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
-        with pytest.raises(ValueError, match="Cannot finalize empty Accumulator object!"):
+        with pytest.raises(DataValidationError, match="Cannot finalize empty Accumulator object!"):
             accumulator.finalize()  # finalize calls validate internally
 
     def test_validate_with_empty_sell_only_should_raise_error(self):
@@ -257,7 +259,7 @@ class TestCapitalGainLineAccumulator:
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "10", "140.00", "1.40")
         accumulator.add_trade(Decimal("5"), buy_trade)
 
-        with pytest.raises(ValueError, match="Cannot finalize empty Accumulator object!"):
+        with pytest.raises(DataValidationError, match="Cannot finalize empty Accumulator object!"):
             accumulator.finalize()
 
     def test_validate_with_mismatched_quantities_should_raise_error(self):
@@ -273,7 +275,7 @@ class TestCapitalGainLineAccumulator:
         accumulator.add_trade(Decimal("6"), sell_trade)
         accumulator.add_trade(Decimal("5"), buy_trade)
 
-        with pytest.raises(ValueError, match="Different counts for sales"):
+        with pytest.raises(DataValidationError, match="Different counts for sales"):
             accumulator.finalize()
 
     def test_validate_with_mismatched_sell_counts_should_raise_error(self):
@@ -288,7 +290,7 @@ class TestCapitalGainLineAccumulator:
 
         accumulator.add_trade(Decimal("3"), sell_trade1)
 
-        with pytest.raises(ValueError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
             accumulator.add_trade(Decimal("2"), sell_trade2)
 
     def test_validate_with_mismatched_buy_counts_should_raise_error(self):
@@ -303,7 +305,7 @@ class TestCapitalGainLineAccumulator:
 
         accumulator.add_trade(Decimal("4"), buy_trade1)
 
-        with pytest.raises(ValueError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
             accumulator.add_trade(Decimal("3"), buy_trade2)
 
 
@@ -412,7 +414,7 @@ class TestTradePartsWithinDay:
         # Try to add incompatible trade (different day)
         trade2 = TradeAction(company, "2024-03-29, 14:30:45", currency, "8", "151.00", "1.51")
 
-        with pytest.raises(ValueError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_push_trade_part_incompatible_type_should_raise_error(self):
@@ -428,7 +430,7 @@ class TestTradePartsWithinDay:
         # Try to add SELL trade to BUY collection
         trade2 = TradeAction(company, "2024-03-28, 15:30:45", currency, "-5", "151.00", "1.51")
 
-        with pytest.raises(ValueError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
+        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_pop_trade_part_should_remove_and_return_earliest_trade(self):

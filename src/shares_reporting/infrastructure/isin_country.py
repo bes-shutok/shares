@@ -12,6 +12,32 @@ from typing import Optional
 import pycountry
 
 
+def isin_to_country_code(isin: str) -> str:
+    """
+    Convert ISIN code to ISO 3166-1 alpha-2 country code.
+
+    Args:
+        isin: The ISIN code (e.g., "US0378331005", "KYG905191022")
+
+    Returns:
+        2-letter country code or "Unknown" if invalid.
+
+    Examples:
+        >>> isin_to_country_code("US0378331005")
+        'US'
+        >>> isin_to_country_code("KYG905191022")
+        'KY'
+        >>> isin_to_country_code("INVALID")
+        'Unknown'
+        >>> isin_to_country_code("")
+        'Unknown'
+    """
+    if not isin or len(isin) < 2:
+        return "Unknown"
+
+    return isin[:2].upper()
+
+
 def isin_to_country(isin: str) -> str:
     """
     Convert ISIN code to country name.
@@ -32,33 +58,13 @@ def isin_to_country(isin: str) -> str:
         >>> isin_to_country("")
         'Unknown'
     """
-    if not isin or len(isin) < 2:
-        return "Unknown"
-
-    # Extract the 2-letter country code from the beginning of ISIN
-    country_code = isin[:2].upper()
+    country_code = isin_to_country_code(isin)
 
     try:
         country = pycountry.countries.get(alpha_2=country_code)
         return country.name if country else "Unknown"
     except Exception:
         return "Unknown"
-
-
-def isin_to_country_code(isin: str) -> str:
-    """
-    Convert ISIN code to ISO 3166-1 alpha-2 country code.
-
-    Args:
-        isin: The ISIN code (e.g., "US0378331005", "KYG905191022")
-
-    Returns:
-        2-letter country code or "XX" if unknown.
-    """
-    if not isin or len(isin) < 2:
-        return "XX"
-
-    return isin[:2].upper()
 
 
 def is_valid_isin_format(isin: str) -> bool:

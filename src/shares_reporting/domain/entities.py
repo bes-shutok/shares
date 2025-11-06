@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import List, NamedTuple
 
 from .value_objects import Currency, Company, TradeDate, get_trade_date, TradeType
+from .exceptions import DataValidationError
 
 
 @dataclass
@@ -99,15 +100,15 @@ class CapitalGainLine:
 
     def validate(self):
         if self.sell_quantity() != self.buy_quantity():
-            raise ValueError("Different counts for sales ["
+            raise DataValidationError("Different counts for sales ["
                              + str(self.sell_quantities) + "] " + " and buys [" +
                              str(self.buy_quantities) + "] in capital gain line!")
         if len(self.sell_quantities) != len(self.sell_trades):
-            raise ValueError("Different number of counts ["
+            raise DataValidationError("Different number of counts ["
                              + str(len(self.sell_quantities)) + "] " + " and trades [" +
                              str(len(self.sell_trades)) + "] for sales in capital gain line!")
         if len(self.buy_quantities) != len(self.buy_trades):
-            raise ValueError("Different number of counts ["
+            raise DataValidationError("Different number of counts ["
                              + str(len(self.buy_quantities)) + "] " + " and trades [" +
                              str(len(self.buy_trades)) + "] for buys in capital gain line!")
 

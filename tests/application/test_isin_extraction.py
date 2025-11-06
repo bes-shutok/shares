@@ -7,7 +7,8 @@ from pathlib import Path
 import tempfile
 import csv
 
-from shares_reporting.application.extraction import extract_isin_mapping, parse_raw_ib_export
+from shares_reporting.application.extraction import extract_security_info, parse_raw_ib_export
+from shares_reporting.domain.exceptions import FileProcessingError
 
 
 class TestExtractIsinMapping:
@@ -30,7 +31,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            result = extract_isin_mapping(temp_path)
+            result = extract_security_info(temp_path)
 
             # Then
             assert len(result) == 3
@@ -58,7 +59,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            result = extract_isin_mapping(temp_path)
+            result = extract_security_info(temp_path)
 
             # Then
             assert len(result) == 1
@@ -81,11 +82,9 @@ class TestExtractIsinMapping:
             temp_path = temp_file.name
 
         try:
-            # When
-            result = extract_isin_mapping(temp_path)
-
-            # Then
-            assert result == {}
+            # When / Then
+            with pytest.raises(FileProcessingError, match="Missing 'Financial Instrument Information' header in CSV"):
+                extract_security_info(temp_path)
         finally:
             Path(temp_path).unlink()
 
@@ -147,7 +146,7 @@ class TestParseRawIbExport:
 
         try:
             # When / Then
-            with pytest.raises(ValueError, match="No Trades section found"):
+            with pytest.raises(FileProcessingError, match="No Trades section found"):
                 parse_raw_ib_export(temp_path)
         finally:
             Path(temp_path).unlink()
@@ -155,9 +154,11 @@ class TestParseRawIbExport:
     def test_parseRawIbExportShouldHandleMissingIsinData(self):
         # Given
         csv_content = [
-            # No Financial Instrument Information section
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-01-04, 09:58:29", "2", "181.33", "-1"]
+            # Financial Instrument Information section with empty ISIN for AAPL
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014", "TSLA", "NASDAQ", "1", "COMMON", ""],
+            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee", "Basis", "Realized P/L", "MTM P/L", "Code"],
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-01-04, 09:58:29", "2", "181.33", "-1", "363.66", "0", "1.16", "O"]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:

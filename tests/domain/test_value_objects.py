@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 
 from shares_reporting.domain.value_objects import TradeDate, get_trade_date, Currency, get_currency, Company, get_company, TradeType
+from shares_reporting.domain.exceptions import DataValidationError
 
 
 class TestTradeDate:
@@ -132,12 +133,12 @@ class TestGetCurrency:
         invalid_codes = ["US", "USDD", "U", ""]
 
         for invalid_code in invalid_codes:
-            with pytest.raises(ValueError, match="Currency is expected to be a length of 3"):
+            with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
                 get_currency(invalid_code)
 
     def test_get_currency_with_empty_string_should_raise_value_error(self):
         """Test get_currency with empty string raises ValueError."""
-        with pytest.raises(ValueError, match="Currency is expected to be a length of 3"):
+        with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
             get_currency("")
 
     def test_get_currency_with_invalid_characters_should_still_accept_if_length_3(self):
@@ -152,7 +153,7 @@ class TestGetCurrency:
 
     def test_get_currency_with_4_character_code_should_raise_value_error(self):
         """Test get_currency with 4 characters raises ValueError."""
-        with pytest.raises(ValueError, match="Currency is expected to be a length of 3"):
+        with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
             get_currency("USDD")
 
 
@@ -207,7 +208,7 @@ class TestGetCompany:
 
     def test_get_company_with_empty_string_should_raise_value_error(self):
         """Test get_company with empty string raises ValueError."""
-        with pytest.raises(ValueError, match="Company is expected to be not empty"):
+        with pytest.raises(DataValidationError, match="Company is expected to be not empty"):
             get_company("")
 
     def test_get_company_with_whitespace_only_should_not_raise_value_error(self):
@@ -222,7 +223,7 @@ class TestGetCompany:
 
     def test_get_company_with_empty_string_should_raise_value_error(self):
         """Test get_company with truly empty string raises ValueError."""
-        with pytest.raises(ValueError, match="Company is expected to be not empty"):
+        with pytest.raises(DataValidationError, match="Company is expected to be not empty"):
             get_company("")
 
     def test_get_company_with_valid_characters(self):

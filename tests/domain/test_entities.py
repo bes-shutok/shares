@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from shares_reporting.domain.entities import TradeAction, TradeCycle, CapitalGainLine, QuantitatedTradeAction, CurrencyCompany
+from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import TradeType, Currency, Company, TradeDate, get_currency, get_company
 
 
@@ -477,7 +478,7 @@ class TestCapitalGainLine:
             buy_trades=[buy_trade]
         )
 
-        with pytest.raises(ValueError, match="Different counts for sales"):
+        with pytest.raises(DataValidationError, match="Different counts for sales"):
             line.validate()
 
     def test_validate_with_mismatched_sell_counts_should_raise_error(self):
@@ -499,7 +500,7 @@ class TestCapitalGainLine:
             buy_trades=[buy_trade]
         )
 
-        with pytest.raises(ValueError, match="Different number of counts"):
+        with pytest.raises(DataValidationError, match="Different number of counts"):
             line.validate()
 
     def test_validate_with_mismatched_buy_counts_should_raise_error(self):
@@ -521,7 +522,7 @@ class TestCapitalGainLine:
             buy_trades=[buy_trade1]  # Only 1 trade - mismatch!
         )
 
-        with pytest.raises(ValueError, match="Different number of counts"):
+        with pytest.raises(DataValidationError, match="Different number of counts"):
             line.validate()
 
     def test_get_sell_date_should_return_sell_date(self):

@@ -46,7 +46,7 @@ class TestIsinToCountry:
 
     def test_isinToCountryShouldReturnUnknownForInvalidIsin(self):
         # Given
-        invalid_isin = "XX1234567890"
+        invalid_isin = "Unknown1234567890"
 
         # When
         result = isin_to_country(invalid_isin)
@@ -108,7 +108,7 @@ class TestIsinToCountryCode:
         # Then
         assert result == "KY"
 
-    def test_isinToCountryCodeShouldReturnXXForInvalidIsin(self):
+    def test_isinToCountryCodeShouldReturnUnknownForInvalidIsin(self):
         # Given
         invalid_isin = ""
 
@@ -116,7 +116,7 @@ class TestIsinToCountryCode:
         result = isin_to_country_code(invalid_isin)
 
         # Then
-        assert result == "XX"
+        assert result == "Unknown"
 
     def test_isinToCountryCodeShouldHandleShortInput(self):
         # Given
@@ -126,7 +126,7 @@ class TestIsinToCountryCode:
         result = isin_to_country_code(short_isin)
 
         # Then
-        assert result == "XX"
+        assert result == "Unknown"
 
 
 class TestIsValidIsinFormat:

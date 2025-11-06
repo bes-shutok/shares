@@ -3,6 +3,9 @@ from datetime import datetime
 from enum import Enum
 from typing import NamedTuple
 
+from .exceptions import DataValidationError
+from .constants import CURRENCY_CODE_LENGTH, CURRENCY_FORMAT_PATTERN
+
 
 class TradeDate(NamedTuple):
     year: int
@@ -30,10 +33,10 @@ class Currency(NamedTuple):
 
 
 def get_currency(currency: str) -> Currency:
-    if (len(currency)) == 3:
+    if len(currency) == CURRENCY_CODE_LENGTH:
         pass
     else:
-        raise ValueError("Currency is expected to be a length of 3, instead got [" + currency + "]!")
+        raise DataValidationError(f"Currency is expected to be a length of {CURRENCY_CODE_LENGTH}, instead got [{currency}]!")
     return Currency(currency.upper())
 
 
@@ -47,6 +50,6 @@ def get_company(ticker: str, isin: str = "", country_of_issuance: str = "Unknown
     if (len(ticker)) > 0:
         pass
     else:
-        raise ValueError("Company is expected to be not empty, instead got empty string!")
+        raise DataValidationError("Company is expected to be not empty, instead got empty string!")
     # Not just uppercase because IB sometimes use abridgements like TKAd (Thyssen-Krupp Ag deutsch?)
     return Company(ticker, isin, country_of_issuance)

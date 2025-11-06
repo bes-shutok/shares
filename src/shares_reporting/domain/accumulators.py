@@ -5,6 +5,8 @@ from typing import List
 
 from .entities import TradeAction, CapitalGainLine, QuantitatedTradeAction
 from .value_objects import Company, Currency, TradeDate, get_trade_date, TradeType
+from .exceptions import DataValidationError
+from .constants import DECIMAL_ZERO
 
 
 @dataclass
@@ -31,7 +33,7 @@ class CapitalGainLineAccumulator:
                 self.sell_date = trade_date
             else:
                 if self.sell_date != trade_date:
-                    raise ValueError("Incompatible dates in capital gain line add function! Expected ["
+                    raise DataValidationError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.sell_date) + "] " +
                                      " and got [" + str(trade_date) + "]")
             self.sell_counts.append(count)
@@ -42,17 +44,17 @@ class CapitalGainLineAccumulator:
                 self.buy_date = trade_date
             else:
                 if self.buy_date != trade_date:
-                    raise ValueError("Incompatible dates in capital gain line add function! Expected ["
+                    raise DataValidationError("Incompatible dates in capital gain line add function! Expected ["
                                      + str(self.buy_date) + "] " + " and got ["
                                      + str(trade_date) + "]")
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
 
     def sold_quantity(self) -> Decimal:
-        return sum(self.sell_counts, Decimal('0'))
+        return sum(self.sell_counts, DECIMAL_ZERO)
 
     def bought_quantity(self) -> Decimal:
-        return sum(self.buy_counts, Decimal('0'))
+        return sum(self.buy_counts, DECIMAL_ZERO)
 
     # noinspection PyTypeChecker
     def finalize(self) -> CapitalGainLine:
@@ -70,13 +72,13 @@ class CapitalGainLineAccumulator:
 
     def validate(self):
         if self.sold_quantity() <= 0 or self.bought_quantity() <= 0:
-            raise ValueError("Cannot finalize empty Accumulator object!")
+            raise DataValidationError("Cannot finalize empty Accumulator object!")
         if self.sold_quantity() != self.bought_quantity():
-            raise ValueError("Different counts for sales ["
+            raise DataValidationError("Different counts for sales ["
                              + str(self.sell_counts) + "] " + " and buys [" + str(self.buy_counts) +
                              "] in capital gain line!")
         if len(self.sell_counts) != len(self.sell_trades):
-            raise ValueError("Different number of counts ["
+            raise DataValidationError("Different number of counts ["
                              + str(len(self.sell_counts)) + "] " + " and trades [" + str(len(self.sell_trades)) +
                              "] for sales in capital gain line!")
 
@@ -106,10 +108,7 @@ class TradePartsWithinDay:
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
-            print(str(quantity))
-            raise ValueError("Incompatible trade_type or date in DailyTradeLine! Expected [" +
-                             str(self.trade_type) + " " + str(self.quantity()) + " and " + str(self.trade_date) + "] " +
-                             " and got [" + str(ta.trade_type) + " and " + str(self.trade_date) + "]")
+            raise DataValidationError(f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] and got [{ta.trade_type} and {get_trade_date(ta.date_time)}]")
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
         idx: int = self.__get_top_index()
@@ -132,10 +131,10 @@ class TradePartsWithinDay:
         return self.quantity() > 0
 
     def quantity(self) -> Decimal:
-        return sum(self.quantities, Decimal('0'))
+        return sum(self.quantities, DECIMAL_ZERO)
 
     def get_trades(self) -> List[TradeAction]:
         return self.trades
 
     def get_quantities(self) -> Decimal:
-        return sum(self.quantities, Decimal('0'))
+        return sum(self.quantities, DECIMAL_ZERO)
