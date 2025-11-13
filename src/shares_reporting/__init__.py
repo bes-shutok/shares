@@ -39,6 +39,7 @@ __all__ = [
     "TradeCycle",
     "CurrencyCompany",
     "CapitalGainLine",
+    "DividendIncomePerSecurity",
 
     # Accumulators
     "CapitalGainLineAccumulator",
@@ -54,6 +55,8 @@ __all__ = [
     "PartitionedTradesByType",
     "CurrencyToCoordinate",
     "CurrencyToCoordinates",
+    "DividendIncomePerSecurityList",
+    "DividendIncomePerCompany",
 
     # Functions from each module
     "parse_data",
@@ -62,4 +65,5 @@ __all__ = [
     "persist_leftover",
     "read_config",
     "create_config",
+    "extract_dividend_income",
 ]

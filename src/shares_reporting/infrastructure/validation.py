@@ -167,6 +167,44 @@ def validate_csv_file(file_path: Union[str, Path], config: SecurityConfig = DEFA
     return safe_path
 
 
+def sanitize_directory_path(
+    directory_path: Union[str, Path],
+    config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+) -> Path:
+    """
+    Sanitize and validate directory paths to prevent directory traversal attacks.
+
+    Args:
+        directory_path: The directory path to validate
+        config: Security configuration with validation limits
+
+    Returns:
+        Sanitized absolute Path object
+    """
+    try:
+        # Convert to Path object if it's a string
+        path_obj = Path(directory_path)
+
+        # Validate directory name length
+        if len(path_obj.name) > config.max_filename_length:
+            raise ValidationError(f"Directory name too long (max {config.max_filename_length} characters): {path_obj.name}")
+
+        # Convert to absolute path
+        abs_path = path_obj.resolve()
+
+        # Check for dangerous patterns using configurable patterns
+        path_str = str(directory_path)
+        for pattern in config.blocked_patterns:
+            if re.search(pattern, path_str, re.IGNORECASE):
+                logger.warning(f"Blocked dangerous path pattern: {pattern} in {directory_path}")
+                raise SecurityError(f"Potentially dangerous path detected: {directory_path}")
+
+        return abs_path
+
+    except (OSError, ValueError) as e:
+        raise ValidationError(f"Invalid directory path {directory_path}: {str(e)}")
+
+
 def validate_output_directory(output_path: Union[str, Path]) -> Path:
     """
     Validate and create output directory if needed.
@@ -177,8 +215,8 @@ def validate_output_directory(output_path: Union[str, Path]) -> Path:
     Returns:
         Sanitized Path object
     """
-    # Sanitize path
-    safe_path = sanitize_file_path(output_path)
+    # Sanitize directory path (not file path)
+    safe_path = sanitize_directory_path(output_path)
 
     try:
         # Create directory if it doesn't exist

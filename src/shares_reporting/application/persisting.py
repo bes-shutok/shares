@@ -1,5 +1,6 @@
 import csv
 import os
+from pathlib import Path
 from typing import Dict, List, Union
 
 import openpyxl
@@ -28,14 +29,6 @@ def persist_leftover(
     logger.info(f"Generating leftover shares report: {Path(leftover).name}")
 
     safe_remove_file(leftover)
-    row = {
-        "Trades": "Trades",
-        "Header": "Data",
-        "DataDiscriminator": "Order",
-        "Asset Category": "Stocks",
-    }
-    currency_company: CurrencyCompany
-    trade_cycle: TradeCycle
     processed_companies = 0
 
     with open(leftover, "w", newline="") as right_obj:
@@ -59,8 +52,14 @@ def persist_leftover(
         writer.writeheader()
         for currency_company, trade_cycle in leftover_trades.items():
             processed_companies += 1
-            row["Currency"] = currency_company.currency.currency
-            row["Symbol"] = currency_company.company.ticker
+            row = {
+                "Trades": "Trades",
+                "Header": "Data",
+                "DataDiscriminator": "Order",
+                "Asset Category": "Stocks",
+                "Currency": currency_company.currency.currency,
+                "Symbol": currency_company.company.ticker,
+            }
 
             logger.debug(f"Processing leftover trades for {row['Symbol']} ({row['Currency']})")
 
@@ -146,7 +145,6 @@ def persist_results(
     ]
 
     last_column: int = max(len(first_header), len(second_header))
-    number_format = "0.000000"
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Reporting"
@@ -179,13 +177,13 @@ def persist_results(
             idx = start_column
 
             # SALE information
-            c = worksheet.cell(line_number, start_column, line.get_sell_date().day)
+            worksheet.cell(line_number, start_column, line.get_sell_date().day)
             idx += 1
-            c = worksheet.cell(line_number, idx, line.get_sell_date().get_month_name())
+            worksheet.cell(line_number, idx, line.get_sell_date().get_month_name())
             idx += 1
-            c = worksheet.cell(line_number, idx, line.get_sell_date().year)
+            worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
-            c = worksheet.cell(
+            worksheet.cell(
                 line_number,
                 idx,
                 "="
@@ -197,13 +195,13 @@ def persist_results(
 
             # PURCHASE information
             idx += 1
-            c = worksheet.cell(line_number, idx, line.get_buy_date().day)
+            worksheet.cell(line_number, idx, line.get_buy_date().day)
             idx += 1
-            c = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
+            worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
             idx += 1
-            c = worksheet.cell(line_number, idx, line.get_buy_date().year)
+            worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
-            c = worksheet.cell(
+            worksheet.cell(
                 line_number,
                 idx,
                 "="
@@ -217,7 +215,7 @@ def persist_results(
             idx += EXCEL_COLUMN_OFFSET
 
             # EXPENSES information
-            c = worksheet.cell(
+            expense_cell = worksheet.cell(
                 line_number,
                 idx,
                 "="
@@ -226,23 +224,24 @@ def persist_results(
                 + line.get_expense_amount()
                 + ")",
             )
+            expense_cell.number_format = EXCEL_NUMBER_FORMAT
             idx += 2
 
             # Symbol and Currency
-            c = worksheet.cell(line_number, idx, company.ticker)
+            worksheet.cell(line_number, idx, company.ticker)
             idx += 1
-            c = worksheet.cell(line_number, idx, currency.currency)
+            worksheet.cell(line_number, idx, currency.currency)
             idx += 1
 
             # Amounts section
-            c = worksheet.cell(line_number, idx, "=" + line.get_sell_amount())
-            c.number_format = EXCEL_NUMBER_FORMAT
+            sell_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_sell_amount())
+            sell_amount_cell.number_format = EXCEL_NUMBER_FORMAT
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + line.get_buy_amount())
-            c.number_format = EXCEL_NUMBER_FORMAT
+            buy_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_buy_amount())
+            buy_amount_cell.number_format = EXCEL_NUMBER_FORMAT
             idx += 1
-            c = worksheet.cell(line_number, idx, "=" + line.get_expense_amount())
-            c.number_format = EXCEL_NUMBER_FORMAT
+            expense_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_expense_amount())
+            expense_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
             line_number += 1
 
@@ -255,12 +254,10 @@ def persist_results(
         company = currency_company.company
         for line in capital_gain_lines:
             # Column 2 is "Country of Source" (according to first_header array)
-            country_cell = worksheet.cell(line_number, 2, company.country_of_issuance)
+            worksheet.cell(line_number, 2, company.country_of_issuance)
 
             # Populate WITHOLDING TAX Country (Column 11 according to first_header array)
-            tax_country_cell = worksheet.cell(
-                line_number, 11, company.country_of_issuance
-            )
+            worksheet.cell(line_number, 11, company.country_of_issuance)
 
             line_number += 1
 

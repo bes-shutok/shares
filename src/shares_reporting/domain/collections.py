@@ -1,6 +1,6 @@
 from typing import Dict, List, NamedTuple
 
-from .entities import QuantitatedTradeAction, TradeCycle, CapitalGainLine, CurrencyCompany
+from .entities import QuantitatedTradeAction, TradeCycle, CapitalGainLine, CurrencyCompany, DividendIncomePerSecurity
 from .value_objects import TradeDate, Currency
 from .accumulators import TradePartsWithinDay
 from .value_objects import TradeType
@@ -24,3 +24,7 @@ class CurrencyToCoordinate(NamedTuple):
 
 
 CurrencyToCoordinates = List[CurrencyToCoordinate]
+
+# Type aliases for dividend income collections
+DividendIncomePerSecurityList = List[DividendIncomePerSecurity]
+DividendIncomePerCompany = Dict[str, DividendIncomePerSecurity]  # symbol -> DividendIncomePerSecurity

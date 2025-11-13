@@ -108,15 +108,15 @@ def main(
         logger.info(f"Capital gains report: {extract_path.name}")
         logger.info(f"Leftover shares report: {leftover_path.name}")
         logger.info(f"Processed {len(trade_lines_per_company)} trade cycles")
-        print("✅ Processing completed successfully!")
+        print("Processing completed successfully!")
 
     except SharesReportingError as e:
         logger.error(f"Application error: {e}")
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
-        print(f"❌ Unexpected error: {e}")
+        print(f"Unexpected error: {e}")
         print("Check logs for detailed information")
         sys.exit(1)
 

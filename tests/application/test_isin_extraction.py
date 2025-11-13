@@ -17,11 +17,11 @@ class TestExtractIsinMapping:
     def test_extractIsinMappingShouldParseValidFinancialInstrumentSection(self):
         # Given
         csv_content = [
+            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
             ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
             ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014", "TSLA", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "1300", "TRIGIANT GROUP LTD", "104248119", "KYG905191022", "1300", "SEHK", "1", "COMMON", ""],
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"]
+            ["Financial Instrument Information", "Data", "Stocks", "1300", "TRIGIANT GROUP LTD", "104248119", "KYG905191022", "1300", "SEHK", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:

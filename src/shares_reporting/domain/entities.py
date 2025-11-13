@@ -140,3 +140,33 @@ class CapitalGainLine:
                       + "/" + str(self.buy_trades[i].quantity)
 
         return result
+
+
+@dataclass
+class DividendIncomePerSecurity:
+    """Container for dividend income data per security for capital investment income reporting."""
+    symbol: str
+    isin: str
+    country: str
+    gross_amount: Decimal
+    total_taxes: Decimal
+    currency: Currency
+
+    def get_net_amount(self) -> Decimal:
+        """Calculate net dividend amount after taxes."""
+        return self.gross_amount - self.total_taxes
+
+    def validate(self) -> None:
+        """Validate dividend income data consistency."""
+        if self.gross_amount < 0:
+            raise DataValidationError(f"Gross amount cannot be negative: {self.gross_amount}")
+        if self.total_taxes < 0:
+            raise DataValidationError(f"Total taxes cannot be negative: {self.total_taxes}")
+        if self.total_taxes > self.gross_amount:
+            raise DataValidationError(f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})")
+        if not self.symbol:
+            raise DataValidationError("Symbol cannot be empty")
+        if not self.isin:
+            raise DataValidationError("ISIN cannot be empty")
+        if not self.country:
+            raise DataValidationError("Country cannot be empty")

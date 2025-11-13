@@ -25,10 +25,10 @@ class TestParseRawIbExport:
         """Test parse_raw_ib_export with a simple raw IB export file."""
         # Given: Raw IB export format with Financial Instrument Information and Trades sections
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 14:30:45", "10", "150.25", "1.50"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 14:30:45", "10", "150.25", "1.50"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -73,12 +73,12 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_with_multiple_trades_same_company(self):
         """Test parse_raw_ib_export with multiple trades for the same company."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "5", "140.00", "1.40"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 14:30:45", "3", "145.00", "1.45"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-2", "150.50", "1.50"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-2", "150.50", "1.50"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -114,13 +114,13 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_with_multiple_companies(self):
         """Test parse_raw_ib_export with trades for multiple companies."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "GOOGL", "ALPHABET INC", "281398109", "US02079K3059", "GOOGL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "5", "140.00", "1.40"],
             ["Trades", "Data", "Order", "Stocks", "USD", "GOOGL", "2024-03-28, 14:30:45", "2", "2800.00", "2.80"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-3", "145.00", "1.45"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-3", "145.00", "1.45"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
+            ["Financial Instrument Information", "Data", "Stocks", "GOOGL", "ALPHABET INC", "281398109", "US02079K3059", "GOOGL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -162,12 +162,12 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_with_different_currencies(self):
         """Test parse_raw_ib_export with trades in different currencies."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "ASML", "ASML HOLDING NV", "33888791", "NL0010273215", "ASML", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "5", "140.00", "1.40"],
-            ["Trades", "Data", "Order", "Stocks", "EUR", "ASML", "2024-03-28, 14:30:45", "2", "450.50", "2.25"]
+            ["Trades", "Data", "Order", "Stocks", "EUR", "ASML", "2024-03-28, 14:30:45", "2", "450.50", "2.25"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
+            ["Financial Instrument Information", "Data", "Stocks", "ASML", "ASML HOLDING NV", "33888791", "NL0010273215", "ASML", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -202,12 +202,12 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_ignores_empty_date_time_rows(self):
         """Test parse_raw_ib_export ignores rows with empty Date/Time."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "5", "140.00", "1.40"],
             ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "", "3", "145.00", "1.45"],  # Empty date should be ignored
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-2", "150.50", "1.50"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 15:45:30", "-2", "150.50", "1.50"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -236,10 +236,10 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_handles_missing_isin_data(self):
         """Test parse_raw_ib_export handles missing ISIN data gracefully."""
         csv_content = [
+            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
+            ["Trades", "Data", "Order", "Stocks", "USD", "TEST", "2024-03-28, 10:30:45", "5", "140.00", "1.40"],
             ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
             # No Financial Instrument Information data for TEST symbol
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "TEST", "2024-03-28, 10:30:45", "5", "140.00", "1.40"]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -268,10 +268,10 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_handles_decimal_quantities(self):
         """Test parse_raw_ib_export handles decimal quantities correctly."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "2.5", "140.00", "1.40"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "2.5", "140.00", "1.40"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
@@ -298,10 +298,10 @@ class TestParseRawIbExport:
     def test_parse_raw_ib_export_handles_negative_quantities_as_sell(self):
         """Test parse_raw_ib_export treats negative quantities as sell trades."""
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "-5", "140.00", "1.40"]
+            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-03-28, 10:30:45", "-5", "140.00", "1.40"],
+            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
+            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""]
         ]
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
