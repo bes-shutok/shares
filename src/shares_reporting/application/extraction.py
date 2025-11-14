@@ -5,7 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Union
 
-from ..domain.collections import QuantitatedTradeActions, TradeCyclePerCompany, DividendIncomePerCompany
+from ..domain.collections import QuantitatedTradeActions, TradeCyclePerCompany, DividendIncomePerCompany, IBExportData
 from ..domain.entities import (
     CurrencyCompany,
     QuantitatedTradeAction,
@@ -702,40 +702,6 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
     return dividend_income_per_company
 
 
-def extract_security_info(path: Union[str, Path]) -> Dict[str, Dict[str, str]]:
-    """
-    Parses the "Financial Instrument Information" sections to build a mapping
-    of ticker symbols to their ISIN codes and countries of issuance.
-
-    Args:
-        path: Path to the raw IB export CSV file
-
-    Returns:
-        Dictionary mapping symbol -> {'isin': str, 'country': str}
-    """
-    logger = get_logger(__name__)
-
-    try:
-        validated_path = Path(path)
-        if not validated_path.exists():
-            raise FileNotFoundError(f"File not found: {validated_path}")
-        if not validated_path.is_file():
-            raise FileProcessingError(f"Path is not a file: {validated_path}")
-        if validated_path.suffix.lower() != '.csv':
-            raise FileProcessingError(f"File must have .csv extension: {validated_path}")
-    except Exception as e:
-        raise FileProcessingError(f"Invalid source file: {e}") from e
-
-    logger.info(f"Extracting security info from: {validated_path.name}")
-
-    try:
-        csv_data = _collect_ib_csv_data(validated_path, require_trades_section=False)
-        return csv_data.security_info
-    except FileProcessingError:
-        # Allow FileProcessingError to bubble up unchanged for test compatibility
-        raise
-    except Exception as e:
-        raise SecurityInfoExtractionError(f"Failed to extract security info: {e}") from e
 
 
 def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
@@ -810,5 +776,51 @@ def extract_dividend_income(path: Union[str, Path]) -> DividendIncomePerCompany:
         return _process_dividends_with_securities(csv_data)
     except Exception as e:
         raise FileProcessingError(f"Failed to extract dividend income: {e}") from e
+
+
+def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
+    """
+    Parse complete Interactive Brokers export CSV file with all data types.
+
+    This function extracts all available data (trades, dividends, security info)
+    from an IB export file in a single pass, returning a unified data structure
+    containing both trade cycles and dividend income data.
+
+    Args:
+        path: Path to the raw IB export CSV file
+
+    Returns:
+        IBExportData containing both trade cycles and dividend income data
+
+    Raises:
+        FileProcessingError: For file-related errors
+        SecurityInfoExtractionError: For data processing errors
+    """
+    logger = get_logger(__name__)
+
+    try:
+        validated_path = Path(path)
+        if not validated_path.exists():
+            raise FileNotFoundError(f"File not found: {validated_path}")
+        if not validated_path.is_file():
+            raise FileProcessingError(f"Path is not a file: {validated_path}")
+        if validated_path.suffix.lower() != '.csv':
+            raise FileProcessingError(f"File must have .csv extension: {validated_path}")
+    except Exception as e:
+        raise FileProcessingError(f"Invalid source file: {e}") from e
+
+    logger.info(f"Processing complete IB export: {validated_path.name}")
+
+    try:
+        csv_data = _collect_ib_csv_data(validated_path)
+        trade_cycles = _process_trades_with_securities(csv_data)
+        dividend_income = _process_dividends_with_securities(csv_data)
+
+        return IBExportData(
+            trade_cycles=trade_cycles,
+            dividend_income=dividend_income
+        )
+    except Exception as e:
+        raise FileProcessingError(f"Failed to parse complete IB export: {e}") from e
 
 

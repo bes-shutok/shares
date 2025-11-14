@@ -8,10 +8,11 @@ The investment reporting tool is designed to provide a simple and efficient way 
 - ✅ **Share Trading**: Processes Interactive Brokers CSV reports for stock trading
 - ✅ **Capital Gains Calculation**: FIFO-based matching of buy/sell transactions within daily buckets
 - ✅ **Capital Gains Reporting**: Generates Excel reports with capital gains data for tax authority submission
+- ✅ **Dividend Income Reporting**: Processes dividend data and generates detailed dividend income reports
 - ✅ **Multi-Currency Support**: Handles multiple currencies with manual exchange rate configuration
 
 **Future Vision:**
-- 🚀 **Multiple Investment Types**: Support for dividends, crypto currency trading, DeFi protocols, staking rewards, and other investment vehicles
+- 🚀 **Additional Investment Types**: Support for crypto currency trading, DeFi protocols, staking rewards, and other investment vehicles
 - 🚀 **Multiple Data Sources**: Integration with crypto exchanges (Binance, Coinbase, Kraken), DeFi platforms, and other financial APIs
 - 🚀 **Advanced Matching**: Sophisticated algorithms for different investment types and tax optimization strategies
 - 🚀 **Automated Exchange Rates**: Real-time currency conversion from multiple financial data providers
@@ -122,6 +123,14 @@ poetry run shares-reporting
 - Update source files in `/resources/source` folder
 - Use exchange rates from your national central bank or financial institution (typically from the last day of the year)
 
+### **Report Features**
+The tool generates comprehensive Excel reports with:
+- **Capital Gains Section**: Detailed buy/sell transaction matching with FIFO methodology
+- **Dividend Income Section**: Complete dividend reporting with tax information and original currency amounts
+- **Professional Formatting**: Currency display with 2 decimal places and proper Excel formulas
+- **Multi-Currency Support**: Automatic currency conversion with exchange rate tables
+- **ISIN Integration**: Automatic country of source detection from financial instrument data
+
 ## Architecture & Modules
 
 ### **Domain Layer** (`src/shares_reporting/domain/`)
@@ -129,13 +138,13 @@ Core business entities and rules that are independent of external concerns:
 - **`value_objects.py`** - Value objects: TradeDate, Currency, Company, TradeType (extensible for new investment types)
 - **`entities.py`** - Core entities: TradeAction, TradeCycle, CapitalGainLine (foundation for other investment vehicles)
 - **`accumulators.py`** - Business accumulators: CapitalGainLineAccumulator, TradePartsWithinDay
-- **`collections.py`** - Type aliases and collection utilities
+- **`collections.py`** - Type aliases and collection utilities for trades, capital gains, and dividend income
 
 ### **Application Layer** (`src/shares_reporting/application/`)
 Business logic services and orchestration components:
-- **`extraction.py`** - Data parsing utilities (currently CSV, extensible to APIs and other formats)
+- **`extraction.py`** - Data parsing utilities (CSV extraction for trades and dividends, extensible to APIs)
 - **`transformation.py`** - Investment calculations and matching algorithms (extensible for different investment types)
-- **`persisting.py`** - Report generation with formulas (Excel, CSV, future formats)
+- **`persisting.py`** - Report generation with formulas (Excel reports for capital gains and dividend income)
 
 ### **Infrastructure Layer** (`src/shares_reporting/infrastructure/`)
 External concerns and technical details:
@@ -153,12 +162,15 @@ The project follows **comprehensive testing best practices** with a well-organiz
 ```
 tests/
 ├── domain/                     # Domain layer unit tests
-│   ├── test_value_objects.py   # 29 tests - Value objects and validation
-│   ├── test_collections.py    # 15 tests - Type aliases and collections
-│   ├── test_accumulators.py   # 56 tests - Business accumulators
-│   └── test_entities.py       # 44 tests - Core entities
+│   ├── test_value_objects.py   # Value objects and validation
+│   ├── test_collections.py    # Type aliases and collections
+│   ├── test_accumulators.py   # Business accumulators
+│   └── test_entities.py       # Core entities
 ├── application/                # Application layer tests
-│   └── test_extraction.py     # CSV parsing edge cases
+│   ├── test_extraction.py     # CSV parsing edge cases
+│   ├── test_dividend_extraction.py # Dividend income extraction and processing
+│   ├── test_isin_extraction.py # ISIN mapping and financial instrument processing
+│   └── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
 ├── infrastructure/             # Infrastructure layer tests
 │   └── test_config.py         # Configuration management
 ├── test_shares.py             # Integration tests (existing)
@@ -212,9 +224,9 @@ poetry run pytest --cov=src --cov-report=term-missing
 ## Roadmap & Future Development
 
 ### **Planned Investment Type Support**
-- **Dividends**: Dividend income tracking and tax reporting
 - **Crypto Currency Trading**: Buy/sell transactions across different exchanges
 - **Earnings**: Various forms of investment earnings and rewards
+- **Fixed Income**: Bond interest payments and maturity tracking
 
 ### **Planned Data Source Integration**
 - **Crypto Exchanges**: Direct API integration with major cryptocurrency exchanges

@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import csv
 
-from shares_reporting.application.extraction import extract_security_info, parse_raw_ib_export
+from shares_reporting.application.extraction import _collect_ib_csv_data, parse_raw_ib_export
 from shares_reporting.domain.exceptions import FileProcessingError
 
 
@@ -31,7 +31,8 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            result = extract_security_info(temp_path)
+            csv_data = _collect_ib_csv_data(temp_path, require_trades_section=False)
+            result = csv_data.security_info
 
             # Then
             assert len(result) == 3
@@ -59,7 +60,8 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            result = extract_security_info(temp_path)
+            csv_data = _collect_ib_csv_data(temp_path, require_trades_section=False)
+            result = csv_data.security_info
 
             # Then
             assert len(result) == 1
@@ -84,7 +86,7 @@ class TestExtractIsinMapping:
         try:
             # When / Then
             with pytest.raises(FileProcessingError, match="Missing 'Financial Instrument Information' header in CSV"):
-                extract_security_info(temp_path)
+                _collect_ib_csv_data(temp_path, require_trades_section=False)
         finally:
             Path(temp_path).unlink()
 

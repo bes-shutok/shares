@@ -6,7 +6,7 @@ from typing import Dict, List, Union
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
-from ..domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany
+from ..domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany, DividendIncomePerCompany
 from ..domain.entities import CurrencyCompany, TradeCycle
 from ..domain.value_objects import TradeType
 from ..infrastructure.config import Config, ConversionRate, read_config
@@ -87,13 +87,15 @@ def persist_leftover(
 def persist_results(
     extract: Union[str, os.PathLike],
     capital_gain_lines_per_company: CapitalGainLinesPerCompany,
+    dividend_income_per_company: DividendIncomePerCompany = None,
 ) -> None:
     """
-    Generate an Excel report with capital gains calculations.
+    Generate an Excel report with capital gains calculations and dividend income.
 
     Args:
         extract: Output file path for the Excel report
         capital_gain_lines_per_company: Calculated capital gains grouped by company
+        dividend_income_per_company: Dividend income data grouped by company (optional)
     """
     logger = get_logger(__name__)
     logger.info(f"Generating capital gains report: {Path(extract).name}")
@@ -261,6 +263,84 @@ def persist_results(
 
             line_number += 1
 
+    # Add CAPITAL INVESTMENT INCOME section if dividend data is provided
+    if dividend_income_per_company:
+        logger.info(f"Adding CAPITAL INVESTMENT INCOME section with {len(dividend_income_per_company)} securities")
+
+        # Add empty row for spacing
+        line_number += 1
+
+        # Section title "5. CAPITAL INVESTMENT INCOME:"
+        section_title_cell = worksheet.cell(line_number, 1, "5. CAPITAL INVESTMENT INCOME:")
+        section_title_cell.font = openpyxl.styles.Font(bold=True)
+        line_number += 1
+
+        # Empty row
+        line_number += 1
+
+        # Dividend income headers
+        dividend_headers = [
+            "Beneficiary\n(choose one)",
+            "Type of capital income\n(choose one)",
+            "Country of source",
+            "ISIN",
+            "Gross amount",
+            "Withholding tax at source",
+            "Withholding tax in Portugal\n(if any)",
+            "",  # One empty column separator
+            "Symbol",
+            "Currency",
+            "Original gross amount",
+            "Original tax amount",
+            "Net amount"
+        ]
+
+        for i, header in enumerate(dividend_headers):
+            worksheet.cell(line_number, i + 1, header)
+
+        line_number += 1
+
+        # Dividend income data rows
+        for symbol, dividend_data in dividend_income_per_company.items():
+            worksheet.cell(line_number, 1, "")  # Beneficiary column
+            worksheet.cell(line_number, 2, "Dividends")  # Type of capital income
+            worksheet.cell(line_number, 3, dividend_data.country)  # Country of source
+            worksheet.cell(line_number, 4, dividend_data.isin)  # ISIN
+
+            # Convert amounts using exchange rates and add Excel formulas
+            gross_amount_cell = worksheet.cell(
+                line_number, 5,
+                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.gross_amount) + ")"
+            )
+            gross_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+
+            tax_amount_cell = worksheet.cell(
+                line_number, 6,
+                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.total_taxes) + ")"
+            )
+            tax_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+
+            worksheet.cell(line_number, 7, "")  # Withholding tax in Portugal (empty for now)
+
+            # Symbol and Currency columns (new columns)
+            worksheet.cell(line_number, 9, symbol)  # Symbol column
+            worksheet.cell(line_number, 10, dividend_data.currency.currency)  # Currency column
+
+            # Original amounts in original currency (new columns)
+            original_gross_cell = worksheet.cell(line_number, 11, str(dividend_data.gross_amount))
+            original_gross_cell.number_format = EXCEL_NUMBER_FORMAT
+
+            original_tax_cell = worksheet.cell(line_number, 12, str(dividend_data.total_taxes))
+            original_tax_cell.number_format = EXCEL_NUMBER_FORMAT
+
+            # Net amount (gross - tax) in original currency (new column)
+            net_amount = dividend_data.gross_amount - dividend_data.total_taxes
+            net_amount_cell = worksheet.cell(line_number, 13, str(net_amount))
+            net_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+
+            logger.debug(f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, {dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})")
+            line_number += 1
+
     # auto width for the populated cells
     logger.debug("Auto-adjusting column widths")
     for column_cells in worksheet.columns:
@@ -272,7 +352,8 @@ def persist_results(
     try:
         workbook.save(extract)
         workbook.close()
-        logger.info(f"Successfully generated capital gains report with {processed_lines} lines")
+        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        logger.info(f"Successfully generated {report_type} report with {processed_lines} capital gain lines")
     except Exception as e:
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 

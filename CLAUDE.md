@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Shares reporting tool is a financial application that processes Interactive Brokers CSV reports to generate tax reporting data for capital gains calculations. It matches buy/sell transactions within the same day to calculate capital gains and generates Excel reports with currency conversion.
+Shares reporting tool is a financial application that processes Interactive Brokers CSV reports to generate tax reporting data for capital gains and dividend income calculations. It matches buy/sell transactions within the same day to calculate capital gains, processes dividend payments with tax information, and generates comprehensive Excel reports with currency conversion.
 
 ## Development Commands
 
@@ -82,25 +82,25 @@ The project follows **professional layered architecture** with **Domain-Driven D
   - `accumulators.py` - CapitalGainLineAccumulator, TradePartsWithinDay
   - `collections.py` - Type aliases and collections
 - **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
-  - `extraction.py` - CSV data parsing and domain object creation
+  - `extraction.py` - CSV data parsing for trades and dividends, domain object creation
   - `transformation.py` - Capital gains calculation and trade matching
-  - `persisting.py` - Excel/CSV report generation with formulas
+  - `persisting.py` - Excel report generation with formulas (capital gains + dividend income)
 - **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns
   - `config.py` - Configuration management and currency exchange rates
 - **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point and orchestration
 
 ### Core Business Logic Pipeline
-The system processes trades in this pipeline:
-1. **Extraction**: Parse Interactive Brokers CSV files into domain objects
+The system processes data in this pipeline:
+1. **Extraction**: Parse Interactive Brokers CSV files into domain objects (trades + dividends)
 2. **Transformation**: Group trades by company/currency, match buys/sells chronologically using FIFO within daily buckets
-3. **Persistence**: Generate Excel reports with calculated capital gains + CSV files for unmatched shares
+3. **Persistence**: Generate Excel reports with calculated capital gains, dividend income details + CSV files for unmatched shares
 
 ### Domain Model Architecture
 Rich domain models with proper separation of concerns:
 - **Value Objects** (Immutable): TradeDate, Currency, Company, TradeType with validation
 - **Entities** (Rich): TradeAction, TradeCycle, CapitalGainLine with business behavior
 - **Accumulators**: CapitalGainLineAccumulator, TradePartsWithinDay for complex calculations
-- **Collections**: Type aliases for better code readability and maintainability
+- **Collections**: Type aliases for trades, capital gains, and dividend income data structures
 
 ## Configuration Management
 
@@ -109,11 +109,32 @@ Rich domain models with proper separation of concerns:
 - Supports target currency specification and exchange rate management
 - Currency exchange rates should be updated annually (e.g., from your national central bank or financial institution)
 
+## Excel Report Features
+
+The application generates professional Excel reports with:
+
+### Capital Gains Section
+- Detailed buy/sell transaction matching with FIFO methodology
+- Automatic currency conversion with exchange rate tables
+- Country of source detection from ISIN data
+
+### Dividend Income Section ("CAPITAL INVESTMENT INCOME")
+- Complete dividend reporting with tax information
+- Both converted and original currency amounts displayed
+- Symbol, Currency, ISIN, and country information
+- Gross amount, withholding tax, and net amount calculations
+
+### Report Structure
+- **Column Headers**: Clear, descriptive headers with line breaks for readability
+- **Currency Conversion**: Automatic conversion using configured exchange rates
+- **Formulas**: Excel formulas for dynamic calculations
+- **Auto-sizing**: Column widths automatically adjusted for content
+
 ## Data Flow
 
 **Input**: Interactive Brokers CSV reports placed in `/resources/source/`
-**Processing**: Domain-driven transformation pipeline with currency conversion
-**Output**: Excel reports with formulas in `/resources/result/` + CSV leftover files
+**Processing**: Domain-driven transformation pipeline with currency conversion and ISIN mapping
+**Output**: Comprehensive Excel reports with capital gains, dividend income, and currency conversion tables in `/resources/result/` + CSV leftover files
 
 ## Testing Strategy
 
@@ -124,12 +145,15 @@ The project follows **professional testing best practices** with **high unit tes
 ```
 tests/
 ├── domain/                     # Domain layer unit tests
-│   ├── test_value_objects.py   # 29 tests - Value objects and validation
-│   ├── test_collections.py    # 15 tests - Type aliases and collections
-│   ├── test_accumulators.py   # 56 tests - Business accumulators
-│   └── test_entities.py       # 44 tests - Core entities
+│   ├── test_value_objects.py   # Value objects and validation
+│   ├── test_collections.py    # Type aliases and collections
+│   ├── test_accumulators.py   # Business accumulators
+│   └── test_entities.py       # Core entities
 ├── application/                # Application layer tests
-│   └── test_extraction.py     # CSV parsing edge cases
+│   ├── test_extraction.py     # CSV parsing edge cases
+│   ├── test_dividend_extraction.py # Dividend income extraction and processing
+│   ├── test_isin_extraction.py # ISIN mapping and financial instrument processing
+│   └── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
 ├── infrastructure/             # Infrastructure layer tests
 │   └── test_config.py         # Configuration management
 ├── test_shares.py             # Integration tests (existing)
@@ -203,7 +227,10 @@ shares-reporting/
 │   │   ├── test_accumulators.py
 │   │   └── test_entities.py
 │   ├── application/        # Application layer tests
-│   │   └── test_extraction.py
+│   │   ├── test_extraction.py
+│   │   ├── test_dividend_extraction.py
+│   │   ├── test_isin_extraction.py
+│   │   └── test_raw_ib_export_parsing.py
 │   ├── infrastructure/     # Infrastructure layer tests
 │   │   └── test_config.py
 │   ├── test_shares.py       # Integration tests (existing)

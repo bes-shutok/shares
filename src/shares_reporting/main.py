@@ -8,10 +8,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from .application.extraction import parse_raw_ib_export
+from .application.extraction import parse_ib_export_complete
 from .application.persisting import persist_leftover, persist_results
 from .application.transformation import calculate
-from .domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany
+from .domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany, DividendIncomePerCompany, IBExportData
 from .domain.exceptions import SharesReportingError, FileProcessingError, ReportGenerationError
 from .infrastructure.logging_config import setup_logging, get_logger
 from .infrastructure.validation import validate_output_directory
@@ -75,8 +75,10 @@ def main(
 
         # Parse raw IB export data
         try:
-            trade_lines_per_company: TradeCyclePerCompany = parse_raw_ib_export(validated_source)
-            logger.info(f"Parsed {len(trade_lines_per_company)} trade cycles")
+            ib_data: IBExportData = parse_ib_export_complete(validated_source)
+            trade_lines_per_company: TradeCyclePerCompany = ib_data.trade_cycles
+            dividend_income_per_company: DividendIncomePerCompany = ib_data.dividend_income
+            logger.info(f"Parsed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries")
         except Exception as e:
             raise FileProcessingError(f"Failed to parse source file: {e}") from e
 
@@ -96,18 +98,20 @@ def main(
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate leftover report: {e}") from e
 
-        # Generate capital gains report
+        # Generate capital gains and dividend income report
         try:
-            persist_results(extract_path, capital_gains)
-            logger.info(f"Generated capital gains report: {extract_path}")
+            persist_results(extract_path, capital_gains, dividend_income_per_company)
+            report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+            logger.info(f"Generated {report_type} report: {extract_path}")
         except Exception as e:
-            raise ReportGenerationError(f"Failed to generate capital gains report: {e}") from e
+            raise ReportGenerationError(f"Failed to generate report: {e}") from e
 
         logger.info("Application completed successfully")
         logger.info(f"Output directory: {validated_output_dir.name}")
-        logger.info(f"Capital gains report: {extract_path.name}")
+        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        logger.info(f"Generated {report_type} report: {extract_path.name}")
         logger.info(f"Leftover shares report: {leftover_path.name}")
-        logger.info(f"Processed {len(trade_lines_per_company)} trade cycles")
+        logger.info(f"Processed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries")
         print("Processing completed successfully!")
 
     except SharesReportingError as e:
