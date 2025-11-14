@@ -26,6 +26,7 @@ class IBCsvSection(Enum):
     FINANCIAL_INSTRUMENT = "financial_instrument"
     TRADES = "trades"
     DIVIDENDS = "dividends"
+    WITHHOLDING_TAX = "withholding_tax"
     OTHER = "other"
 
 
@@ -35,15 +36,433 @@ class IBCsvData:
     security_info: Dict[str, Dict[str, str]]
     raw_trade_data: List[Dict[str, str]]
     raw_dividend_data: List[Dict[str, str]]
+    raw_withholding_tax_data: List[Dict[str, str]]
     metadata: Dict[str, int]  # Processing statistics
+
+
+class BaseSectionContext:
+    """Base class for CSV section processing contexts."""
+
+    def __init__(self):
+        self.logger = get_logger(self.__class__.__name__)
+        self.headers_found = False
+        self.processed_count = 0
+
+    def process_header(self, row: List[str]) -> None:
+        """Process section header row."""
+        raise NotImplementedError("Subclasses must implement process_header")
+
+    def process_data_row(self, row: List[str]) -> None:
+        """Process section data row."""
+        raise NotImplementedError("Subclasses must implement process_data_row")
+
+    def validate_header(self, row: List[str]) -> bool:
+        """Validate if this row is a valid header for this section."""
+        return True
+
+    def can_process_row(self, row: List[str]) -> bool:
+        """Check if this context can process the given row."""
+        return self.headers_found
+
+    def finish(self) -> None:
+        """Called when section processing is complete."""
+        pass
+
+
+class FinancialInstrumentContext(BaseSectionContext):
+    """Context for processing Financial Instrument Information section."""
+
+    def __init__(self, security_info: Dict[str, Dict[str, str]]):
+        super().__init__()
+        self.security_info = security_info
+        self.security_processed_count = 0
+
+    def process_header(self, row: List[str]) -> None:
+        """Process Financial Instrument Information header."""
+        if (len(row) >= 7 and row[1] == "Header" and
+            row[3] == "Symbol" and row[6] == "Security ID"):
+            self.headers_found = True
+            self.logger.debug("Found Financial Instrument Information header")
+        else:
+            raise FileProcessingError(f"Invalid 'Financial Instrument Information' header format: {row}")
+
+    def process_data_row(self, row: List[str]) -> None:
+        """Process security info data row."""
+        if not self.can_process_row(row):
+            return
+
+        if len(row) >= 7 and row[1] == "Data" and row[2] == "Stocks":
+            symbol = row[3] if len(row) > 3 else ""
+            isin = row[6] if len(row) > 6 else ""
+
+            if symbol and isin:
+                try:
+                    country = isin_to_country(isin)
+                    self.security_info[symbol] = {"isin": isin, "country": country}
+                    self.security_processed_count += 1
+                    self.processed_count += 1
+                    self.logger.debug(f"Extracted security info for {symbol}: {isin} ({country})")
+                except Exception as e:
+                    self.logger.warning(f"Failed to extract country for {symbol} with ISIN {isin}: {e}")
+                    self.security_info[symbol] = {"isin": isin, "country": "Unknown"}
+                    self.processed_count += 1
+
+    def validate_header(self, row: List[str]) -> bool:
+        """Validate Financial Instrument Information header."""
+        return (len(row) >= 2 and row[0] == "Financial Instrument Information" and
+                row[1] == "Header")
+
+
+class TradesContext(BaseSectionContext):
+    """Context for processing Trades section."""
+
+    def __init__(self, raw_trade_data: List[Dict[str, str]], require_trades_section: bool = True):
+        super().__init__()
+        self.raw_trade_data = raw_trade_data
+        self.require_trades_section = require_trades_section
+        self.trades_headers = None
+        self.trades_col_mapping = None
+        self.skipped_trades = 0
+
+    def process_header(self, row: List[str]) -> None:
+        """Process Trades section header."""
+        if len(row) >= 2 and row[1] == "Header":
+            self.trades_headers = row
+            self.logger.debug("Found Trades section header")
+
+            # Create column mapping
+            try:
+                # Handle different fee column names
+                fee_column = None
+                if "Comm/Fee" in self.trades_headers:
+                    fee_column = self.trades_headers.index("Comm/Fee")
+                elif "Comm in EUR" in self.trades_headers:
+                    fee_column = self.trades_headers.index("Comm in EUR")
+                elif "Commission" in self.trades_headers:
+                    fee_column = self.trades_headers.index("Commission")
+
+                self.trades_col_mapping = {
+                    "symbol": self.trades_headers.index("Symbol"),
+                    "currency": self.trades_headers.index("Currency"),
+                    "datetime": self.trades_headers.index("Date/Time"),
+                    "quantity": self.trades_headers.index("Quantity"),
+                    "price": self.trades_headers.index("T. Price"),
+                    "fee": fee_column,
+                }
+                self.headers_found = True
+                self.logger.debug(f"Column mapping: {self.trades_col_mapping}")
+            except ValueError as e:
+                if self.require_trades_section:
+                    raise FileProcessingError(f"Missing required column in Trades section: {e}") from e
+                else:
+                    # If trades section is not required, just skip it
+                    self.logger.debug(f"Skipping Trades section due to missing columns: {e}")
+                    self.trades_headers = None
+                    self.trades_col_mapping = None
+        else:
+            raise FileProcessingError("Invalid Trades header format")
+
+    def process_data_row(self, row: List[str]) -> None:
+        """Process trade data row."""
+        if not self.can_process_row(row) or not self.trades_col_mapping:
+            return
+
+        if len(row) < len(self.trades_headers):
+            self.skipped_trades += 1
+            return
+
+        if len(row) > 2 and (row[2] != "Order" or row[3] != "Stocks"):
+            self.skipped_trades += 1
+            return
+
+        # Extract trade data as dictionary for deferred processing
+        fee_value = ""
+        if self.trades_col_mapping["fee"] is not None:
+            fee_value = row[self.trades_col_mapping["fee"]] if len(row) > self.trades_col_mapping["fee"] else ""
+
+        trade_row = {
+            "symbol": row[self.trades_col_mapping["symbol"]] if len(row) > self.trades_col_mapping["symbol"] else "",
+            "currency": row[self.trades_col_mapping["currency"]] if len(row) > self.trades_col_mapping["currency"] else "",
+            "datetime": row[self.trades_col_mapping["datetime"]] if len(row) > self.trades_col_mapping["datetime"] else "",
+            "quantity": row[self.trades_col_mapping["quantity"]] if len(row) > self.trades_col_mapping["quantity"] else "",
+            "price": row[self.trades_col_mapping["price"]] if len(row) > self.trades_col_mapping["price"] else "",
+            "fee": fee_value,
+        }
+
+        if not trade_row["symbol"] or not trade_row["datetime"] or trade_row["datetime"].strip() == "":
+            self.skipped_trades += 1
+            return
+
+        self.raw_trade_data.append(trade_row)
+        self.processed_count += 1
+
+        if self.processed_count <= 5 or self.processed_count % 100 == 0:
+            self.logger.debug(f"Collected trade {self.processed_count}: {trade_row['symbol']} {trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}")
+
+    def validate_header(self, row: List[str]) -> bool:
+        """Validate Trades header."""
+        return len(row) >= 2 and row[0] == "Trades" and row[1] == "Header"
+
+
+class DividendsContext(BaseSectionContext):
+    """Context for processing Dividends section."""
+
+    def __init__(self, raw_dividend_data: List[Dict[str, str]]):
+        super().__init__()
+        self.raw_dividend_data = raw_dividend_data
+        self.dividends_headers = None
+        self.dividends_col_mapping = None
+
+    def process_header(self, row: List[str]) -> None:
+        """Process Dividends section header."""
+        if len(row) >= 2 and row[1] == "Header":
+            self.dividends_headers = row
+            self.logger.debug("Found Dividends section header")
+
+            # Create column mapping
+            try:
+                self.dividends_col_mapping = {
+                    "currency": self.dividends_headers.index("Currency"),
+                    "date": self.dividends_headers.index("Date"),
+                    "description": self.dividends_headers.index("Description"),
+                    "amount": self.dividends_headers.index("Amount"),
+                }
+                self.headers_found = True
+                self.logger.debug(f"Dividend column mapping: {self.dividends_col_mapping}")
+            except ValueError as e:
+                self.logger.debug(f"Skipping Dividends section due to missing columns: {e}")
+                self.dividends_headers = None
+                self.dividends_col_mapping = None
+        else:
+            raise FileProcessingError("Invalid Dividends header format")
+
+    def process_data_row(self, row: List[str]) -> None:
+        """Process dividend data row."""
+        if not self.can_process_row(row) or not self.dividends_col_mapping:
+            return
+
+        dividend_row = {
+            "currency": row[self.dividends_col_mapping["currency"]] if len(row) > self.dividends_col_mapping["currency"] else "",
+            "date": row[self.dividends_col_mapping["date"]] if len(row) > self.dividends_col_mapping["date"] else "",
+            "description": row[self.dividends_col_mapping["description"]] if len(row) > self.dividends_col_mapping["description"] else "",
+            "amount": row[self.dividends_col_mapping["amount"]] if len(row) > self.dividends_col_mapping["amount"] else "",
+        }
+
+        if dividend_row["description"] and dividend_row["amount"]:
+            self.raw_dividend_data.append(dividend_row)
+            self.processed_count += 1
+
+            if self.processed_count <= 5:
+                self.logger.debug(f"Collected dividend {self.processed_count}: {dividend_row['description']} {dividend_row['currency']} {dividend_row['amount']}")
+
+    def validate_header(self, row: List[str]) -> bool:
+        """Validate Dividends header."""
+        return len(row) >= 2 and row[0] == "Dividends" and row[1] == "Header"
+
+
+class WithholdingTaxContext(BaseSectionContext):
+    """Context for processing Withholding Tax section."""
+
+    def __init__(self, raw_withholding_tax_data: List[Dict[str, str]]):
+        super().__init__()
+        self.raw_withholding_tax_data = raw_withholding_tax_data
+        self.withholding_tax_headers = None
+        self.withholding_tax_col_mapping = None
+
+    def process_header(self, row: List[str]) -> None:
+        """Process Withholding Tax section header."""
+        if len(row) >= 2 and row[1] == "Header":
+            self.withholding_tax_headers = row
+            self.logger.debug("Found Withholding Tax section header")
+
+            # Create column mapping (skip Code column as it's always empty)
+            try:
+                self.withholding_tax_col_mapping = {
+                    "currency": self.withholding_tax_headers.index("Currency"),
+                    "date": self.withholding_tax_headers.index("Date"),
+                    "description": self.withholding_tax_headers.index("Description"),
+                    "amount": self.withholding_tax_headers.index("Amount"),
+                }
+                self.headers_found = True
+                self.logger.debug(f"Withholding Tax column mapping: {self.withholding_tax_col_mapping}")
+            except ValueError as e:
+                self.logger.debug(f"Skipping Withholding Tax section due to missing columns: {e}")
+                self.withholding_tax_headers = None
+                self.withholding_tax_col_mapping = None
+        else:
+            raise FileProcessingError("Invalid Withholding Tax header format")
+
+    def process_data_row(self, row: List[str]) -> None:
+        """Process withholding tax data row."""
+        if not self.can_process_row(row) or not self.withholding_tax_col_mapping:
+            return
+
+        tax_row = {
+            "currency": row[self.withholding_tax_col_mapping["currency"]] if len(row) > self.withholding_tax_col_mapping["currency"] else "",
+            "date": row[self.withholding_tax_col_mapping["date"]] if len(row) > self.withholding_tax_col_mapping["date"] else "",
+            "description": row[self.withholding_tax_col_mapping["description"]] if len(row) > self.withholding_tax_col_mapping["description"] else "",
+            "amount": row[self.withholding_tax_col_mapping["amount"]] if len(row) > self.withholding_tax_col_mapping["amount"] else "",
+        }
+
+        if tax_row["description"] and tax_row["amount"]:
+            self.raw_withholding_tax_data.append(tax_row)
+            self.processed_count += 1
+
+            if self.processed_count <= 5:
+                self.logger.debug(f"Collected withholding tax {self.processed_count}: {tax_row['description']} {tax_row['currency']} {tax_row['amount']}")
+
+    def validate_header(self, row: List[str]) -> bool:
+        """Validate Withholding Tax header."""
+        return len(row) >= 2 and row[0] == "Withholding Tax" and row[1] == "Header"
+
+
+class IBCsvStateMachine:
+    """State machine for processing IB CSV files."""
+
+    def __init__(self, require_trades_section: bool = True):
+        self.logger = get_logger(__name__)
+        self.current_section = IBCsvSection.UNKNOWN
+        self.require_trades_section = require_trades_section
+
+        # Initialize data containers
+        self.security_info: Dict[str, Dict[str, str]] = {}
+        self.raw_trade_data: List[Dict[str, str]] = []
+        self.raw_dividend_data: List[Dict[str, str]] = []
+        self.raw_withholding_tax_data: List[Dict[str, str]] = []
+
+        # Initialize contexts
+        self.financial_context = FinancialInstrumentContext(self.security_info)
+        self.trades_context = TradesContext(self.raw_trade_data, require_trades_section)
+        self.dividends_context = DividendsContext(self.raw_dividend_data)
+        self.withholding_tax_context = WithholdingTaxContext(self.raw_withholding_tax_data)
+
+        # Tracking
+        self.found_financial_instrument_header = False
+
+    def process_row(self, row: List[str]) -> None:
+        """Process a single CSV row using the state machine."""
+        if len(row) < 2:
+            return
+
+        # Check for section transitions
+        if self._detect_section_transition(row):
+            return
+
+        # Process row based on current section
+        if self.current_section == IBCsvSection.FINANCIAL_INSTRUMENT:
+            self._process_financial_instrument_row(row)
+        elif self.current_section == IBCsvSection.TRADES:
+            self._process_trades_row(row)
+        elif self.current_section == IBCsvSection.DIVIDENDS:
+            self._process_dividends_row(row)
+        elif self.current_section == IBCsvSection.WITHHOLDING_TAX:
+            self._process_withholding_tax_row(row)
+        # OTHER sections are ignored
+
+    def _detect_section_transition(self, row: List[str]) -> bool:
+        """Detect if this row represents a section transition."""
+        # Only treat as section transition if it's a header row
+        if row[0] == "Financial Instrument Information" and len(row) >= 2 and row[1] == "Header":
+            self._transition_to_financial_instruments(row)
+            return True
+        elif row[0] == "Trades" and len(row) >= 2 and row[1] == "Header":
+            self._transition_to_trades(row)
+            return True
+        elif row[0] == "Dividends" and len(row) >= 2 and row[1] == "Header":
+            self._transition_to_dividends(row)
+            return True
+        elif row[0] == "Withholding Tax" and len(row) >= 2 and row[1] == "Header":
+            self._transition_to_withholding_tax(row)
+            return True
+        return False
+
+    def _transition_to_financial_instruments(self, row: List[str]) -> None:
+        """Transition to Financial Instrument section."""
+        self.current_section = IBCsvSection.FINANCIAL_INSTRUMENT
+        if len(row) >= 2 and row[1] == "Header":
+            try:
+                self.financial_context.process_header(row)
+                self.found_financial_instrument_header = True
+            except Exception as e:
+                self.logger.warning(f"Failed to process financial instrument header: {e}, row: {row}")
+                # Continue processing even if header validation fails
+
+    def _transition_to_trades(self, row: List[str]) -> None:
+        """Transition to Trades section."""
+        self.current_section = IBCsvSection.TRADES
+        if len(row) >= 2 and row[1] == "Header":
+            self.trades_context.process_header(row)
+
+    def _transition_to_dividends(self, row: List[str]) -> None:
+        """Transition to Dividends section."""
+        self.current_section = IBCsvSection.DIVIDENDS
+        if len(row) >= 2 and row[1] == "Header":
+            self.dividends_context.process_header(row)
+
+    def _transition_to_withholding_tax(self, row: List[str]) -> None:
+        """Transition to Withholding Tax section."""
+        self.current_section = IBCsvSection.WITHHOLDING_TAX
+        if len(row) >= 2 and row[1] == "Header":
+            self.withholding_tax_context.process_header(row)
+
+    def _process_financial_instrument_row(self, row: List[str]) -> None:
+        """Process row in Financial Instrument section."""
+        if len(row) >= 2 and row[1] == "Data":
+            self.financial_context.process_data_row(row)
+
+    def _process_trades_row(self, row: List[str]) -> None:
+        """Process row in Trades section."""
+        if len(row) >= 2 and row[1] == "Data":
+            self.trades_context.process_data_row(row)
+
+    def _process_dividends_row(self, row: List[str]) -> None:
+        """Process row in Dividends section."""
+        if len(row) >= 2 and row[1] == "Data":
+            self.dividends_context.process_data_row(row)
+
+    def _process_withholding_tax_row(self, row: List[str]) -> None:
+        """Process row in Withholding Tax section."""
+        if len(row) >= 2 and row[1] == "Data":
+            self.withholding_tax_context.process_data_row(row)
+
+    def finalize(self) -> IBCsvData:
+        """Finalize processing and return collected data."""
+        # Validation
+        if not self.found_financial_instrument_header:
+            raise FileProcessingError("Missing 'Financial Instrument Information' header in CSV")
+
+        if self.require_trades_section and not self.trades_context.headers_found:
+            raise FileProcessingError("No Trades section found in the IB export file")
+
+        metadata = {
+            "processed_trades": self.trades_context.processed_count,
+            "skipped_trades": self.trades_context.skipped_trades,
+            "processed_dividends": self.dividends_context.processed_count,
+            "processed_withholding_taxes": self.withholding_tax_context.processed_count,
+            "security_processed_count": self.financial_context.security_processed_count,
+        }
+
+        self.logger.info(f"Extracted security data for {len(self.security_info)} symbols ({self.financial_context.security_processed_count} with country data)")
+        self.logger.info(f"Collected {self.trades_context.processed_count} trades, {self.dividends_context.processed_count} dividends and {self.withholding_tax_context.processed_count} withholding taxes")
+        if self.trades_context.skipped_trades > 0:
+            self.logger.warning(f"Skipped {self.trades_context.skipped_trades} invalid trades")
+
+        return IBCsvData(
+            security_info=self.security_info,
+            raw_trade_data=self.raw_trade_data,
+            raw_dividend_data=self.raw_dividend_data,
+            raw_withholding_tax_data=self.raw_withholding_tax_data,
+            metadata=metadata
+        )
 
 
 def _collect_ib_csv_data(path: Union[str, Path], require_trades_section: bool = True) -> IBCsvData:
     """
-    Collect all raw data from IB export CSV file in a single pass.
+    Collect all raw data from IB export CSV file using a state machine approach.
 
     This function reads the file once and extracts security information,
-    raw trade data, and dividend data for deferred processing.
+    raw trade data, and dividend data for deferred processing using a proper
+    state machine pattern.
 
     Args:
         path: Path to the raw IB export CSV file
@@ -53,200 +472,20 @@ def _collect_ib_csv_data(path: Union[str, Path], require_trades_section: bool = 
         IBCsvData container with all collected information
     """
     logger = get_logger(__name__)
-    security_info: Dict[str, Dict[str, str]] = {}
-    raw_trade_data: List[Dict[str, str]] = []
-    raw_dividend_data: List[Dict[str, str]] = []
-
-    # State tracking
-    current_section = IBCsvSection.UNKNOWN
-    trades_headers = None
-    trades_col_mapping = None
-    dividends_headers = None
-    dividends_col_mapping = None
-    found_financial_instrument_header = False
-
-    processed_trades = 0
-    skipped_trades = 0
-    processed_dividends = 0
-    security_processed_count = 0
 
     try:
+        # Initialize state machine
+        state_machine = IBCsvStateMachine(require_trades_section)
+
+        # Process CSV file row by row using state machine
         with open(path, "r", encoding="utf-8") as read_obj:
             csv_reader = csv.reader(read_obj)
 
             for row in csv_reader:
-                if len(row) < 2:
-                    continue
+                state_machine.process_row(row)
 
-                # Detect section changes
-                if row[0] == "Financial Instrument Information":
-                    current_section = IBCsvSection.FINANCIAL_INSTRUMENT
-
-                    # Check for header
-                    if (row[1] == "Header" and len(row) >= 7 and
-                        row[3] == "Symbol" and row[6] == "Security ID"):
-                        found_financial_instrument_header = True
-                        logger.debug("Found Financial Instrument Information header")
-                    elif row[1] == "Data" and len(row) >= 7 and row[2] == "Stocks":
-                        if not found_financial_instrument_header:
-                            raise FileProcessingError("Missing 'Financial Instrument Information' header in CSV")
-
-                        # Process security info data immediately (independent data)
-                        symbol = row[3] if len(row) > 3 else ""
-                        isin = row[6] if len(row) > 6 else ""
-
-                        if symbol and isin:
-                            try:
-                                country = isin_to_country(isin)
-                                security_info[symbol] = {"isin": isin, "country": country}
-                                security_processed_count += 1
-                                logger.debug(f"Extracted security info for {symbol}: {isin} ({country})")
-                            except Exception as e:
-                                logger.warning(f"Failed to extract country for {symbol} with ISIN {isin}: {e}")
-                                security_info[symbol] = {"isin": isin, "country": "Unknown"}
-                    continue
-
-                elif row[0] == "Trades":
-                    current_section = IBCsvSection.TRADES
-
-                    if row[1] == "Header":
-                        trades_headers = row
-                        logger.debug("Found Trades section header")
-
-                        # Create column mapping
-                        try:
-                            # Handle different fee column names
-                            fee_column = None
-                            if "Comm/Fee" in trades_headers:
-                                fee_column = trades_headers.index("Comm/Fee")
-                            elif "Comm in EUR" in trades_headers:
-                                fee_column = trades_headers.index("Comm in EUR")
-                            elif "Commission" in trades_headers:
-                                fee_column = trades_headers.index("Commission")
-
-                            trades_col_mapping = {
-                                "symbol": trades_headers.index("Symbol"),
-                                "currency": trades_headers.index("Currency"),
-                                "datetime": trades_headers.index("Date/Time"),
-                                "quantity": trades_headers.index("Quantity"),
-                                "price": trades_headers.index("T. Price"),
-                                "fee": fee_column,
-                            }
-                            logger.debug(f"Column mapping: {trades_col_mapping}")
-                        except ValueError as e:
-                            if require_trades_section:
-                                raise FileProcessingError(f"Missing required column in Trades section: {e}") from e
-                            else:
-                                # If trades section is not required, just skip it
-                                logger.debug(f"Skipping Trades section due to missing columns: {e}")
-                                trades_headers = None
-                                trades_col_mapping = None
-                    elif row[1] == "Data" and trades_col_mapping:
-                        # Collect raw trade data for deferred processing
-                        if len(row) < len(trades_headers):
-                            skipped_trades += 1
-                            continue
-
-                        if len(row) > 2 and (row[2] != "Order" or row[3] != "Stocks"):
-                            skipped_trades += 1
-                            continue
-
-                        # Extract trade data as dictionary for deferred processing
-                        fee_value = ""
-                        if trades_col_mapping["fee"] is not None:
-                            fee_value = row[trades_col_mapping["fee"]] if len(row) > trades_col_mapping["fee"] else ""
-
-                        trade_row = {
-                            "symbol": row[trades_col_mapping["symbol"]] if len(row) > trades_col_mapping["symbol"] else "",
-                            "currency": row[trades_col_mapping["currency"]] if len(row) > trades_col_mapping["currency"] else "",
-                            "datetime": row[trades_col_mapping["datetime"]] if len(row) > trades_col_mapping["datetime"] else "",
-                            "quantity": row[trades_col_mapping["quantity"]] if len(row) > trades_col_mapping["quantity"] else "",
-                            "price": row[trades_col_mapping["price"]] if len(row) > trades_col_mapping["price"] else "",
-                            "fee": fee_value,
-                        }
-
-                        if not trade_row["symbol"] or not trade_row["datetime"] or trade_row["datetime"].strip() == "":
-                            skipped_trades += 1
-                            continue
-
-                        raw_trade_data.append(trade_row)
-                        processed_trades += 1
-
-                        if processed_trades <= 5 or processed_trades % 100 == 0:
-                            logger.debug(f"Collected trade {processed_trades}: {trade_row['symbol']} {trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}")
-                    continue
-
-                elif row[0] == "Dividends":
-                    current_section = IBCsvSection.DIVIDENDS
-
-                    if row[1] == "Header":
-                        dividends_headers = row
-                        logger.debug("Found Dividends section header")
-
-                        # Create column mapping
-                        try:
-                            dividends_col_mapping = {
-                                "currency": dividends_headers.index("Currency"),
-                                "date": dividends_headers.index("Date"),
-                                "description": dividends_headers.index("Description"),
-                                "amount": dividends_headers.index("Amount"),
-                            }
-                            # Tax column is optional
-                            try:
-                                dividends_col_mapping["tax"] = dividends_headers.index("Tax")
-                            except ValueError:
-                                dividends_col_mapping["tax"] = None
-                            logger.debug(f"Dividend column mapping: {dividends_col_mapping}")
-                        except ValueError as e:
-                            logger.debug(f"Skipping Dividends section due to missing columns: {e}")
-                            dividends_headers = None
-                            dividends_col_mapping = None
-                    elif row[1] == "Data" and dividends_col_mapping:
-                        # Collect raw dividend data for deferred processing
-                        dividend_row = {
-                            "currency": row[dividends_col_mapping["currency"]] if len(row) > dividends_col_mapping["currency"] else "",
-                            "date": row[dividends_col_mapping["date"]] if len(row) > dividends_col_mapping["date"] else "",
-                            "description": row[dividends_col_mapping["description"]] if len(row) > dividends_col_mapping["description"] else "",
-                            "amount": row[dividends_col_mapping["amount"]] if len(row) > dividends_col_mapping["amount"] else "",
-                            "tax": row[dividends_col_mapping["tax"]] if dividends_col_mapping["tax"] is not None and len(row) > dividends_col_mapping["tax"] else "0",
-                        }
-
-                        if dividend_row["description"] and dividend_row["amount"]:
-                            raw_dividend_data.append(dividend_row)
-                            processed_dividends += 1
-
-                            if processed_dividends <= 5:
-                                logger.debug(f"Collected dividend {processed_dividends}: {dividend_row['description']} {dividend_row['currency']} {dividend_row['amount']}")
-                    continue
-                else:
-                    # Other sections - skip
-                    continue
-
-        # Validation
-        if not found_financial_instrument_header:
-            raise FileProcessingError("Missing 'Financial Instrument Information' header in CSV")
-
-        if require_trades_section and not trades_headers:
-            raise FileProcessingError("No Trades section found in the IB export file")
-
-        metadata = {
-            "processed_trades": processed_trades,
-            "skipped_trades": skipped_trades,
-            "processed_dividends": processed_dividends,
-            "security_processed_count": security_processed_count,
-        }
-
-        logger.info(f"Extracted security data for {len(security_info)} symbols ({security_processed_count} with country data)")
-        logger.info(f"Collected {processed_trades} trades and {processed_dividends} dividends")
-        if skipped_trades > 0:
-            logger.warning(f"Skipped {skipped_trades} invalid trades")
-
-        return IBCsvData(
-            security_info=security_info,
-            raw_trade_data=raw_trade_data,
-            raw_dividend_data=raw_dividend_data,
-            metadata=metadata
-        )
+        # Finalize processing and return results
+        return state_machine.finalize()
 
     except csv.Error as e:
         raise FileProcessingError(f"CSV parsing error: {e}") from e
@@ -343,7 +582,6 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
         description = dividend_row["description"]
         currency_str = dividend_row["currency"]
         amount_str = dividend_row["amount"]
-        tax_str = dividend_row["tax"]
 
         try:
             # Extract symbol from description (IB format: "SYMBOL - Description")
@@ -364,9 +602,8 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 logger.warning(f"No security info found for dividend symbol: {symbol}")
                 continue
 
-            # Parse amounts
+            # Parse amounts (no tax in dividend section)
             amount = Decimal(amount_str.replace(",", "")) if amount_str else Decimal('0')
-            tax = Decimal(tax_str.replace(",", "")) if tax_str and tax_str != "0" else Decimal('0')
 
             # Aggregate by symbol and currency
             key = f"{symbol}_{currency_str}"
@@ -378,10 +615,55 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 }
 
             aggregation[key]["gross_amount"] += amount
-            aggregation[key]["total_taxes"] += tax
 
         except Exception as e:
             logger.warning(f"Failed to process dividend for {description}: {e}")
+            continue
+
+    # Process withholding tax data and add taxes to aggregation
+    for tax_row in csv_data.raw_withholding_tax_data:
+        description = tax_row["description"]
+        currency_str = tax_row["currency"]
+        tax_amount_str = tax_row["amount"]
+
+        try:
+            # Extract ISIN from withholding tax description (format: "SYMBOL(ISIN) Description - Tax")
+            isin_match = re.search(r'\(([A-Z0-9]+)\)', description)
+            if not isin_match:
+                logger.warning(f"Could not extract ISIN from withholding tax description: {description}")
+                continue
+
+            isin = isin_match.group(1)
+
+            # Find symbol by ISIN
+            symbol = None
+            for ticker_symbol, symbol_info in csv_data.security_info.items():
+                if symbol_info.get("isin") == isin:
+                    symbol = ticker_symbol
+                    break
+
+            if not symbol:
+                logger.warning(f"Could not find symbol for ISIN {isin} in withholding tax: {description}")
+                continue
+
+            # Parse tax amount (withholding tax amounts are negative)
+            tax_amount = Decimal(tax_amount_str.replace(",", "")) if tax_amount_str else Decimal('0')
+            # Use absolute value since we track positive tax amounts
+            tax_amount = abs(tax_amount)
+
+            # Aggregate by symbol and currency
+            key = f"{symbol}_{currency_str}"
+            if key not in aggregation:
+                aggregation[key] = {
+                    "gross_amount": Decimal('0'),
+                    "total_taxes": Decimal('0'),
+                    "currency": currency_str
+                }
+
+            aggregation[key]["total_taxes"] += tax_amount
+
+        except Exception as e:
+            logger.warning(f"Failed to process withholding tax for {description}: {e}")
             continue
 
     # Convert aggregation to domain objects

@@ -48,9 +48,12 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         """Test extracting dividend income with tax amounts."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Dividends,Header,Currency,Date,Description,Amount,Tax
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00,3.60
-Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00,3.60
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
+Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
+Withholding Tax,Header,Currency,Date,Description,Amount,Code
+Withholding Tax,Data,USD,2023-03-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,
+Withholding Tax,Data,USD,2023-06-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,
 Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
 Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 """
@@ -142,15 +145,16 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         }
 
         raw_dividend_data = [
-            {"currency": "USD", "date": "2023-03-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00", "tax": "0"},
-            {"currency": "USD", "date": "2023-06-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00", "tax": "0"},
-            {"currency": "USD", "date": "2023-03-15", "description": "MSFT - CASH DIVIDEND", "amount": "68.00", "tax": "0"},
+            {"currency": "USD", "date": "2023-03-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00"},
+            {"currency": "USD", "date": "2023-06-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00"},
+            {"currency": "USD", "date": "2023-03-15", "description": "MSFT - CASH DIVIDEND", "amount": "68.00"},
         ]
 
         csv_data = IBCsvData(
             security_info=security_info,
             raw_trade_data=[],
             raw_dividend_data=raw_dividend_data,
+            raw_withholding_tax_data=[],
             metadata={}
         )
 
