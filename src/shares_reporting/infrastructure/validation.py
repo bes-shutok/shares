@@ -4,16 +4,14 @@ Input validation and file path sanitization utilities.
 Provides secure validation functions for file operations and user input.
 """
 
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Union
 
-from ..domain.constants import TICKER_FORMAT_PATTERN, CURRENCY_FORMAT_PATTERN
-from ..infrastructure.logging_config import get_logger
+from ..domain.constants import CURRENCY_FORMAT_PATTERN, TICKER_FORMAT_PATTERN
+from ..infrastructure.logging_config import create_module_logger
 
-logger = get_logger(__name__)
+logger = create_module_logger(__name__)
 
 
 class ValidationError(Exception):
@@ -38,8 +36,8 @@ class SecurityConfig:
     max_quantity_value: int = 10_000_000_000  # 10 billion shares
     max_price_value: int = 1_000_000_000  # 1 billion currency units
     max_filename_length: int = 255
-    allowed_extensions: List[str] = None
-    blocked_patterns: List[str] = None
+    allowed_extensions: list[str] = None
+    blocked_patterns: list[str] = None
 
     def __post_init__(self):
         if self.allowed_extensions is None:
@@ -58,8 +56,8 @@ DEFAULT_SECURITY_CONFIG = SecurityConfig()
 
 
 def sanitize_file_path(
-    file_path: Union[str, Path],
-    allowed_directories: Optional[List[Path]] = None,
+    file_path: str | Path,
+    allowed_directories: list[Path] | None = None,
     config: SecurityConfig = DEFAULT_SECURITY_CONFIG,
 ) -> Path:
     """
@@ -125,7 +123,7 @@ def sanitize_file_path(
 
 
 def validate_csv_file(
-    file_path: Union[str, Path], config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+    file_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
 ) -> Path:
     """
     Validate that a file is a valid CSV file for processing.
@@ -155,7 +153,7 @@ def validate_csv_file(
 
     # Try to read first few lines to ensure it's readable
     try:
-        with open(safe_path, "r", encoding="utf-8") as f:
+        with open(safe_path, encoding="utf-8") as f:
             # Read first 1024 bytes to check if it's text
             sample = f.read(1024)
             if not sample.strip():
@@ -177,7 +175,7 @@ def validate_csv_file(
 
 
 def sanitize_directory_path(
-    directory_path: Union[str, Path], config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+    directory_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
 ) -> Path:
     """
     Sanitize and validate directory paths to prevent directory traversal attacks.
@@ -215,7 +213,7 @@ def sanitize_directory_path(
         raise ValidationError(f"Invalid directory path {directory_path}: {str(e)}")
 
 
-def validate_output_directory(output_path: Union[str, Path]) -> Path:
+def validate_output_directory(output_path: str | Path) -> Path:
     """
     Validate and create output directory if needed.
 

@@ -2,12 +2,13 @@
 Tests for ISIN extraction from raw IB exports.
 """
 
-import pytest
-from pathlib import Path
-import tempfile
 import csv
+import tempfile
+from pathlib import Path
 
-from shares_reporting.application.extraction import _collect_ib_csv_data, parse_raw_ib_export
+import pytest
+
+from shares_reporting.application.extraction import _extract_csv_data, parse_ib_export
 from shares_reporting.domain.exceptions import FileProcessingError
 
 
@@ -94,7 +95,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            csv_data = _collect_ib_csv_data(temp_path, require_trades_section=False)
+            csv_data = _extract_csv_data(temp_path, require_trades_section=False)
             result = csv_data.security_info
 
             # Then
@@ -147,7 +148,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            csv_data = _collect_ib_csv_data(temp_path, require_trades_section=False)
+            csv_data = _extract_csv_data(temp_path, require_trades_section=False)
             result = csv_data.security_info
 
             # Then
@@ -187,7 +188,7 @@ class TestExtractIsinMapping:
                 FileProcessingError,
                 match="Missing 'Financial Instrument Information' header in CSV",
             ):
-                _collect_ib_csv_data(temp_path, require_trades_section=False)
+                _extract_csv_data(temp_path, require_trades_section=False)
         finally:
             Path(temp_path).unlink()
 
@@ -303,7 +304,7 @@ class TestParseRawIbExport:
 
         try:
             # When
-            result = parse_raw_ib_export(temp_path)
+            result = parse_ib_export(temp_path)
 
             # Then
             assert len(result) == 2  # Two currency-company pairs
@@ -356,7 +357,7 @@ class TestParseRawIbExport:
         try:
             # When / Then
             with pytest.raises(FileProcessingError, match="No Trades section found"):
-                parse_raw_ib_export(temp_path)
+                parse_ib_export(temp_path)
         finally:
             Path(temp_path).unlink()
 
@@ -433,7 +434,7 @@ class TestParseRawIbExport:
 
         try:
             # When
-            result = parse_raw_ib_export(temp_path)
+            result = parse_ib_export(temp_path)
 
             # Then
             assert len(result) == 1

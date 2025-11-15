@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List
 
-from .entities import TradeAction, CapitalGainLine, QuantitatedTradeAction
-from .value_objects import Company, Currency, TradeDate, get_trade_date, TradeType
-from .exceptions import DataValidationError
 from .constants import DECIMAL_ZERO
+from .entities import CapitalGainLine, QuantitatedTradeAction, TradeAction
+from .exceptions import DataValidationError
+from .value_objects import Company, Currency, TradeDate, TradeType, parse_trade_date
 
 
 @dataclass
@@ -14,11 +13,11 @@ class CapitalGainLineAccumulator:
     company: Company
     currency: Currency
     sell_date: TradeDate = None
-    sell_counts: List[Decimal] = field(default_factory=list)
-    sell_trades: List[TradeAction] = field(default_factory=list)
+    sell_counts: list[Decimal] = field(default_factory=list)
+    sell_trades: list[TradeAction] = field(default_factory=list)
     buy_date: TradeDate = None
-    buy_counts: List[Decimal] = field(default_factory=list)
-    buy_trades: List[TradeAction] = field(default_factory=list)
+    buy_counts: list[Decimal] = field(default_factory=list)
+    buy_trades: list[TradeAction] = field(default_factory=list)
 
     def get_ticker(self):
         return self.company
@@ -27,7 +26,7 @@ class CapitalGainLineAccumulator:
         return self.currency
 
     def add_trade(self, count: Decimal, ta: TradeAction):
-        trade_date = get_trade_date(ta.date_time)
+        trade_date = parse_trade_date(ta.date_time)
         if ta.trade_type == TradeType.SELL:
             if self.sell_date is None:
                 self.sell_date = trade_date
@@ -50,12 +49,9 @@ class CapitalGainLineAccumulator:
             else:
                 if self.buy_date != trade_date:
                     raise DataValidationError(
-                        "Incompatible dates in capital gain line add function! Expected ["
-                        + str(self.buy_date)
-                        + "] "
-                        + " and got ["
-                        + str(trade_date)
-                        + "]"
+                        f"""Incompatible dates in capital gain line add function!
+                    Expected: [{self.buy_date}]
+                    Got:      [{trade_date}]"""
                     )
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
@@ -116,9 +112,9 @@ class TradePartsWithinDay:
     currency: Currency = None
     trade_date: TradeDate = None
     trade_type: TradeType = None
-    dates: List[datetime] = field(default_factory=list)
-    quantities: List[Decimal] = field(default_factory=list)
-    trades: List[TradeAction] = field(default_factory=list)
+    dates: list[datetime] = field(default_factory=list)
+    quantities: list[Decimal] = field(default_factory=list)
+    trades: list[TradeAction] = field(default_factory=list)
 
     def push_trade_part(self, quantity: Decimal, ta: TradeAction):
         assert quantity > 0
@@ -127,20 +123,20 @@ class TradePartsWithinDay:
             self.company = ta.company
             self.currency = ta.currency
             self.trade_type = ta.trade_type
-            self.trade_date = get_trade_date(ta.date_time)
+            self.trade_date = parse_trade_date(ta.date_time)
 
         if (
             self.company == ta.company
             and self.currency == ta.currency
             and self.trade_type == ta.trade_type
-            and self.trade_date == get_trade_date(ta.date_time)
+            and self.trade_date == parse_trade_date(ta.date_time)
         ):
             self.dates.append(ta.date_time)
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
             raise DataValidationError(
-                f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] and got [{ta.trade_type} and {get_trade_date(ta.date_time)}]"
+                f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] and got [{ta.trade_type} and {parse_trade_date(ta.date_time)}]"
             )
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
@@ -168,7 +164,7 @@ class TradePartsWithinDay:
     def quantity(self) -> Decimal:
         return sum(self.quantities, DECIMAL_ZERO)
 
-    def get_trades(self) -> List[TradeAction]:
+    def get_trades(self) -> list[TradeAction]:
         return self.trades
 
     def get_quantities(self) -> Decimal:

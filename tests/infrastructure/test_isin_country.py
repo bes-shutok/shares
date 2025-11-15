@@ -2,12 +2,10 @@
 Tests for ISIN country resolution functionality.
 """
 
-import pytest
-
 from shares_reporting.infrastructure.isin_country import (
+    is_valid_isin_format,
     isin_to_country,
     isin_to_country_code,
-    is_valid_isin_format,
 )
 
 

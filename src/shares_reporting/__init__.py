@@ -14,13 +14,13 @@ This package provides tools for:
 __version__ = "0.0.1"
 __author__ = "Andrey Dmitriev <dmitriev.andrey.vitalyevich@gmail.com>"
 
-from .domain.value_objects import *
-from .domain.entities import *
+from .application.extraction import *
+from .application.persisting import *
+from .application.transformation import *
 from .domain.accumulators import *
 from .domain.collections import *
-from .application.extraction import *
-from .application.transformation import *
-from .application.persisting import *
+from .domain.entities import *
+from .domain.value_objects import *
 from .infrastructure.config import *
 
 __all__ = [

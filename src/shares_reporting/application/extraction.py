@@ -2,27 +2,29 @@ import csv
 import re
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
 
 from ..domain.collections import (
-    QuantitatedTradeActions,
-    TradeCyclePerCompany,
     DividendIncomePerCompany,
     IBExportData,
+    QuantitatedTradeActions,
+    TradeCyclePerCompany,
 )
 from ..domain.entities import (
     CurrencyCompany,
+    DividendIncomePerSecurity,
     QuantitatedTradeAction,
     TradeAction,
     TradeCycle,
-    DividendIncomePerSecurity,
 )
 from ..domain.exceptions import FileProcessingError, SecurityInfoExtractionError
-from enum import Enum
-from ..domain.value_objects import get_company, get_currency
+from ..domain.value_objects import (
+    parse_company,
+    parse_currency,
+)
 from ..infrastructure.isin_country import isin_to_country
-from ..infrastructure.logging_config import get_logger
+from ..infrastructure.logging_config import create_module_logger
 
 
 class IBCsvSection(Enum):
@@ -40,34 +42,34 @@ class IBCsvSection(Enum):
 class IBCsvData:
     """Container for all raw data extracted from IB CSV file."""
 
-    security_info: Dict[str, Dict[str, str]]
-    raw_trade_data: List[Dict[str, str]]
-    raw_dividend_data: List[Dict[str, str]]
-    raw_withholding_tax_data: List[Dict[str, str]]
-    metadata: Dict[str, int]  # Processing statistics
+    security_info: dict[str, dict[str, str]]
+    raw_trade_data: list[dict[str, str]]
+    raw_dividend_data: list[dict[str, str]]
+    raw_withholding_tax_data: list[dict[str, str]]
+    metadata: dict[str, int]  # Processing statistics
 
 
 class BaseSectionContext:
     """Base class for CSV section processing contexts."""
 
     def __init__(self):
-        self.logger = get_logger(self.__class__.__name__)
+        self.logger = create_module_logger(self.__class__.__name__)
         self.headers_found = False
         self.processed_count = 0
 
-    def process_header(self, row: List[str]) -> None:
+    def process_header(self, row: list[str]) -> None:
         """Process section header row."""
         raise NotImplementedError("Subclasses must implement process_header")
 
-    def process_data_row(self, row: List[str]) -> None:
+    def process_data_row(self, row: list[str]) -> None:
         """Process section data row."""
         raise NotImplementedError("Subclasses must implement process_data_row")
 
-    def validate_header(self, row: List[str]) -> bool:
+    def validate_header(self, row: list[str]) -> bool:
         """Validate if this row is a valid header for this section."""
         return True
 
-    def can_process_row(self, row: List[str]) -> bool:
+    def can_process_row(self, row: list[str]) -> bool:
         """Check if this context can process the given row."""
         return self.headers_found
 
@@ -79,12 +81,12 @@ class BaseSectionContext:
 class FinancialInstrumentContext(BaseSectionContext):
     """Context for processing Financial Instrument Information section."""
 
-    def __init__(self, security_info: Dict[str, Dict[str, str]]):
+    def __init__(self, security_info: dict[str, dict[str, str]]):
         super().__init__()
         self.security_info = security_info
         self.security_processed_count = 0
 
-    def process_header(self, row: List[str]) -> None:
+    def process_header(self, row: list[str]) -> None:
         """Process Financial Instrument Information header."""
         if len(row) >= 7 and row[1] == "Header" and row[3] == "Symbol" and row[6] == "Security ID":
             self.headers_found = True
@@ -94,7 +96,7 @@ class FinancialInstrumentContext(BaseSectionContext):
                 f"Invalid 'Financial Instrument Information' header format: {row}"
             )
 
-    def process_data_row(self, row: List[str]) -> None:
+    def process_data_row(self, row: list[str]) -> None:
         """Process security info data row."""
         if not self.can_process_row(row):
             return
@@ -117,7 +119,7 @@ class FinancialInstrumentContext(BaseSectionContext):
                     self.security_info[symbol] = {"isin": isin, "country": "Unknown"}
                     self.processed_count += 1
 
-    def validate_header(self, row: List[str]) -> bool:
+    def validate_header(self, row: list[str]) -> bool:
         """Validate Financial Instrument Information header."""
         return len(row) >= 2 and row[0] == "Financial Instrument Information" and row[1] == "Header"
 
@@ -125,7 +127,7 @@ class FinancialInstrumentContext(BaseSectionContext):
 class TradesContext(BaseSectionContext):
     """Context for processing Trades section."""
 
-    def __init__(self, raw_trade_data: List[Dict[str, str]], require_trades_section: bool = True):
+    def __init__(self, raw_trade_data: list[dict[str, str]], require_trades_section: bool = True):
         super().__init__()
         self.raw_trade_data = raw_trade_data
         self.require_trades_section = require_trades_section
@@ -133,7 +135,7 @@ class TradesContext(BaseSectionContext):
         self.trades_col_mapping = None
         self.skipped_trades = 0
 
-    def process_header(self, row: List[str]) -> None:
+    def process_header(self, row: list[str]) -> None:
         """Process Trades section header."""
         if len(row) >= 2 and row[1] == "Header":
             self.trades_headers = row
@@ -173,7 +175,7 @@ class TradesContext(BaseSectionContext):
         else:
             raise FileProcessingError("Invalid Trades header format")
 
-    def process_data_row(self, row: List[str]) -> None:
+    def process_data_row(self, row: list[str]) -> None:
         """Process trade data row."""
         if not self.can_process_row(row) or not self.trades_col_mapping:
             return
@@ -230,7 +232,7 @@ class TradesContext(BaseSectionContext):
                 f"Collected trade {self.processed_count}: {trade_row['symbol']} {trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}"
             )
 
-    def validate_header(self, row: List[str]) -> bool:
+    def validate_header(self, row: list[str]) -> bool:
         """Validate Trades header."""
         return len(row) >= 2 and row[0] == "Trades" and row[1] == "Header"
 
@@ -238,13 +240,13 @@ class TradesContext(BaseSectionContext):
 class DividendsContext(BaseSectionContext):
     """Context for processing Dividends section."""
 
-    def __init__(self, raw_dividend_data: List[Dict[str, str]]):
+    def __init__(self, raw_dividend_data: list[dict[str, str]]):
         super().__init__()
         self.raw_dividend_data = raw_dividend_data
         self.dividends_headers = None
         self.dividends_col_mapping = None
 
-    def process_header(self, row: List[str]) -> None:
+    def process_header(self, row: list[str]) -> None:
         """Process Dividends section header."""
         if len(row) >= 2 and row[1] == "Header":
             self.dividends_headers = row
@@ -267,7 +269,7 @@ class DividendsContext(BaseSectionContext):
         else:
             raise FileProcessingError("Invalid Dividends header format")
 
-    def process_data_row(self, row: List[str]) -> None:
+    def process_data_row(self, row: list[str]) -> None:
         """Process dividend data row."""
         if not self.can_process_row(row) or not self.dividends_col_mapping:
             return
@@ -296,7 +298,7 @@ class DividendsContext(BaseSectionContext):
                     f"Collected dividend {self.processed_count}: {dividend_row['description']} {dividend_row['currency']} {dividend_row['amount']}"
                 )
 
-    def validate_header(self, row: List[str]) -> bool:
+    def validate_header(self, row: list[str]) -> bool:
         """Validate Dividends header."""
         return len(row) >= 2 and row[0] == "Dividends" and row[1] == "Header"
 
@@ -304,13 +306,13 @@ class DividendsContext(BaseSectionContext):
 class WithholdingTaxContext(BaseSectionContext):
     """Context for processing Withholding Tax section."""
 
-    def __init__(self, raw_withholding_tax_data: List[Dict[str, str]]):
+    def __init__(self, raw_withholding_tax_data: list[dict[str, str]]):
         super().__init__()
         self.raw_withholding_tax_data = raw_withholding_tax_data
         self.withholding_tax_headers = None
         self.withholding_tax_col_mapping = None
 
-    def process_header(self, row: List[str]) -> None:
+    def process_header(self, row: list[str]) -> None:
         """Process Withholding Tax section header."""
         if len(row) >= 2 and row[1] == "Header":
             self.withholding_tax_headers = row
@@ -335,7 +337,7 @@ class WithholdingTaxContext(BaseSectionContext):
         else:
             raise FileProcessingError("Invalid Withholding Tax header format")
 
-    def process_data_row(self, row: List[str]) -> None:
+    def process_data_row(self, row: list[str]) -> None:
         """Process withholding tax data row."""
         if not self.can_process_row(row) or not self.withholding_tax_col_mapping:
             return
@@ -364,7 +366,7 @@ class WithholdingTaxContext(BaseSectionContext):
                     f"Collected withholding tax {self.processed_count}: {tax_row['description']} {tax_row['currency']} {tax_row['amount']}"
                 )
 
-    def validate_header(self, row: List[str]) -> bool:
+    def validate_header(self, row: list[str]) -> bool:
         """Validate Withholding Tax header."""
         return len(row) >= 2 and row[0] == "Withholding Tax" and row[1] == "Header"
 
@@ -373,15 +375,15 @@ class IBCsvStateMachine:
     """State machine for processing IB CSV files."""
 
     def __init__(self, require_trades_section: bool = True):
-        self.logger = get_logger(__name__)
+        self.logger = create_module_logger(__name__)
         self.current_section = IBCsvSection.UNKNOWN
         self.require_trades_section = require_trades_section
 
         # Initialize data containers
-        self.security_info: Dict[str, Dict[str, str]] = {}
-        self.raw_trade_data: List[Dict[str, str]] = []
-        self.raw_dividend_data: List[Dict[str, str]] = []
-        self.raw_withholding_tax_data: List[Dict[str, str]] = []
+        self.security_info: dict[str, dict[str, str]] = {}
+        self.raw_trade_data: list[dict[str, str]] = []
+        self.raw_dividend_data: list[dict[str, str]] = []
+        self.raw_withholding_tax_data: list[dict[str, str]] = []
 
         # Initialize contexts
         self.financial_context = FinancialInstrumentContext(self.security_info)
@@ -392,7 +394,7 @@ class IBCsvStateMachine:
         # Tracking
         self.found_financial_instrument_header = False
 
-    def process_row(self, row: List[str]) -> None:
+    def process_row(self, row: list[str]) -> None:
         """Process a single CSV row using the state machine."""
         if len(row) < 2:
             return
@@ -412,7 +414,7 @@ class IBCsvStateMachine:
             self._process_withholding_tax_row(row)
         # OTHER sections are ignored
 
-    def _detect_section_transition(self, row: List[str]) -> bool:
+    def _detect_section_transition(self, row: list[str]) -> bool:
         """Detect if this row represents a section transition."""
         # Only treat as section transition if it's a header row
         if row[0] == "Financial Instrument Information" and len(row) >= 2 and row[1] == "Header":
@@ -429,7 +431,7 @@ class IBCsvStateMachine:
             return True
         return False
 
-    def _transition_to_financial_instruments(self, row: List[str]) -> None:
+    def _transition_to_financial_instruments(self, row: list[str]) -> None:
         """Transition to Financial Instrument section."""
         self.current_section = IBCsvSection.FINANCIAL_INSTRUMENT
         if len(row) >= 2 and row[1] == "Header":
@@ -442,40 +444,40 @@ class IBCsvStateMachine:
                 )
                 # Continue processing even if header validation fails
 
-    def _transition_to_trades(self, row: List[str]) -> None:
+    def _transition_to_trades(self, row: list[str]) -> None:
         """Transition to Trades section."""
         self.current_section = IBCsvSection.TRADES
         if len(row) >= 2 and row[1] == "Header":
             self.trades_context.process_header(row)
 
-    def _transition_to_dividends(self, row: List[str]) -> None:
+    def _transition_to_dividends(self, row: list[str]) -> None:
         """Transition to Dividends section."""
         self.current_section = IBCsvSection.DIVIDENDS
         if len(row) >= 2 and row[1] == "Header":
             self.dividends_context.process_header(row)
 
-    def _transition_to_withholding_tax(self, row: List[str]) -> None:
+    def _transition_to_withholding_tax(self, row: list[str]) -> None:
         """Transition to Withholding Tax section."""
         self.current_section = IBCsvSection.WITHHOLDING_TAX
         if len(row) >= 2 and row[1] == "Header":
             self.withholding_tax_context.process_header(row)
 
-    def _process_financial_instrument_row(self, row: List[str]) -> None:
+    def _process_financial_instrument_row(self, row: list[str]) -> None:
         """Process row in Financial Instrument section."""
         if len(row) >= 2 and row[1] == "Data":
             self.financial_context.process_data_row(row)
 
-    def _process_trades_row(self, row: List[str]) -> None:
+    def _process_trades_row(self, row: list[str]) -> None:
         """Process row in Trades section."""
         if len(row) >= 2 and row[1] == "Data":
             self.trades_context.process_data_row(row)
 
-    def _process_dividends_row(self, row: List[str]) -> None:
+    def _process_dividends_row(self, row: list[str]) -> None:
         """Process row in Dividends section."""
         if len(row) >= 2 and row[1] == "Data":
             self.dividends_context.process_data_row(row)
 
-    def _process_withholding_tax_row(self, row: List[str]) -> None:
+    def _process_withholding_tax_row(self, row: list[str]) -> None:
         """Process row in Withholding Tax section."""
         if len(row) >= 2 and row[1] == "Data":
             self.withholding_tax_context.process_data_row(row)
@@ -515,7 +517,7 @@ class IBCsvStateMachine:
         )
 
 
-def _collect_ib_csv_data(path: Union[str, Path], require_trades_section: bool = True) -> IBCsvData:
+def _extract_csv_data(path: str | Path, require_trades_section: bool = True) -> IBCsvData:
     """
     Collect all raw data from IB export CSV file using a state machine approach.
 
@@ -530,14 +532,14 @@ def _collect_ib_csv_data(path: Union[str, Path], require_trades_section: bool = 
     Returns:
         IBCsvData container with all collected information
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
 
     try:
         # Initialize state machine
         state_machine = IBCsvStateMachine(require_trades_section)
 
         # Process CSV file row by row using state machine
-        with open(path, "r", encoding="utf-8") as read_obj:
+        with open(path, encoding="utf-8") as read_obj:
             csv_reader = csv.reader(read_obj)
 
             for row in csv_reader:
@@ -558,7 +560,7 @@ def _collect_ib_csv_data(path: Union[str, Path], require_trades_section: bool = 
         raise SecurityInfoExtractionError(f"Unexpected error while parsing IB file: {e}") from e
 
 
-def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany:
+def _process_trades(csv_data: IBCsvData) -> TradeCyclePerCompany:
     """
     Process raw trade data using complete security information.
 
@@ -571,7 +573,7 @@ def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany
     Returns:
         TradeCyclePerCompany with fully processed domain objects
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     trade_cycles_per_company: TradeCyclePerCompany = {}
 
     for trade_row in csv_data.raw_trade_data:
@@ -588,8 +590,8 @@ def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany
             isin = symbol_info.get("isin", "")
             country = symbol_info.get("country", "Unknown")
 
-            company = get_company(symbol, isin, country)
-            currency = get_currency(currency_str)
+            company = parse_company(symbol, isin, country)
+            currency = parse_currency(currency_str)
 
             currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
             if currency_company in trade_cycles_per_company:
@@ -616,7 +618,7 @@ def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany
     return trade_cycles_per_company
 
 
-def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePerCompany:
+def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:
     """
     Process raw dividend data using complete security information.
 
@@ -629,12 +631,12 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
     Returns:
         DividendIncomePerCompany mapping symbol to aggregated dividend data
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     dividend_income_per_company: DividendIncomePerCompany = {}
 
     # Temporary aggregation structure
-    aggregation: Dict[
-        str, Dict[str, Decimal]
+    aggregation: dict[
+        str, dict[str, Decimal]
     ] = {}  # symbol -> {gross_amount, total_taxes, currency}
 
     for dividend_row in csv_data.raw_dividend_data:
@@ -745,7 +747,7 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 logger.warning(f"No ISIN found for dividend symbol: {symbol}")
                 continue
 
-            currency = get_currency(currency_str)
+            currency = parse_currency(currency_str)
 
             dividend_income = DividendIncomePerSecurity(
                 symbol=symbol,
@@ -769,7 +771,7 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
     return dividend_income_per_company
 
 
-def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
+def parse_ib_export(path: str | Path) -> TradeCyclePerCompany:
     """
     Parse raw Interactive Brokers export CSV file with ISIN and country extraction.
 
@@ -782,7 +784,7 @@ def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
     Returns:
         TradeCyclePerCompany with enriched Company objects containing ISIN and country data
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
 
     try:
         validated_path = Path(path)
@@ -798,13 +800,13 @@ def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
     logger.info(f"Processing raw IB export: {validated_path.name}")
 
     try:
-        csv_data = _collect_ib_csv_data(validated_path)
-        return _process_trades_with_securities(csv_data)
+        csv_data = _extract_csv_data(validated_path)
+        return _process_trades(csv_data)
     except Exception as e:
         raise FileProcessingError(f"Failed to parse raw IB export: {e}") from e
 
 
-def extract_dividend_income(path: Union[str, Path]) -> DividendIncomePerCompany:
+def parse_dividend_income(path: str | Path) -> DividendIncomePerCompany:
     """
     Extract dividend income data from IB export CSV file for capital investment income reporting.
 
@@ -821,7 +823,7 @@ def extract_dividend_income(path: Union[str, Path]) -> DividendIncomePerCompany:
         FileProcessingError: For file-related errors
         SecurityInfoExtractionError: For data processing errors
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
 
     try:
         validated_path = Path(path)
@@ -837,22 +839,22 @@ def extract_dividend_income(path: Union[str, Path]) -> DividendIncomePerCompany:
     logger.info(f"Extracting dividend income from: {validated_path.name}")
 
     try:
-        csv_data = _collect_ib_csv_data(validated_path)
-        return _process_dividends_with_securities(csv_data)
+        csv_data = _extract_csv_data(validated_path)
+        return _process_dividends(csv_data)
     except Exception as e:
         raise FileProcessingError(f"Failed to extract dividend income: {e}") from e
 
 
-def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
+def parse_ib_export_all(path: str | Path) -> IBExportData:
     """
-    Parse complete Interactive Brokers export CSV file with all data types.
+    Extract all data types from Interactive Brokers export CSV in single pass.
 
-    This function extracts all available data (trades, dividends, security info)
-    from an IB export file in a single pass, returning a unified data structure
-    containing both trade cycles and dividend income data.
+    This function processes raw Interactive Brokers CSV files to extract comprehensive
+    trading data including trades, dividends, security information, and tax data.
+    Uses a single-pass state machine approach for efficiency and data consistency.
 
     Args:
-        path: Path to the raw IB export CSV file
+        path: Path to the raw Interactive Brokers export CSV file
 
     Returns:
         IBExportData containing both trade cycles and dividend income data
@@ -861,7 +863,7 @@ def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
         FileProcessingError: For file-related errors
         SecurityInfoExtractionError: For data processing errors
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
 
     try:
         validated_path = Path(path)
@@ -877,9 +879,9 @@ def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
     logger.info(f"Processing complete IB export: {validated_path.name}")
 
     try:
-        csv_data = _collect_ib_csv_data(validated_path)
-        trade_cycles = _process_trades_with_securities(csv_data)
-        dividend_income = _process_dividends_with_securities(csv_data)
+        csv_data = _extract_csv_data(validated_path)
+        trade_cycles = _process_trades(csv_data)
+        dividend_income = _process_dividends(csv_data)
 
         return IBExportData(trade_cycles=trade_cycles, dividend_income=dividend_income)
     except Exception as e:

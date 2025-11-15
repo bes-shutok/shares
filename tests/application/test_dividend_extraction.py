@@ -1,20 +1,19 @@
-import pytest
 from decimal import Decimal
-from pathlib import Path
+
+import pytest
 
 from shares_reporting.application.extraction import (
-    extract_dividend_income,
-    _process_dividends_with_securities,
-    _collect_ib_csv_data,
     IBCsvData,
+    _process_dividends,
+    parse_dividend_income,
 )
 from shares_reporting.domain.entities import DividendIncomePerSecurity
-from shares_reporting.domain.value_objects import get_currency
 from shares_reporting.domain.exceptions import DataValidationError
+from shares_reporting.domain.value_objects import parse_currency
 
 
 class TestDividendExtraction:
-    def test_extract_dividend_income_with_simple_dividends(self, tmp_path):
+    def test_parse_dividend_income_with_simple_dividends(self, tmp_path):
         """Test extracting dividend income from simple dividend entries."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
@@ -29,7 +28,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_dividends.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 2
 
@@ -39,7 +38,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         assert aapl_dividend.country == "United States"
         assert aapl_dividend.gross_amount == Decimal("48.00")
         assert aapl_dividend.total_taxes == Decimal("0")
-        assert aapl_dividend.currency == get_currency("USD")
+        assert aapl_dividend.currency == parse_currency("USD")
         assert aapl_dividend.get_net_amount() == Decimal("48.00")
 
         msft_dividend = dividend_income["MSFT"]
@@ -49,7 +48,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         assert msft_dividend.gross_amount == Decimal("68.00")
         assert msft_dividend.total_taxes == Decimal("0")
 
-    def test_extract_dividend_income_with_taxes(self, tmp_path):
+    def test_parse_dividend_income_with_taxes(self, tmp_path):
         """Test extracting dividend income with tax amounts."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
@@ -65,7 +64,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_dividends_tax.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 1
 
@@ -74,7 +73,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         assert aapl_dividend.total_taxes == Decimal("7.20")
         assert aapl_dividend.get_net_amount() == Decimal("40.80")
 
-    def test_extract_dividend_income_multiple_currencies(self, tmp_path):
+    def test_parse_dividend_income_multiple_currencies(self, tmp_path):
         """Test extracting dividend income with different currencies."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
@@ -88,20 +87,20 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_multi_currency.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 2
 
         aapl_dividend = dividend_income["AAPL"]
-        assert aapl_dividend.currency == get_currency("USD")
+        assert aapl_dividend.currency == parse_currency("USD")
         assert aapl_dividend.gross_amount == Decimal("24.00")
 
         asml_dividend = dividend_income["ASML"]
-        assert asml_dividend.currency == get_currency("EUR")
+        assert asml_dividend.currency == parse_currency("EUR")
         assert asml_dividend.gross_amount == Decimal("145.00")
         assert asml_dividend.country == "Netherlands"
 
-    def test_extract_dividend_income_aggregates_multiple_entries_same_symbol(self, tmp_path):
+    def test_parse_dividend_income_aggregates_multiple_entries_same_symbol(self, tmp_path):
         """Test that multiple dividend entries for same symbol and currency are aggregated."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
@@ -116,14 +115,14 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_aggregation.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 1
 
         aapl_dividend = dividend_income["AAPL"]
         assert aapl_dividend.gross_amount == Decimal("96.00")  # 4 * 24.00
 
-    def test_extract_dividend_income_ignores_entries_without_security_info(self, tmp_path):
+    def test_parse_dividend_income_ignores_entries_without_security_info(self, tmp_path):
         """Test that dividend entries without corresponding security info are ignored."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
@@ -136,14 +135,14 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_unknown_security.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 1
         assert "AAPL" in dividend_income
         assert "UNKNOWN" not in dividend_income
 
-    def test_process_dividends_with_securities_directly(self):
-        """Test _process_dividends_with_securities function directly."""
+    def test_process_dividends_directly(self):
+        """Test _process_dividends function directly."""
         security_info = {
             "AAPL": {"isin": "US0378331005", "country": "US"},
             "MSFT": {"isin": "US5949181045", "country": "US"},
@@ -178,7 +177,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
             metadata={},
         )
 
-        dividend_income = _process_dividends_with_securities(csv_data)
+        dividend_income = _process_dividends(csv_data)
 
         assert len(dividend_income) == 2
         assert dividend_income["AAPL"].gross_amount == Decimal("48.00")
@@ -193,7 +192,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
             country="US",
             gross_amount=Decimal("100.00"),
             total_taxes=Decimal("15.00"),
-            currency=get_currency("USD"),
+            currency=parse_currency("USD"),
         )
         valid_dividend.validate()  # Should not raise
 
@@ -205,7 +204,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
                 country="US",
                 gross_amount=Decimal("-10.00"),
                 total_taxes=Decimal("0"),
-                currency=get_currency("USD"),
+                currency=parse_currency("USD"),
             )
             invalid_dividend.validate()
 
@@ -217,7 +216,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
                 country="US",
                 gross_amount=Decimal("10.00"),
                 total_taxes=Decimal("15.00"),
-                currency=get_currency("USD"),
+                currency=parse_currency("USD"),
             )
             invalid_dividend.validate()
 
@@ -229,12 +228,12 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
                 country="US",
                 gross_amount=Decimal("10.00"),
                 total_taxes=Decimal("0"),
-                currency=get_currency("USD"),
+                currency=parse_currency("USD"),
             )
             invalid_dividend.validate()
 
-    def test_extract_dividend_income_handles_missing_dividend_section(self, tmp_path):
-        """Test extract_dividend_income handles missing dividend section gracefully."""
+    def test_parse_dividend_income_handles_missing_dividend_section(self, tmp_path):
+        """Test parse_dividend_income handles missing dividend section gracefully."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
 Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
@@ -243,11 +242,11 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_no_dividends.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         assert len(dividend_income) == 0
 
-    def test_extract_dividend_income_symbol_extraction_fallback(self, tmp_path):
+    def test_parse_dividend_income_symbol_extraction_fallback(self, tmp_path):
         """Test symbol extraction from description using regex fallback."""
         csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
 Financial Instrument Information,Data,Stocks,TSLA,Tesla Inc.,456789,US88160R1014,1
@@ -259,7 +258,7 @@ Trades,Data,Stocks,TSLA,USD,2023-01-15, 10:30:00,100,150.25,1.00
         csv_file = tmp_path / "test_symbol_extraction.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = extract_dividend_income(csv_file)
+        dividend_income = parse_dividend_income(csv_file)
 
         # This test shows the limitation - without proper format, symbol extraction may fail
         # The current implementation tries to extract ticker-like patterns but may not always succeed

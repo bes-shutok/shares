@@ -153,6 +153,82 @@ External concerns and technical details:
 ### **Presentation Layer**
 - **`main.py`** - Application entry point and main orchestration (future: web interface, API endpoints)
 
+## Core Business Logic Deep Dive
+
+### **FIFO Capital Gains Algorithm**
+
+The heart of the application is the **FIFO (First In, First Out) capital gains calculation algorithm** that matches buy/sell transactions for tax reporting compliance.
+
+#### **Algorithm Overview**
+
+```mermaid
+graph TD
+    A[Raw IB CSV Data] --> B[Parse & Group by Company/Currency]
+    B --> C[FIFO Matching Algorithm]
+    C --> D[Daily Bucketing for Tax Compliance]
+    D --> E[Generate Capital Gain Lines]
+    E --> F[Create Excel Report + CSV Leftovers]
+
+    C --> C1[Split Trades by Day]
+    C1 --> C2[Match Earliest Buys with Earliest Sells]
+    C2 --> C3[Handle Partial Matches]
+    C3 --> C4[Allocate to Capital Gain Lines]
+```
+
+#### **Tax Compliance Requirements**
+
+**Portuguese Tax Authority Requirements:**
+- **Daily Bucketing**: Trades must be grouped by day for proper tax year allocation
+- **FIFO Method**: First-In, First-Out is the required accounting principle
+- **Partial Matching**: Handles real-world scenarios where quantities don't align perfectly
+- **Currency Conversion**: All amounts converted to reporting currency with exchange rate documentation
+
+#### **Detailed Algorithm Steps**
+
+1. **Data Ingestion**: Parse Interactive Brokers CSV with trades, dividends, and security information
+2. **Company Grouping**: Group all transactions by company/currency combination
+3. **Daily Partitioning**: Split each company's trades into daily buckets (tax requirement)
+4. **FIFO Matching**: For each day, match earliest buys with earliest sells chronologically
+5. **Quantity Allocation**: Handle partial matches where trade quantities differ
+6. **Result Separation**:
+   - **Matched pairs** → Capital gain lines (for Excel tax report)
+   - **Unmatched trades** → Leftover CSV (for reconciliation)
+
+#### **Worked Example**
+
+**Scenario:** BTU stock trades across multiple days
+- **Day 1**: Buy 100 shares @ $10.00, Buy 50 shares @ $12.00
+- **Day 2**: Sell 80 shares @ $15.00
+- **Day 3**: Sell 90 shares @ $18.00
+- **Day 4**: Buy 25 shares @ $11.00
+
+**FIFO Matching Process:**
+1. **Day 1**: No sells yet → 150 shares in inventory
+2. **Day 2**: Sell 80 shares → Match with earliest 80 buys @ $10.00
+3. **Day 3**: Sell 90 shares → Match remaining 20 @ $10.00 + 50 @ $12.00 + 20 from Day 4 @ $11.00
+4. **Day 4**: Buy 25 shares → 5 shares used for Day 3 sale, 20 shares remain as leftover
+
+**Generated Reports:**
+- **Excel**: 2 capital gain lines with calculated profits
+- **CSV Leftover**: 1 entry with 20 remaining shares @ $11.00
+
+#### **Key Implementation Components**
+
+- **`calculate_capital_gains_with_fifo_matching()`**: Main orchestrator
+- **`capital_gains_for_company()`**: Company-level processing with state machine design
+- **`CapitalGainLineAccumulator`**: Accumulator pattern for building capital gain lines
+- **`TradePartsWithinDay`**: FIFO queue for within-day trade matching
+- **Daily bucketing**: Ensures tax compliance by date-based grouping
+
+#### **Edge Cases Handled**
+
+- **Multiple partial matches**: Large sells spread across multiple buys
+- **Cross-day transactions**: Proper date allocation for tax reporting
+- **Currency differences**: Multi-currency trades with proper conversion
+- **Inventory Rollover**: Unmatched securities exported to rollover file for next year's FIFO calculations
+
+This algorithm ensures **tax-compliant capital gains reporting** while maintaining audit trails for all transactions.
+
 
 ## Testing
 

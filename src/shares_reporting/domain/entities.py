@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, NamedTuple
+from typing import NamedTuple
 
-from .value_objects import Currency, Company, TradeDate, get_trade_date, TradeType
 from .exceptions import DataValidationError
+from .value_objects import Company, Currency, TradeDate, TradeType
 
 
 @dataclass
@@ -40,8 +40,8 @@ class QuantitatedTradeAction(NamedTuple):
 
 @dataclass
 class TradeCycle:
-    bought: List[QuantitatedTradeAction] = field(default_factory=list)
-    sold: List[QuantitatedTradeAction] = field(default_factory=list)
+    bought: list[QuantitatedTradeAction] = field(default_factory=list)
+    sold: list[QuantitatedTradeAction] = field(default_factory=list)
 
     def has_bought(self) -> bool:
         return len(self.bought) > 0
@@ -61,7 +61,7 @@ class TradeCycle:
             return self.has_sold()
         return self.has_bought()
 
-    def get(self, trade_type: TradeType) -> List[QuantitatedTradeAction]:
+    def get(self, trade_type: TradeType) -> list[QuantitatedTradeAction]:
         if trade_type == TradeType.SELL:
             return self.sold
         return self.bought
@@ -80,11 +80,11 @@ class CapitalGainLine:
     ticker: str
     currency: Currency
     sell_date: TradeDate
-    sell_quantities: List[Decimal]
-    sell_trades: List[TradeAction]
+    sell_quantities: list[Decimal]
+    sell_trades: list[TradeAction]
     buy_date: TradeDate
-    buy_quantities: List[Decimal]
-    buy_trades: List[TradeAction]
+    buy_quantities: list[Decimal]
+    buy_trades: list[TradeAction]
 
     def get_ticker(self):
         return self.ticker

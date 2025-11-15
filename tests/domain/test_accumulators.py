@@ -1,19 +1,19 @@
+from datetime import datetime
+from decimal import Decimal
+
 import pytest
 
-from shares_reporting.domain.exceptions import DataValidationError
-from decimal import Decimal
-from datetime import datetime
-
 from shares_reporting.domain.accumulators import CapitalGainLineAccumulator, TradePartsWithinDay
-from shares_reporting.domain.value_objects import TradeType, TradeDate, get_currency, get_company
-from shares_reporting.domain.entities import TradeAction, QuantitatedTradeAction, CapitalGainLine
+from shares_reporting.domain.entities import CapitalGainLine, QuantitatedTradeAction, TradeAction
+from shares_reporting.domain.exceptions import DataValidationError
+from shares_reporting.domain.value_objects import TradeDate, TradeType, parse_company, parse_currency
 
 
 class TestCapitalGainLineAccumulator:
     def test_capital_gain_line_accumulator_creation(self):
         """Test CapitalGainLineAccumulator creation with valid parameters."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         accumulator = CapitalGainLineAccumulator(company, currency)
 
@@ -28,8 +28,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_sell_should_set_sell_date_and_add_to_lists(self):
         """Test adding a sell trade sets sell date and adds to lists."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Create sell trade
@@ -48,8 +48,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_buy_should_set_buy_date_and_add_to_lists(self):
         """Test adding a buy trade sets buy date and adds to lists."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Create buy trade
@@ -68,8 +68,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_multiple_sell_trades_same_date(self):
         """Test adding multiple sell trades on the same date."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Create multiple sell trades on the same date
@@ -88,8 +88,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_multiple_buy_trades_same_date(self):
         """Test adding multiple buy trades on the same date."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Create multiple buy trades on the same date
@@ -108,8 +108,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_sell_with_different_date_should_raise_error(self):
         """Test adding sell trade with different date raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add first sell trade
@@ -127,8 +127,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_add_trade_buy_with_different_date_should_raise_error(self):
         """Test adding buy trade with different date raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add first buy trade
@@ -140,14 +140,14 @@ class TestCapitalGainLineAccumulator:
 
         with pytest.raises(
             DataValidationError,
-            match="Incompatible dates in capital gain line add function! Expected",
+            match="Incompatible dates in capital gain line add function!",
         ):
             accumulator.add_trade(Decimal("3"), trade2)
 
     def test_sold_quantity_should_sum_sell_counts(self):
         """Test sold_quantity method sums sell counts."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add multiple sell trades
@@ -159,16 +159,16 @@ class TestCapitalGainLineAccumulator:
 
     def test_sold_quantity_with_no_trades_should_return_zero(self):
         """Test sold_quantity with no trades returns zero."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         assert accumulator.sold_quantity() == Decimal("0")
 
     def test_bought_quantity_should_sum_buy_counts(self):
         """Test bought_quantity method sums buy counts."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add multiple buy trades
@@ -180,16 +180,16 @@ class TestCapitalGainLineAccumulator:
 
     def test_bought_quantity_with_no_trades_should_return_zero(self):
         """Test bought_quantity with no trades returns zero."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         assert accumulator.bought_quantity() == Decimal("0")
 
     def test_finalize_should_reset_all_fields_and_return_capital_gain_line(self):
         """Test finalize resets all fields and returns CapitalGainLine."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add some trades
@@ -223,8 +223,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_finalize_with_multiple_trades(self):
         """Test finalize with multiple trades."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add multiple trades
@@ -247,8 +247,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_validate_with_empty_accumulator_should_raise_error(self):
         """Test validate with empty accumulator raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         with pytest.raises(DataValidationError, match="Cannot finalize empty Accumulator object!"):
@@ -256,8 +256,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_validate_with_empty_sell_only_should_raise_error(self):
         """Test validate with only empty sell trades raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add buy trade but no sell trade
@@ -269,8 +269,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_validate_with_mismatched_quantities_should_raise_error(self):
         """Test validate with mismatched quantities raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add mismatched quantities
@@ -285,8 +285,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_validate_with_mismatched_sell_counts_should_raise_error(self):
         """Test validate with mismatched sell counts raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add sell trades with different dates
@@ -303,8 +303,8 @@ class TestCapitalGainLineAccumulator:
 
     def test_validate_with_mismatched_buy_counts_should_raise_error(self):
         """Test validate with mismatched buy counts raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
         # Add buy trades with different dates
@@ -315,7 +315,7 @@ class TestCapitalGainLineAccumulator:
 
         with pytest.raises(
             DataValidationError,
-            match="Incompatible dates in capital gain line add function! Expected",
+            match="Incompatible dates in capital gain line add function!",
         ):
             accumulator.add_trade(Decimal("3"), buy_trade2)
 
@@ -323,8 +323,8 @@ class TestCapitalGainLineAccumulator:
 class TestTradePartsWithinDay:
     def test_trade_parts_within_day_creation_with_parameters(self):
         """Test TradePartsWithinDay creation with all parameters."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_date = TradeDate(2024, 3, 28)
         dates = [datetime(2024, 3, 28, 14, 30, 45)]
         quantities = [Decimal("5")]
@@ -361,8 +361,8 @@ class TestTradePartsWithinDay:
 
     def test_push_trade_part_first_trade_should_set_all_fields(self):
         """Test push_trade_part with first trade sets all fields."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()  # Don't pass company/currency to allow initialization
 
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
@@ -379,8 +379,8 @@ class TestTradePartsWithinDay:
 
     def test_push_trade_part_first_sell_trade_should_set_sell_type(self):
         """Test push_trade_part with first sell trade sets SELL type."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Create sell trade
@@ -392,8 +392,8 @@ class TestTradePartsWithinDay:
 
     def test_push_trade_part_compatible_trade_should_append_to_lists(self):
         """Test push_trade_part with compatible trade appends to lists."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add first trade
@@ -413,8 +413,8 @@ class TestTradePartsWithinDay:
 
     def test_push_trade_part_incompatible_trade_should_raise_error(self):
         """Test push_trade_part with incompatible trade raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add first trade (BUY)
@@ -431,8 +431,8 @@ class TestTradePartsWithinDay:
 
     def test_push_trade_part_incompatible_type_should_raise_error(self):
         """Test push_trade_part with incompatible trade type raises error."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add first trade (BUY)
@@ -449,8 +449,8 @@ class TestTradePartsWithinDay:
 
     def test_pop_trade_part_should_remove_and_return_earliest_trade(self):
         """Test pop_trade_part removes and returns earliest trade."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add multiple trades
@@ -475,8 +475,8 @@ class TestTradePartsWithinDay:
 
     def test_pop_trade_part_removing_entire_trade(self):
         """Test pop_trade_part removing entire trade quantity."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         trade1 = TradeAction(company, "2024-03-28, 10:30:45", currency, "10", "150.25", "1.50")
@@ -500,8 +500,8 @@ class TestTradePartsWithinDay:
 
     def test_get_top_count_should_return_quantity_of_earliest_trade(self):
         """Test get_top_count returns quantity of earliest trade."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add trades
@@ -522,8 +522,8 @@ class TestTradePartsWithinDay:
 
     def test_get_top_index_should_find_earliest_date_index(self):
         """Test get_top_index finds earliest date index - this test accesses private method for testing purposes."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add trades in non-chronological order
@@ -540,8 +540,8 @@ class TestTradePartsWithinDay:
 
     def test_earliest_date_should_return_sorted_earliest_date(self):
         """Test earliest_date returns the earliest date - this test accesses private method for testing purposes."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add trades in non-chronological order
@@ -555,8 +555,8 @@ class TestTradePartsWithinDay:
 
     def test_is_not_empty_with_quantity_should_return_true(self):
         """Test is_not_empty with quantity returns True."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
@@ -566,8 +566,8 @@ class TestTradePartsWithinDay:
 
     def test_is_not_empty_with_zero_quantity_should_return_false(self):
         """Test is_not_empty with zero quantity returns False."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
@@ -586,8 +586,8 @@ class TestTradePartsWithinDay:
 
     def test_quantity_should_sum_all_quantities(self):
         """Test quantity method sums all quantities."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         # Add multiple trades
@@ -601,8 +601,8 @@ class TestTradePartsWithinDay:
 
     def test_get_trades_should_return_trades_list(self):
         """Test get_trades returns trades list."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
@@ -612,8 +612,8 @@ class TestTradePartsWithinDay:
 
     def test_get_quantities_should_sum_quantities(self):
         """Test get_quantities sums quantities (same as quantity method)."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_parts = TradePartsWithinDay()
 
         trade1 = TradeAction(company, "2024-03-28, 10:30:45", currency, "10", "150.25", "1.50")

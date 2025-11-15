@@ -106,10 +106,69 @@ The project follows **professional layered architecture** with **Domain-Driven D
 - **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point and orchestration
 
 ### Core Business Logic Pipeline
-The system processes data in this pipeline:
-1. **Extraction**: Parse Interactive Brokers CSV files into domain objects (trades + dividends)
-2. **Transformation**: Group trades by company/currency, match buys/sells chronologically using FIFO within daily buckets
-3. **Persistence**: Generate Excel reports with calculated capital gains, dividend income details + CSV files for unmatched shares
+
+#### **Data Processing Flow**
+The system processes data through a sophisticated tax-compliant pipeline:
+1. **Extraction**: `extract_complete_ib_export_data()` parses Interactive Brokers CSV files into domain objects (trades + dividends + security info)
+2. **Transformation**: `calculate_capital_gains_with_fifo_matching()` implements the core capital gains algorithm
+3. **Persistence**: `generate_comprehensive_tax_report()` creates Excel reports + `export_unmatched_securities_rollover_file()` for inventory rollover
+
+#### **FIFO Algorithm Deep Dive**
+
+The `calculate_capital_gains_with_fifo_matching()` function implements sophisticated capital gains calculation:
+
+**State Machine Design:**
+- **Company-Level Processing**: Each company/currency processed independently
+- **Daily Bucketing**: `split_by_days()` ensures tax compliance by date grouping
+- **FIFO Matching**: `capital_gains_for_company()` with `TradePartsWithinDay` queues
+- **Partial Matching**: `allocate_to_gain_line()` handles quantity differences
+- **Leftover Management**: `redistribute_unmatched_trades()` for inventory rollover to next year
+
+**Key Components:**
+- **`CapitalGainLineAccumulator`**: Builder pattern for capital gain calculations
+- **`TradePartsWithinDay`**: FIFO queue ensuring chronological trade matching
+- **State Transitions**: Each accumulator tracks buy/sell completion states
+- **Validation Rules**: Ensures quantities match and business constraints are met
+
+#### **Troubleshooting Guide**
+
+**Common Issues and Solutions:**
+
+1. **Empty Rollover Files**
+   - **Issue**: No unmatched securities found
+   - **Cause**: Perfect FIFO matching achieved
+   - **Solution**: This is normal behavior, indicates successful processing
+
+2. **Large Rollover Files**
+   - **Issue**: Many unmatched securities remain
+   - **Cause**: Unbalanced buy/sell quantities, inventory rollover to next tax year
+   - **Solution**: Check IB export completeness, verify date ranges, expect rollover for next year's calculations
+
+3. **Date Validation Errors**
+   - **Issue**: Trade date outside tax year expected range
+   - **Cause**: CSV contains transactions from wrong period
+   - **Solution**: Verify source file covers correct tax year, filter data if needed
+
+4. **Currency Conversion Errors**
+   - **Issue**: Missing exchange rate for currency pair
+   - **Cause**: New currency in data not in config.ini
+   - **Solution**: Add exchange rates to configuration file
+
+5. **ISIN Validation Failures**
+   - **Issue**: Unrecognized financial instruments
+   - **Cause**: Corrupted CSV or missing security information
+   - **Solution**: Verify IB export format, check Financial Instrument Information section
+
+**Debugging Strategies:**
+- **Enable Debug Logging**: Configure logging level to DEBUG in main.py
+- **Step-by-Step Processing**: Run small test files first
+- **Data Validation**: Check IB export file completeness and format
+- **Configuration Review**: Verify currency pairs and exchange rates are current
+
+**Performance Considerations:**
+- **Large Datasets**: Processing time scales with transaction count
+- **Memory Usage**: All data loaded in memory for state machine design
+- **File Size Limits**: Very large CSV files (>100MB) may need splitting
 
 ### Domain Model Architecture
 Rich domain models with proper separation of concerns:
@@ -150,7 +209,7 @@ The application generates professional Excel reports with:
 
 **Input**: Interactive Brokers CSV reports placed in `/resources/source/`
 **Processing**: Domain-driven transformation pipeline with currency conversion and ISIN mapping
-**Output**: Comprehensive Excel reports with capital gains, dividend income, and currency conversion tables in `/resources/result/` + CSV leftover files
+**Output**: Comprehensive Excel reports with capital gains, dividend income, and currency conversion tables in `/resources/result/` + unmatched securities rollover file for next year's calculations
 
 ## Testing Strategy
 

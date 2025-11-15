@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from ..domain.accumulators import CapitalGainLineAccumulator, TradePartsWithinDay
 from ..domain.collections import (
     CapitalGainLines,
     CapitalGainLinesPerCompany,
@@ -9,21 +10,18 @@ from ..domain.collections import (
     TradeCyclePerCompany,
 )
 from ..domain.entities import (
-    TradeAction,
-    TradeCycle,
     CapitalGainLine,
     CurrencyCompany,
     QuantitatedTradeAction,
+    TradeAction,
+    TradeCycle,
 )
-from ..domain.value_objects import TradeType, get_trade_date, Company, Currency
-from ..domain.accumulators import TradePartsWithinDay, CapitalGainLineAccumulator
-from ..domain.exceptions import CapitalGainsCalculationError, DataValidationError
-from ..infrastructure.logging_config import get_logger
+from ..domain.exceptions import DataValidationError
+from ..domain.value_objects import Company, Currency, TradeType, parse_trade_date
+from ..infrastructure.logging_config import create_module_logger
 
 
-def log_day_partitioned_trades(
-    day_partitioned_trades: DayPartitionedTrades, label: str = ""
-) -> None:
+def log_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, label: str = "") -> None:
     """
     Log day partitioned trades for debugging purposes.
 
@@ -31,7 +29,7 @@ def log_day_partitioned_trades(
         day_partitioned_trades: The trades to log
         label: Optional label for context
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     if label:
         logger.debug(f"{label} - DayPartitionedTrades{{")
     else:
@@ -43,7 +41,7 @@ def log_day_partitioned_trades(
     logger.debug("}")
 
 
-def capital_gains_for_company(
+def calculate_company_gains(
     trade_cycle: TradeCycle, company: Company, currency: Currency
 ) -> CapitalGainLines:
     """
@@ -57,7 +55,7 @@ def capital_gains_for_company(
     Returns:
         List of capital gain lines
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     capital_gain_line_accumulator = CapitalGainLineAccumulator(company, currency)
     sale_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.SELL)
     buy_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.BUY)
@@ -72,11 +70,11 @@ def capital_gains_for_company(
 
     sales_daily_slices: DayPartitionedTrades = split_by_days(sale_actions, TradeType.SELL)
     logger.debug("sales_daily_slices:")
-    log_day_partitioned_trades(sales_daily_slices, "sales_daily_slices")
+    log_partitioned_trades(sales_daily_slices, "sales_daily_slices")
 
     buys_daily_slices: DayPartitionedTrades = split_by_days(buy_actions, TradeType.BUY)
     logger.debug("buys_daily_slices:")
-    log_day_partitioned_trades(buys_daily_slices, "buys_daily_slices")
+    log_partitioned_trades(buys_daily_slices, "buys_daily_slices")
 
     capital_gain_lines: CapitalGainLines = []
 
@@ -108,8 +106,10 @@ def capital_gains_for_company(
             logger.debug(f"capital_gain_line aggregation cycle ({iteration_count})")
             iteration_count += 1
 
-            extract_trades(sale_quantity_left, sale_trade_parts, capital_gain_line_accumulator)
-            extract_trades(buy_quantity_left, buy_trade_parts, capital_gain_line_accumulator)
+            allocate_to_gain_line(
+                sale_quantity_left, sale_trade_parts, capital_gain_line_accumulator
+            )
+            allocate_to_gain_line(buy_quantity_left, buy_trade_parts, capital_gain_line_accumulator)
             logger.debug(str(capital_gain_line_accumulator))
 
             if sale_trade_parts.quantity() == 0:
@@ -126,17 +126,17 @@ def capital_gains_for_company(
     sale_actions.clear()
     if len(sales_daily_slices) > 0:
         for trade_part in sales_daily_slices.values():
-            process_remaining_trades(sale_actions, trade_part)
+            redistribute_unmatched_trades(sale_actions, trade_part)
         logger.debug("Leftover sales_daily_slices:")
-        log_day_partitioned_trades(sales_daily_slices, "Leftover sales_daily_slices")
+        log_partitioned_trades(sales_daily_slices, "Leftover sales_daily_slices")
         logger.debug(f"Leftover sale_actions: {sale_actions}")
 
     buy_actions.clear()
     if len(buys_daily_slices) > 0:
         for trade_part in buys_daily_slices.values():
-            process_remaining_trades(buy_actions, trade_part)
+            redistribute_unmatched_trades(buy_actions, trade_part)
         logger.debug("Leftover buys_daily_slices:")
-        log_day_partitioned_trades(buys_daily_slices, "Leftover buys_daily_slices")
+        log_partitioned_trades(buys_daily_slices, "Leftover buys_daily_slices")
         logger.debug(f"Leftover buy_actions: {buy_actions}")
 
     logger.debug(f"Final capital_gain_lines: {len(capital_gain_lines)} lines")
@@ -144,9 +144,20 @@ def capital_gains_for_company(
     return capital_gain_lines
 
 
-def process_remaining_trades(
+def redistribute_unmatched_trades(
     buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay
 ) -> None:
+    """
+    Redistribute unmatched trade quantities after FIFO matching process.
+
+    This function handles the remaining trade quantities that couldn't be matched
+    during the FIFO algorithm execution. It ensures that all quantities are
+    properly allocated to the correct trade actions.
+
+    Args:
+        buy_actions: List to append redistributed QuantitatedTradeAction objects
+        trade_part: TradePartsWithinDay containing unmatched trades to redistribute
+    """
     total: Decimal = trade_part.quantity()
     for trade in trade_part.get_trades():
         if total == 0:
@@ -159,11 +170,24 @@ def process_remaining_trades(
             buy_actions.append(QuantitatedTradeAction(trade.quantity, trade))
 
 
-def extract_trades(
+def allocate_to_gain_line(
     quantity_left: Decimal,
     trade_parts: TradePartsWithinDay,
     capital_gain_line_accumulator: CapitalGainLineAccumulator,
 ) -> None:
+    """
+    Allocate specific trade quantities to a capital gain calculation line.
+
+    This function handles the allocation of trade quantities to capital gain lines,
+    supporting partial matching scenarios where quantities don't align perfectly.
+    It ensures that trades are properly split or combined to create accurate
+    capital gain calculations.
+
+    Args:
+        quantity_left: Remaining quantity to allocate for this capital gain line
+        trade_parts: Available trades to allocate from (FIFO-ordered)
+        capital_gain_line_accumulator: Accumulator to receive allocated trades
+    """
     while quantity_left > 0:
         part = trade_parts.pop_trade_part()
         quantity_left -= part.quantity
@@ -186,7 +210,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
     Returns:
         Dictionary mapping trade dates to trade parts within day
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     day_partitioned_trades: DayPartitionedTrades = {}
 
     if not actions:
@@ -204,7 +228,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
                 + " for the trade_action"
                 + str(trade_action)
             )
-        trade_date = get_trade_date(trade_action.date_time)
+        trade_date = parse_trade_date(trade_action.date_time)
         trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(
             trade_date, TradePartsWithinDay()
         )
@@ -215,18 +239,48 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
     return day_partitioned_trades
 
 
-def calculate(
+def calculate_fifo_gains(
     trade_cycle_per_company: TradeCyclePerCompany,
     leftover_trades: TradeCyclePerCompany,
     capital_gains: CapitalGainLinesPerCompany,
 ) -> None:
     """
-    Calculate capital gains and leftover trades for all companies.
+    Calculate capital gains using FIFO (First In, First Out) matching algorithm for tax reporting.
+
+    This is the core business logic function that implements Portuguese tax-compliant capital gains
+    calculation by matching buy/sell transactions chronologically within daily time buckets.
+
+    Algorithm Details:
+    1. **Company-Level Processing**: Iterates through each company/currency combination
+    2. **Trade Validation**: Ensures each trade cycle has both buy and sell actions
+    3. **FIFO Matching**: Uses capital_gains_for_company() to implement:
+       - Daily bucketing of trades (tax compliance requirement)
+       - Chronological matching of earliest buys with earliest sells
+       - Partial matching for quantities that don't align perfectly
+       - State machine design using CapitalGainLineAccumulator
+    4. **Result Separation**:
+       - Matched pairs → capital_gains (ready for Excel report)
+       - Unmatched trades → leftover_trades (saved to CSV for reconciliation)
+
+    Tax Compliance Rationale:
+    - **Daily Bucketing**: Required by Portuguese tax authorities for proper tax year allocation
+    - **FIFO Method**: Standard accounting principle accepted for capital gains calculations
+    - **Partial Matching**: Handles real-world scenarios where trade quantities don't match exactly
 
     Args:
-        trade_cycle_per_company: Input trade cycles grouped by company and currency
-        leftover_trades: Output container for unmatched trades
-        capital_gains: Output container for calculated capital gains
+        trade_cycle_per_company: Raw trade data from Interactive Brokers, grouped by company/currency
+        leftover_trades: Output container for unmatched trades (modified in-place)
+        capital_gains: Output container for calculated capital gain lines (modified in-place)
+
+    Output Effects:
+    - Populates capital_gains with CapitalGainLine objects ready for tax reporting
+    - Populates leftover_trades with incomplete TradeCycle objects for reconciliation
+    - Each CapitalGainLine contains matched buy/sell pairs with calculated gains/losses
+
+    Example Workflow:
+        Input: 3 buys (100, 50, 75 shares) and 2 sells (80, 120 shares)
+        Process: FIFO matching with daily bucketing
+        Output: 2 complete capital gain lines + 1 leftover buy (25 shares)
     """
     company_currency: CurrencyCompany
     trade_cycle: TradeCycle
@@ -237,7 +291,7 @@ def calculate(
         if not trade_cycle.has_sold() or not trade_cycle.has_bought():
             leftover_trades[company_currency] = trade_cycle
             continue
-        capital_gain_lines: CapitalGainLines = capital_gains_for_company(
+        capital_gain_lines: CapitalGainLines = calculate_company_gains(
             trade_cycle, company, currency
         )
         if not trade_cycle.is_empty():

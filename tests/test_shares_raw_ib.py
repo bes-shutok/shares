@@ -1,30 +1,35 @@
 """
 Tests that duplicate the functionality of test_shares.py but using raw IB export format.
 
-These tests ensure that parse_raw_ib_export produces the same results as parse_data
+These tests ensure that parse_ib_export produces the same results as parse_data
 when processing equivalent data in raw IB format.
 """
 
 from pathlib import Path
 
+import test_data as test_data
+
 from shares_reporting.application import extraction, transformation
 from shares_reporting.domain.collections import TradeCyclePerCompany
-from shares_reporting.domain.value_objects import TradeType, get_company, get_currency
 from shares_reporting.domain.entities import CurrencyCompany
-import test_data as test_data
+from shares_reporting.domain.value_objects import (
+    TradeType,
+    parse_company,
+    parse_currency,
+)
 
 
 def test_parsing_raw_ib():
     """Test that raw IB parsing produces same results as simple.csv parsing"""
     source_file = Path("tests", "resources", "ib_simple_raw.csv")
-    actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
+    actual_trades: TradeCyclePerCompany = extraction.parse_ib_export(source_file)
 
     # Should have same structure as simple.csv parsing
     assert len(actual_trades) == 1
 
     # Find the BTU USD company
-    currency = get_currency("USD")
-    company = get_company(
+    currency = parse_currency("USD")
+    company = parse_company(
         "BTU", "US7045491033", "United States"
     )  # Raw IB includes ISIN and country
     currency_company = CurrencyCompany(currency, company)
@@ -63,17 +68,19 @@ def test_parsing_raw_ib():
 def test_fifo_strategy_with_simple_raw_ib_data():
     """Test FIFO strategy with raw IB data - ensures raw IB parsing works with FIFO logic"""
     source_file = Path("tests", "resources", "ib_simple_raw.csv")
-    actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
+    actual_trades: TradeCyclePerCompany = extraction.parse_ib_export(source_file)
 
     # Use the correct calculate function signature
     leftover_trades: TradeCyclePerCompany = {}
     capital_gains = {}
-    transformation.calculate(actual_trades, leftover_trades, capital_gains)
+    transformation.calculate_fifo_gains(
+        actual_trades, leftover_trades, capital_gains
+    )
 
     # With FIFO: First 10 shares matched to June 3 sale, remaining 5 to October 4 sale
     # Expected: 2 capital gain lines for BTU (same as simple.csv)
-    currency = get_currency("USD")
-    company = get_company("BTU", "US7045491033", "United States")
+    currency = parse_currency("USD")
+    company = parse_company("BTU", "US7045491033", "United States")
     btu_company = CurrencyCompany(currency, company)
     assert len(capital_gains[btu_company]) == 2
 
@@ -102,12 +109,16 @@ def test_fifo_strategy_with_simple_raw_ib_data():
 def test_ib_multi_strategy_raw_data_structure():
     """Test that our raw IB multi-strategy test data has the right structure for strategy testing"""
     source_file = Path("tests", "resources", "ib_multi_strategy_raw.csv")
-    actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
+    actual_trades: TradeCyclePerCompany = extraction.parse_ib_export(source_file)
 
     # Should have AAPL and TSLA companies with USD currency
-    currency = get_currency("USD")
-    aapl_company = get_company("AAPL", "US0378331005", "United States")
-    tsla_company = get_company("TSLA", "US88160R1014", "United States")
+    currency = parse_currency("USD")
+    aapl_company = parse_company(
+        "AAPL", "US0378331005", "United States"
+    )
+    tsla_company = parse_company(
+        "TSLA", "US88160R1014", "United States"
+    )
 
     aapl_currency_company = CurrencyCompany(currency, aapl_company)
     tsla_currency_company = CurrencyCompany(currency, tsla_company)
@@ -152,11 +163,13 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
     are planned as low-priority future enhancements for international users.
     """
     source_file = Path("tests", "resources", "ib_multi_strategy_raw.csv")
-    actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
+    actual_trades: TradeCyclePerCompany = extraction.parse_ib_export(source_file)
 
     # Get AAPL trades for strategy comparison
-    currency = get_currency("USD")
-    aapl_company = get_company("AAPL", "US0378331005", "United States")
+    currency = parse_currency("USD")
+    aapl_company = parse_company(
+        "AAPL", "US0378331005", "United States"
+    )
     aapl_currency_company = CurrencyCompany(currency, aapl_company)
     buys = actual_trades[aapl_currency_company].get(TradeType.BUY)
 

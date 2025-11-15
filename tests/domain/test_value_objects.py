@@ -1,16 +1,17 @@
-import pytest
 from datetime import datetime
 
-from shares_reporting.domain.value_objects import (
-    TradeDate,
-    get_trade_date,
-    Currency,
-    get_currency,
-    Company,
-    get_company,
-    TradeType,
-)
+import pytest
+
 from shares_reporting.domain.exceptions import DataValidationError
+from shares_reporting.domain.value_objects import (
+    Company,
+    Currency,
+    TradeDate,
+    TradeType,
+    parse_company,
+    parse_currency,
+    parse_trade_date,
+)
 
 
 class TestTradeDate:
@@ -57,7 +58,7 @@ class TestGetTradeDate:
     def test_get_trade_date_with_datetime_should_create_trade_date(self):
         """Test that get_trade_date creates TradeDate from datetime."""
         dt = datetime(2024, 3, 28, 14, 30, 45)
-        trade_date = get_trade_date(dt)
+        trade_date = parse_trade_date(dt)
 
         assert trade_date.year == 2024
         assert trade_date.month == 3
@@ -72,7 +73,7 @@ class TestGetTradeDate:
         ]
 
         for dt, expected in test_cases:
-            result = get_trade_date(dt)
+            result = parse_trade_date(dt)
             assert result == expected
 
 
@@ -118,17 +119,17 @@ class TestGetCurrency:
         ]
 
         for input_code, expected in test_cases:
-            currency = get_currency(input_code)
+            currency = parse_currency(input_code)
             assert currency.currency == expected
 
     def test_get_currency_with_mixed_case_should_convert_to_uppercase(self):
         """Test that get_currency converts mixed case to uppercase."""
-        currency = get_currency("UsD")
+        currency = parse_currency("UsD")
         assert currency.currency == "USD"
 
     def test_get_currency_with_lowercase_code_should_convert_to_uppercase(self):
         """Test get_currency with lowercase input."""
-        currency = get_currency("eur")
+        currency = parse_currency("eur")
         assert currency.currency == "EUR"
 
     def test_get_currency_with_invalid_length_should_raise_value_error(self):
@@ -139,12 +140,12 @@ class TestGetCurrency:
             with pytest.raises(
                 DataValidationError, match="Currency is expected to be a length of 3"
             ):
-                get_currency(invalid_code)
+                parse_currency(invalid_code)
 
     def test_get_currency_with_empty_string_should_raise_value_error(self):
         """Test get_currency with empty string raises ValueError."""
         with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
-            get_currency("")
+            parse_currency("")
 
     def test_get_currency_with_invalid_characters_should_still_accept_if_length_3(self):
         """Test get_currency accepts 3-character codes even with special characters."""
@@ -153,13 +154,13 @@ class TestGetCurrency:
 
         for code in codes_with_special_chars:
             # These should pass validation as they are 3 characters
-            currency = get_currency(code)
+            currency = parse_currency(code)
             assert currency.currency == code.upper()
 
     def test_get_currency_with_4_character_code_should_raise_value_error(self):
         """Test get_currency with 4 characters raises ValueError."""
         with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
-            get_currency("USDD")
+            parse_currency("USDD")
 
 
 class TestCompany:
@@ -201,18 +202,18 @@ class TestGetCompany:
         test_tickers = ["AAPL", "GOOGL", "MSFT", "TSLA"]
 
         for ticker in test_tickers:
-            company = get_company(ticker)
+            company = parse_company(ticker)
             assert company.ticker == ticker
 
     def test_get_company_with_mixed_case_should_preserve_case(self):
         """Test that get_company preserves case (case-sensitive)."""
-        company = get_company("aApL")
+        company = parse_company("aApL")
         assert company.ticker == "aApL"  # Should preserve exact case
 
     def test_get_company_with_empty_string_should_raise_value_error(self):
         """Test get_company with empty string raises ValueError."""
         with pytest.raises(DataValidationError, match="Company is expected to be not empty"):
-            get_company("")
+            parse_company("")
 
     def test_get_company_with_whitespace_only_should_not_raise_value_error(self):
         """Test get_company with whitespace-only string does NOT raise ValueError (current behavior)."""
@@ -221,53 +222,53 @@ class TestGetCompany:
 
         for ws_string in whitespace_strings:
             # These should pass validation as they have length > 0
-            company = get_company(ws_string)
+            company = parse_company(ws_string)
             assert company.ticker == ws_string  # Should preserve exact content
 
     def test_get_company_with_empty_string_should_raise_value_error(self):
         """Test get_company with truly empty string raises ValueError."""
         with pytest.raises(DataValidationError, match="Company is expected to be not empty"):
-            get_company("")
+            parse_company("")
 
     def test_get_company_with_valid_characters(self):
         """Test get_company with various valid ticker characters."""
         valid_tickers = ["BRK.A", "BRK-B", "GOOGL", "MSFT", "^VIX", "USD=X"]
 
         for ticker in valid_tickers:
-            company = get_company(ticker)
+            company = parse_company(ticker)
             assert company.ticker == ticker
 
     def test_get_company_with_isin_and_country(self):
         """Test get_company with ISIN and country parameters."""
-        company = get_company("AAPL", "US0378331005", "United States")
+        company = parse_company("AAPL", "US0378331005", "United States")
         assert company.ticker == "AAPL"
         assert company.isin == "US0378331005"
         assert company.country_of_issuance == "United States"
 
     def test_get_company_with_only_isin(self):
         """Test get_company with ISIN but default country."""
-        company = get_company("TSLA", "US88160R1014")
+        company = parse_company("TSLA", "US88160R1014")
         assert company.ticker == "TSLA"
         assert company.isin == "US88160R1014"
         assert company.country_of_issuance == "Unknown"  # Default value
 
     def test_get_company_with_custom_country(self):
         """Test get_company with custom country."""
-        company = get_company("RDS.A", "NL0000235190", "Netherlands")
+        company = parse_company("RDS.A", "NL0000235190", "Netherlands")
         assert company.ticker == "RDS.A"
         assert company.isin == "NL0000235190"
         assert company.country_of_issuance == "Netherlands"
 
     def test_get_company_with_empty_isin_and_custom_country(self):
         """Test get_company with empty ISIN but custom country."""
-        company = get_company("UNKNOWN", "", "Canada")
+        company = parse_company("UNKNOWN", "", "Canada")
         assert company.ticker == "UNKNOWN"
         assert company.isin == ""
         assert company.country_of_issuance == "Canada"
 
     def test_get_company_backwards_compatibility(self):
         """Test get_company with single parameter maintains backwards compatibility."""
-        company = get_company("MSFT")
+        company = parse_company("MSFT")
         assert company.ticker == "MSFT"
         assert company.isin == ""  # Default
         assert company.country_of_issuance == "Unknown"  # Default

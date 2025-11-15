@@ -1,28 +1,25 @@
 """
-Tests for parse_raw_ib_export function that mirror the parse_data tests.
+Tests for parse_ib_export function that mirror the parse_data tests.
 
 These tests duplicate the parse_data test scenarios but use the raw IB export format
 with Financial Instrument Information and Trades sections.
 """
 
-import pytest
 import csv
-import tempfile
 import os
-from pathlib import Path
+import tempfile
 from decimal import Decimal
 
-from shares_reporting.application.extraction import parse_raw_ib_export
-from shares_reporting.domain.collections import TradeCyclePerCompany
-from shares_reporting.domain.entities import QuantitatedTradeAction, CurrencyCompany
-from shares_reporting.domain.value_objects import TradeType, get_currency, get_company
+from shares_reporting.application.extraction import parse_ib_export
+from shares_reporting.domain.entities import CurrencyCompany
+from shares_reporting.domain.value_objects import TradeType, parse_company, parse_currency
 
 
 class TestParseRawIbExport:
-    """Test parse_raw_ib_export with various scenarios mirroring parse_data tests."""
+    """Test parse_ib_export with various scenarios mirroring parse_data tests."""
 
-    def test_parse_raw_ib_export_with_simple_csv(self):
-        """Test parse_raw_ib_export with a simple raw IB export file."""
+    def test_parse_ib_export_with_simple_csv(self):
+        """Test parse_ib_export with a simple raw IB export file."""
         # Given: Raw IB export format with Financial Instrument Information and Trades sections
         csv_content = [
             [
@@ -86,15 +83,15 @@ class TestParseRawIbExport:
 
             try:
                 # When
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
                 # Then: Verify structure (same as parse_data test)
                 assert isinstance(result, dict)
                 assert len(result) == 1
 
                 # Find the CurrencyCompany key
-                currency = get_currency("USD")
-                company = get_company(
+                currency = parse_currency("USD")
+                company = parse_company(
                     "AAPL", "US0378331005", "United States"
                 )  # Enhanced with ISIN and country
                 currency_company = CurrencyCompany(currency, company)
@@ -120,8 +117,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_with_multiple_trades_same_company(self):
-        """Test parse_raw_ib_export with multiple trades for the same company."""
+    def test_parse_ib_export_with_multiple_trades_same_company(self):
+        """Test parse_ib_export with multiple trades for the same company."""
         csv_content = [
             [
                 "Trades",
@@ -207,10 +204,10 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
-                currency = get_currency("USD")
-                company = get_company("AAPL", "US0378331005", "United States")
+                currency = parse_currency("USD")
+                company = parse_company("AAPL", "US0378331005", "United States")
                 currency_company = CurrencyCompany(currency, company)
                 cycle = result[currency_company]
 
@@ -233,8 +230,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_with_multiple_companies(self):
-        """Test parse_raw_ib_export with trades for multiple companies."""
+    def test_parse_ib_export_with_multiple_companies(self):
+        """Test parse_ib_export with trades for multiple companies."""
         csv_content = [
             [
                 "Trades",
@@ -334,14 +331,14 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
                 # Should have 2 different currency-company pairs
                 assert len(result) == 2
 
                 # Check AAPL trades
-                currency = get_currency("USD")
-                aapl_company = get_company("AAPL", "US0378331005", "United States")
+                currency = parse_currency("USD")
+                aapl_company = parse_company("AAPL", "US0378331005", "United States")
                 aapl_currency_company = CurrencyCompany(currency, aapl_company)
                 assert aapl_currency_company in result
 
@@ -350,7 +347,7 @@ class TestParseRawIbExport:
                 assert aapl_cycle.has(TradeType.SELL) is True
 
                 # Check GOOGL trades
-                googl_company = get_company("GOOGL", "US02079K3059", "United States")
+                googl_company = parse_company("GOOGL", "US02079K3059", "United States")
                 googl_currency_company = CurrencyCompany(currency, googl_company)
                 assert googl_currency_company in result
 
@@ -364,8 +361,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_with_different_currencies(self):
-        """Test parse_raw_ib_export with trades in different currencies."""
+    def test_parse_ib_export_with_different_currencies(self):
+        """Test parse_ib_export with trades in different currencies."""
         csv_content = [
             [
                 "Trades",
@@ -453,20 +450,20 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
                 # Should have 2 different currency-company pairs
                 assert len(result) == 2
 
                 # Check USD-AAPL
-                usd_currency = get_currency("USD")
-                aapl_company = get_company("AAPL", "US0378331005", "United States")
+                usd_currency = parse_currency("USD")
+                aapl_company = parse_company("AAPL", "US0378331005", "United States")
                 usd_aapl = CurrencyCompany(usd_currency, aapl_company)
                 assert usd_aapl in result
 
                 # Check EUR-ASML
-                eur_currency = get_currency("EUR")
-                asml_company = get_company("ASML", "NL0010273215", "Netherlands")
+                eur_currency = parse_currency("EUR")
+                asml_company = parse_company("ASML", "NL0010273215", "Netherlands")
                 eur_asml = CurrencyCompany(eur_currency, asml_company)
                 assert eur_asml in result
 
@@ -476,8 +473,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_ignores_empty_date_time_rows(self):
-        """Test parse_raw_ib_export ignores rows with empty Date/Time."""
+    def test_parse_ib_export_ignores_empty_date_time_rows(self):
+        """Test parse_ib_export ignores rows with empty Date/Time."""
         csv_content = [
             [
                 "Trades",
@@ -563,10 +560,10 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
-                currency = get_currency("USD")
-                company = get_company("AAPL", "US0378331005", "United States")
+                currency = parse_currency("USD")
+                company = parse_company("AAPL", "US0378331005", "United States")
                 currency_company = CurrencyCompany(currency, company)
                 cycle = result[currency_company]
 
@@ -580,8 +577,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_handles_missing_isin_data(self):
-        """Test parse_raw_ib_export handles missing ISIN data gracefully."""
+    def test_parse_ib_export_handles_missing_isin_data(self):
+        """Test parse_ib_export handles missing ISIN data gracefully."""
         csv_content = [
             [
                 "Trades",
@@ -630,10 +627,10 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
-                currency = get_currency("USD")
-                company = get_company(
+                currency = parse_currency("USD")
+                company = parse_company(
                     "TEST", "", "Unknown"
                 )  # Should default to empty ISIN and Unknown country
                 currency_company = CurrencyCompany(currency, company)
@@ -649,8 +646,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_handles_decimal_quantities(self):
-        """Test parse_raw_ib_export handles decimal quantities correctly."""
+    def test_parse_ib_export_handles_decimal_quantities(self):
+        """Test parse_ib_export handles decimal quantities correctly."""
         csv_content = [
             [
                 "Trades",
@@ -712,10 +709,10 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
-                currency = get_currency("USD")
-                company = get_company("AAPL", "US0378331005", "United States")
+                currency = parse_currency("USD")
+                company = parse_company("AAPL", "US0378331005", "United States")
                 currency_company = CurrencyCompany(currency, company)
                 trade = result[currency_company].get(TradeType.BUY)[0]
 
@@ -727,8 +724,8 @@ class TestParseRawIbExport:
                 except (OSError, PermissionError):
                     pass
 
-    def test_parse_raw_ib_export_handles_negative_quantities_as_sell(self):
-        """Test parse_raw_ib_export treats negative quantities as sell trades."""
+    def test_parse_ib_export_handles_negative_quantities_as_sell(self):
+        """Test parse_ib_export treats negative quantities as sell trades."""
         csv_content = [
             [
                 "Trades",
@@ -790,10 +787,10 @@ class TestParseRawIbExport:
             f.flush()
 
             try:
-                result = parse_raw_ib_export(f.name)
+                result = parse_ib_export(f.name)
 
-                currency = get_currency("USD")
-                company = get_company("AAPL", "US0378331005", "United States")
+                currency = parse_currency("USD")
+                company = parse_company("AAPL", "US0378331005", "United States")
                 currency_company = CurrencyCompany(currency, company)
                 trade = result[currency_company].get(TradeType.SELL)[0]
 

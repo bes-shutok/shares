@@ -1,11 +1,10 @@
 import configparser
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import NamedTuple, List
-from pathlib import Path
+from typing import NamedTuple
 
-from .logging_config import get_logger
-from .validation import SecurityConfig, DEFAULT_SECURITY_CONFIG
+from .logging_config import create_module_logger
+from .validation import DEFAULT_SECURITY_CONFIG, SecurityConfig
 
 
 class ConversionRate(NamedTuple):
@@ -17,7 +16,7 @@ class ConversionRate(NamedTuple):
 @dataclass
 class Config:
     base: str
-    rates: List[ConversionRate]
+    rates: list[ConversionRate]
     security: SecurityConfig = None
 
     def __post_init__(self):
@@ -26,8 +25,8 @@ class Config:
 
 
 # https://docs.python.org/3/library/configparser.html
-def create_config():
-    logger = get_logger(__name__)
+def initialize_default_configuration_file():
+    logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
     config.optionxform = str
     config.allow_no_value = True
@@ -62,8 +61,8 @@ def create_config():
         raise
 
 
-def read_config() -> Config:
-    logger = get_logger(__name__)
+def load_configuration_from_file() -> Config:
+    logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
     config.optionxform = str
 
@@ -84,7 +83,7 @@ def read_config() -> Config:
         target: str = config["COMMON"]["TARGET CURRENCY"]
         logger.debug(f"Target currency: {target}")
 
-        rates: List[ConversionRate] = []
+        rates: list[ConversionRate] = []
         for key in config["EXCHANGE RATES"]:
             base, calculated = key.split("/")
             assert base == target

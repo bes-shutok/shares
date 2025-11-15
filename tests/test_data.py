@@ -1,17 +1,20 @@
 from decimal import Decimal
 
+from shares_reporting.domain.accumulators import CapitalGainLineAccumulator
+from shares_reporting.domain.collections import TradeCyclePerCompany
 from shares_reporting.domain.entities import (
-    TradeAction,
-    QuantitatedTradeAction,
     CurrencyCompany,
+    QuantitatedTradeAction,
+    TradeAction,
     TradeCycle,
 )
-from shares_reporting.domain.collections import TradeCyclePerCompany
-from shares_reporting.domain.accumulators import CapitalGainLineAccumulator
-from shares_reporting.domain.value_objects import get_currency, get_company
+from shares_reporting.domain.value_objects import (
+    parse_company,
+    parse_currency,
+)
 
-currency = get_currency("USD")
-company = get_company("BTU")
+currency = parse_currency("USD")
+company = parse_company("BTU")
 currency_company = CurrencyCompany(currency=currency, company=company)
 buy_date = "2021-05-18, 14:53:23"
 buy_quantity = "15"

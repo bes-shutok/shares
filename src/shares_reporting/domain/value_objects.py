@@ -3,8 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import NamedTuple
 
+from .constants import CURRENCY_CODE_LENGTH
 from .exceptions import DataValidationError
-from .constants import CURRENCY_CODE_LENGTH, CURRENCY_FORMAT_PATTERN
 
 
 class TradeDate(NamedTuple):
@@ -27,7 +27,8 @@ class TradeDate(NamedTuple):
         )
 
 
-def get_trade_date(date: datetime) -> TradeDate:
+def parse_trade_date(date: datetime) -> TradeDate:
+    """Parse TradeDate value object from datetime."""
     return TradeDate(date.year, date.month, date.day)
 
 
@@ -40,7 +41,8 @@ class Currency(NamedTuple):
     currency: str
 
 
-def get_currency(currency: str) -> Currency:
+def parse_currency(currency: str) -> Currency:
+    """Parse validated Currency value object from string code."""
     if len(currency) == CURRENCY_CODE_LENGTH:
         pass
     else:
@@ -56,7 +58,10 @@ class Company(NamedTuple):
     country_of_issuance: str = "Unknown"
 
 
-def get_company(ticker: str, isin: str = "", country_of_issuance: str = "Unknown") -> Company:
+def parse_company(
+    ticker: str, isin: str = "", country_of_issuance: str = "Unknown"
+) -> Company:
+    """Parse Company value object with ticker and optional ISIN/country data."""
     if (len(ticker)) > 0:
         pass
     else:

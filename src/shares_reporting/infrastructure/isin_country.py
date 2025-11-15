@@ -7,8 +7,6 @@ ISIN (International Securities Identification Number) format:
 - Remaining characters: National security identifier
 """
 
-from typing import Optional
-
 import pycountry
 
 

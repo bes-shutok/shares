@@ -8,19 +8,18 @@ formatters, and handlers for different environments.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 
-def setup_logging(
-    level: str = "INFO", log_file: Optional[Path] = None, enable_console: bool = True
+def configure_application_logging(
+    level: str = "INFO", log_file: Path | None = None, enable_console: bool = True
 ) -> None:
     """
-    Set up logging configuration for the application.
+    Configure application logging with standardized formatting and output options.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Optional path to log file
-        enable_console: Whether to enable console output
+        log_file: Optional path to log file for persistent logging
+        enable_console: Whether to enable console output for real-time monitoring
     """
     # Create root logger
     root_logger = logging.getLogger()
@@ -52,14 +51,14 @@ def setup_logging(
         root_logger.addHandler(file_handler)
 
 
-def get_logger(name: str) -> logging.Logger:
+def create_module_logger(name: str) -> logging.Logger:
     """
-    Get a logger instance for a specific module.
+    Create standardized logger for specific module with consistent configuration.
 
     Args:
-        name: Logger name (typically __name__)
+        name: Logger name (typically __name__ for module-level logging)
 
     Returns:
-        Logger instance
+        Configured logger instance ready for use
     """
     return logging.getLogger(name)

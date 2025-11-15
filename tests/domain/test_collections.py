@@ -1,26 +1,26 @@
-import pytest
 from decimal import Decimal
-from datetime import datetime
 
+import pytest
+
+from shares_reporting.domain.accumulators import TradePartsWithinDay
 from shares_reporting.domain.collections import (
-    QuantitatedTradeActions,
     CapitalGainLines,
-    SortedDateRanges,
-    TradeCyclePerCompany,
     CapitalGainLinesPerCompany,
-    DayPartitionedTrades,
-    PartitionedTradesByType,
     CurrencyToCoordinate,
     CurrencyToCoordinates,
+    DayPartitionedTrades,
+    PartitionedTradesByType,
+    QuantitatedTradeActions,
+    SortedDateRanges,
+    TradeCyclePerCompany,
 )
-from shares_reporting.domain.value_objects import TradeDate, get_currency, get_company, TradeType
 from shares_reporting.domain.entities import (
+    CapitalGainLine,
     QuantitatedTradeAction,
     TradeAction,
-    CapitalGainLine,
     TradeCycle,
 )
-from shares_reporting.domain.accumulators import TradePartsWithinDay
+from shares_reporting.domain.value_objects import TradeDate, TradeType, parse_company, parse_currency
 
 
 class TestTypeAliases:
@@ -29,8 +29,8 @@ class TestTypeAliases:
     def test_quantitated_trade_actions_type_alias(self):
         """Test QuantitatedTradeActions type alias works as list."""
         # QuantitatedTradeActions is an alias for List[QuantitatedTradeAction]
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         quantitated = QuantitatedTradeAction(Decimal("5"), trade)
 
@@ -43,8 +43,8 @@ class TestTypeAliases:
     def test_capital_gain_lines_type_alias(self):
         """Test CapitalGainLines type alias works as list."""
         # CapitalGainLines is an alias for List[CapitalGainLine]
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         line = CapitalGainLine(
             ticker=company,
@@ -79,8 +79,8 @@ class TestTypeAliases:
     def test_trade_cycle_per_company_type_alias(self):
         """Test TradeCyclePerCompany type alias works as dictionary."""
         # TradeCyclePerCompany is an alias for Dict[CurrencyCompany, TradeCycle]
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         from shares_reporting.domain.entities import CurrencyCompany
 
@@ -96,8 +96,8 @@ class TestTypeAliases:
     def test_capital_gain_lines_per_company_type_alias(self):
         """Test CapitalGainLinesPerCompany type alias works as dictionary."""
         # CapitalGainLinesPerCompany is an alias for Dict[CurrencyCompany, CapitalGainLines]
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         from shares_reporting.domain.entities import CurrencyCompany
 
@@ -124,8 +124,8 @@ class TestTypeAliases:
     def test_day_partitioned_trades_type_alias(self):
         """Test DayPartitionedTrades type alias works as dictionary."""
         # DayPartitionedTrades is an alias for Dict[TradeDate, TradePartsWithinDay]
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_date = TradeDate(2024, 3, 28)
 
         trade_parts = TradePartsWithinDay(company, currency)
@@ -141,8 +141,8 @@ class TestTypeAliases:
         # PartitionedTradesByType is an alias for Dict[TradeType, DayPartitionedTrades]
         from shares_reporting.domain.value_objects import TradeType
 
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade_date = TradeDate(2024, 3, 28)
         trade_parts = TradePartsWithinDay(company, currency)
 
@@ -186,8 +186,8 @@ class TestCollectionBehavior:
 
     def test_nested_collection_operations(self):
         """Test nested collection operations work correctly."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         from shares_reporting.domain.entities import CurrencyCompany
 
         currency_company = CurrencyCompany(currency, company)
@@ -221,8 +221,8 @@ class TestCollectionBehavior:
 
     def test_day_partitioned_trades_with_multiple_days(self):
         """Test DayPartitionedTrades with multiple days."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         date1 = TradeDate(2024, 3, 28)
         date2 = TradeDate(2024, 3, 29)
@@ -258,8 +258,8 @@ class TestCollectionBehavior:
 
     def test_collection_immutability_preservation(self):
         """Test that collections preserve immutability of domain objects."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         quantitated = QuantitatedTradeAction(Decimal("5"), trade)
 
@@ -271,8 +271,8 @@ class TestCollectionBehavior:
 
     def test_collection_type_checking(self):
         """Test that collections maintain correct types."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         from shares_reporting.domain.entities import CurrencyCompany
 
         currency_company = CurrencyCompany(currency, company)
@@ -303,8 +303,8 @@ class TestCollectionBehavior:
         assert len(empty_partitioned) == 0
 
         # Collections with single items
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         quantitated = QuantitatedTradeAction(Decimal("5"), trade)
 

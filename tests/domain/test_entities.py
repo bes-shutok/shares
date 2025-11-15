@@ -1,30 +1,29 @@
-import pytest
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
+
+import pytest
 
 from shares_reporting.domain.entities import (
+    CapitalGainLine,
+    CurrencyCompany,
+    QuantitatedTradeAction,
     TradeAction,
     TradeCycle,
-    CapitalGainLine,
-    QuantitatedTradeAction,
-    CurrencyCompany,
 )
 from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import (
-    TradeType,
-    Currency,
-    Company,
     TradeDate,
-    get_currency,
-    get_company,
+    TradeType,
+    parse_company,
+    parse_currency,
 )
 
 
 class TestTradeAction:
     def test_trade_action_creation_with_positive_quantity_should_set_buy_type(self):
         """Test that TradeAction with positive quantity sets BUY type."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "10"
         price = "150.25"
@@ -42,8 +41,8 @@ class TestTradeAction:
 
     def test_trade_action_creation_with_negative_quantity_should_set_sell_type(self):
         """Test that TradeAction with negative quantity sets SELL type."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "-5"
         price = "150.25"
@@ -56,8 +55,8 @@ class TestTradeAction:
 
     def test_trade_action_creation_with_zero_quantity_should_set_buy_type(self):
         """Test that TradeAction with zero quantity sets BUY type."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "0"
         price = "150.25"
@@ -70,8 +69,8 @@ class TestTradeAction:
 
     def test_trade_action_init_with_comma_in_quantity_should_remove_comma(self):
         """Test that commas in quantity are properly handled."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "1,234.56"  # Comma as decimal separator
         price = "150.25"
@@ -83,8 +82,8 @@ class TestTradeAction:
 
     def test_trade_action_init_with_fee_should_use_absolute_value(self):
         """Test that fee is converted to absolute value."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "10"
         price = "150.25"
@@ -96,8 +95,8 @@ class TestTradeAction:
 
     def test_trade_action_init_with_decimal_quantity(self):
         """Test TradeAction with decimal quantity."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         date_time = "2024-03-28, 14:30:45"
         quantity = "10.5"
         price = "150.25"
@@ -109,8 +108,8 @@ class TestTradeAction:
 
     def test_trade_action_mutability(self):
         """Test that TradeAction fields are mutable (dataclass is not frozen)."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
         # Dataclass is mutable, so this should work
@@ -119,8 +118,8 @@ class TestTradeAction:
 
     def test_trade_action_repr(self):
         """Test TradeAction string representation."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
         expected = "TradeAction(company=Company(ticker='AAPL', isin='', country_of_issuance='Unknown'), date_time=datetime.datetime(2024, 3, 28, 14, 30, 45), currency=Currency(currency='USD'), quantity=Decimal('10'), price=Decimal('150.25'), fee=Decimal('1.50'))"
@@ -130,8 +129,8 @@ class TestTradeAction:
 class TestQuantitatedTradeAction:
     def test_quantitated_trade_action_creation(self):
         """Test QuantitatedTradeAction creation."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         quantity = Decimal("5")
 
@@ -142,8 +141,8 @@ class TestQuantitatedTradeAction:
 
     def test_quantitated_trade_action_immutability(self):
         """Test QuantitatedTradeAction immutability."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         quantitated = QuantitatedTradeAction(Decimal("5"), trade)
 
@@ -154,8 +153,8 @@ class TestQuantitatedTradeAction:
 class TestCurrencyCompany:
     def test_currency_company_creation(self):
         """Test CurrencyCompany creation."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         currency_company = CurrencyCompany(currency=currency, company=company)
 
@@ -164,12 +163,12 @@ class TestCurrencyCompany:
 
     def test_currency_company_immutability(self):
         """Test CurrencyCompany immutability."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         currency_company = CurrencyCompany(currency, company)
 
         with pytest.raises(AttributeError):
-            currency_company.currency = get_currency(
+            currency_company.currency = parse_currency(
                 "EUR"
             )  # Should fail as NamedTuple is immutable
 
@@ -190,8 +189,8 @@ class TestTradeCycle:
     def test_has_bought_with_non_empty_bought_list_should_return_true(self):
         """Test has_bought with non-empty bought list returns True."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
         cycle.bought.append(QuantitatedTradeAction(Decimal("5"), trade))
@@ -206,8 +205,8 @@ class TestTradeCycle:
     def test_has_sold_with_non_empty_sold_list_should_return_true(self):
         """Test has_sold with non-empty sold list returns True."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "-5", "150.25", "1.50")
 
         cycle.sold.append(QuantitatedTradeAction(Decimal("3"), trade))
@@ -217,8 +216,8 @@ class TestTradeCycle:
     def test_validate_with_sold_trades_should_match_currency_and_company(self):
         """Test validate with sold trades matches currency and company."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         # Add sold trades
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", currency, "-5", "150.25", "1.50")
@@ -230,9 +229,9 @@ class TestTradeCycle:
     def test_validate_with_sold_trades_mismatched_currency_should_raise_error(self):
         """Test validate with sold trades having mismatched currency raises error."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        usd = get_currency("USD")
-        eur = get_currency("EUR")
+        company = parse_company("AAPL")
+        usd = parse_currency("USD")
+        eur = parse_currency("EUR")
 
         # Add sold trades with different currencies
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", usd, "-5", "150.25", "1.50")
@@ -252,9 +251,9 @@ class TestTradeCycle:
     def test_validate_with_sold_trades_mismatched_company_should_raise_error(self):
         """Test validate with sold trades having mismatched company raises error."""
         cycle = TradeCycle()
-        currency = get_currency("USD")
-        aapl = get_company("AAPL")
-        googl = get_company("GOOGL")
+        currency = parse_currency("USD")
+        aapl = parse_company("AAPL")
+        googl = parse_company("GOOGL")
 
         # Add sold trades with different companies
         trade1 = TradeAction(aapl, "2024-03-28, 14:30:45", currency, "-5", "150.25", "1.50")
@@ -274,8 +273,8 @@ class TestTradeCycle:
     def test_validate_with_bought_trades_should_match_currency_and_company(self):
         """Test validate with bought trades matches currency and company."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
 
         # Add bought trades
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
@@ -287,9 +286,9 @@ class TestTradeCycle:
     def test_validate_with_bought_trades_mismatched_currency_should_raise_error(self):
         """Test validate with bought trades having mismatched currency raises error."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        usd = get_currency("USD")
-        eur = get_currency("EUR")
+        company = parse_company("AAPL")
+        usd = parse_currency("USD")
+        eur = parse_currency("EUR")
 
         # Add bought trades with different currencies
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", usd, "10", "150.25", "1.50")
@@ -338,8 +337,8 @@ class TestTradeCycle:
     def test_is_empty_with_trades_should_return_false(self):
         """Test is_empty with trades returns False."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
         cycle.bought.append(QuantitatedTradeAction(Decimal("5"), trade))
@@ -349,8 +348,8 @@ class TestTradeCycle:
     def test_is_empty_with_both_bought_and_sold_trades(self):
         """Test is_empty with both bought and sold trades."""
         cycle = TradeCycle()
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         buy_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
         sell_trade = TradeAction(company, "2024-03-28, 15:30:45", currency, "-5", "160.00", "1.60")
 
@@ -363,8 +362,8 @@ class TestTradeCycle:
 class TestCapitalGainLine:
     def test_capital_gain_line_creation(self):
         """Test CapitalGainLine creation."""
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_date = TradeDate(2024, 3, 28)
         sell_quantities = [Decimal("5")]
         sell_trades = []  # Empty list for simplicity
@@ -390,10 +389,10 @@ class TestCapitalGainLine:
 
     def test_get_ticker_should_return_ticker(self):
         """Test get_ticker method returns ticker."""
-        company = get_company("AAPL")
+        company = parse_company("AAPL")
         line = CapitalGainLine(
             ticker=company.ticker,  # Pass the ticker string, not the Company object
-            currency=get_currency("USD"),
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[],
@@ -406,9 +405,9 @@ class TestCapitalGainLine:
 
     def test_get_currency_should_return_currency(self):
         """Test get_currency method returns currency."""
-        currency = get_currency("USD")
+        currency = parse_currency("USD")
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
+            ticker=parse_company("AAPL").ticker,
             currency=currency,
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
@@ -418,14 +417,14 @@ class TestCapitalGainLine:
             buy_trades=[],
         )
 
-        assert line.get_currency() == currency  # Returns the Currency object, not the string
+        assert line.currency == currency  # Returns the Currency object, not the string
 
     def test_sell_quantity_should_sum_quantities(self):
         """Test sell_quantity method sums sell quantities."""
         sell_quantities = [Decimal("3"), Decimal("2"), Decimal("1")]
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=sell_quantities,
             sell_trades=[],
@@ -440,8 +439,8 @@ class TestCapitalGainLine:
         """Test buy_quantity method sums buy quantities."""
         buy_quantities = [Decimal("2"), Decimal("4")]
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("6")],
             sell_trades=[],
@@ -455,15 +454,15 @@ class TestCapitalGainLine:
     def test_validate_with_matching_quantities_should_not_raise_error(self):
         """Test validate with matching quantities should not raise error."""
         # Create mock trades to match the quantities
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade1 = TradeAction(company, "2024-03-28, 14:30:45", currency, "3", "150.00", "1.50")
         sell_trade2 = TradeAction(company, "2024-03-28, 15:30:45", currency, "2", "155.00", "1.55")
         buy_trade1 = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.00", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),  # Single TradeDate, not list
             sell_quantities=[Decimal("3"), Decimal("2")],  # Total: 5
             sell_trades=[sell_trade1, sell_trade2],  # Matching number of trades
@@ -478,14 +477,14 @@ class TestCapitalGainLine:
     def test_validate_with_mismatched_quantities_should_raise_error(self):
         """Test validate with mismatched quantities raises error."""
         # Create trades to match quantities for validation
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "6", "150.00", "1.50")
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.00", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("6")],  # Total: 6
             sell_trades=[sell_trade],
@@ -500,14 +499,14 @@ class TestCapitalGainLine:
     def test_validate_with_mismatched_sell_counts_should_raise_error(self):
         """Test validate with mismatched sell counts raises error."""
         # Create trades list that doesn't match quantities list length
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "3", "150.00", "1.50")
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.00", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("3"), Decimal("2")],  # 2 quantities
             sell_trades=[sell_trade],  # Only 1 trade - mismatch!
@@ -522,14 +521,14 @@ class TestCapitalGainLine:
     def test_validate_with_mismatched_buy_counts_should_raise_error(self):
         """Test validate with mismatched buy counts raises error."""
         # Create trades list that doesn't match buy quantities list length
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "5", "150.00", "1.50")
         buy_trade1 = TradeAction(company, "2023-01-15, 10:30:45", currency, "3", "145.00", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[sell_trade],
@@ -545,8 +544,8 @@ class TestCapitalGainLine:
         """Test get_sell_date returns sell date."""
         sell_date = TradeDate(2024, 3, 28)
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=sell_date,
             sell_quantities=[Decimal("5")],
             sell_trades=[],
@@ -561,8 +560,8 @@ class TestCapitalGainLine:
         """Test get_buy_date returns buy date."""
         buy_date = TradeDate(2023, 1, 15)
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[],
@@ -576,15 +575,15 @@ class TestCapitalGainLine:
     def test_get_sell_amount_should_generate_formula_string(self):
         """Test get_sell_amount generates formula string."""
         # Create trades to match quantities for amount calculation
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade1 = TradeAction(company, "2024-03-28, 14:30:45", currency, "3", "150.25", "1.50")
         sell_trade2 = TradeAction(company, "2024-03-28, 15:30:45", currency, "2", "155.50", "1.55")
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.00", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("3"), Decimal("2")],
             sell_trades=[sell_trade1, sell_trade2],  # Add matching trades
@@ -600,14 +599,14 @@ class TestCapitalGainLine:
     def test_get_buy_amount_should_generate_formula_string(self):
         """Test get_buy_amount generates formula string."""
         # Create trades to match quantities for amount calculation
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "5", "150.25", "1.50")
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.50", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[sell_trade],
@@ -623,14 +622,14 @@ class TestCapitalGainLine:
     def test_get_expense_amount_should_generate_formula_string(self):
         """Test get_expense_amount generates formula string."""
         # Create trades to match quantities for expense calculation
-        company = get_company("AAPL")
-        currency = get_currency("USD")
+        company = parse_company("AAPL")
+        currency = parse_currency("USD")
         sell_trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "5", "150.25", "1.50")
         buy_trade = TradeAction(company, "2023-01-15, 10:30:45", currency, "5", "145.50", "1.45")
 
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[sell_trade],  # Add matching trade
@@ -647,8 +646,8 @@ class TestCapitalGainLine:
     def test_mutability(self):
         """Test CapitalGainLine mutability (dataclass is not frozen)."""
         line = CapitalGainLine(
-            ticker=get_company("AAPL").ticker,
-            currency=get_currency("USD"),
+            ticker=parse_company("AAPL").ticker,
+            currency=parse_currency("USD"),
             sell_date=TradeDate(2024, 3, 28),
             sell_quantities=[Decimal("5")],
             sell_trades=[],

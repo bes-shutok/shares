@@ -1,27 +1,25 @@
-from typing import Dict, List, NamedTuple
+from typing import NamedTuple
 
+from .accumulators import TradePartsWithinDay
 from .entities import (
-    QuantitatedTradeAction,
-    TradeCycle,
     CapitalGainLine,
     CurrencyCompany,
     DividendIncomePerSecurity,
+    QuantitatedTradeAction,
+    TradeCycle,
 )
-from .value_objects import TradeDate, Currency
-from .accumulators import TradePartsWithinDay
-from .value_objects import TradeType
-
+from .value_objects import Currency, TradeDate, TradeType
 
 # Type aliases for collections
-QuantitatedTradeActions = List[QuantitatedTradeAction]
-CapitalGainLines = List[CapitalGainLine]
-SortedDateRanges = List[TradeDate]
-TradeCyclePerCompany = Dict[CurrencyCompany, TradeCycle]
-CapitalGainLinesPerCompany = Dict[CurrencyCompany, CapitalGainLines]
+QuantitatedTradeActions = list[QuantitatedTradeAction]
+CapitalGainLines = list[CapitalGainLine]
+SortedDateRanges = list[TradeDate]
+TradeCyclePerCompany = dict[CurrencyCompany, TradeCycle]
+CapitalGainLinesPerCompany = dict[CurrencyCompany, CapitalGainLines]
 
 # Additional collection types from the original domain.py
-DayPartitionedTrades = Dict[TradeDate, TradePartsWithinDay]
-PartitionedTradesByType = Dict[TradeType, DayPartitionedTrades]
+DayPartitionedTrades = dict[TradeDate, TradePartsWithinDay]
+PartitionedTradesByType = dict[TradeType, DayPartitionedTrades]
 
 
 class CurrencyToCoordinate(NamedTuple):
@@ -29,11 +27,11 @@ class CurrencyToCoordinate(NamedTuple):
     coordinate: str
 
 
-CurrencyToCoordinates = List[CurrencyToCoordinate]
+CurrencyToCoordinates = list[CurrencyToCoordinate]
 
 # Type aliases for dividend income collections
-DividendIncomePerSecurityList = List[DividendIncomePerSecurity]
-DividendIncomePerCompany = Dict[
+DividendIncomePerSecurityList = list[DividendIncomePerSecurity]
+DividendIncomePerCompany = dict[
     str, DividendIncomePerSecurity
 ]  # symbol -> DividendIncomePerSecurity
 

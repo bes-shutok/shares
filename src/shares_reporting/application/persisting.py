@@ -1,45 +1,45 @@
 import csv
 import os
 from pathlib import Path
-from typing import Dict, List, Union
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ..domain.collections import (
     CapitalGainLinesPerCompany,
-    TradeCyclePerCompany,
     DividendIncomePerCompany,
+    TradeCyclePerCompany,
 )
-from ..domain.entities import CurrencyCompany, TradeCycle
-from ..domain.value_objects import TradeType
-from ..infrastructure.config import Config, ConversionRate, read_config
-from ..infrastructure.logging_config import get_logger
-from ..domain.exceptions import ReportGenerationError
 from ..domain.constants import (
-    EXCEL_START_COLUMN,
-    EXCEL_START_ROW,
+    EXCEL_COLUMN_OFFSET,
     EXCEL_HEADER_ROW_1,
     EXCEL_HEADER_ROW_2,
-    EXCEL_WITHOLDING_TAX_COLUMN,
-    EXCEL_COUNTRY_COLUMN,
-    EXCEL_COLUMN_OFFSET,
     EXCEL_NUMBER_FORMAT,
+    EXCEL_START_COLUMN,
+    EXCEL_START_ROW,
 )
+from ..domain.exceptions import ReportGenerationError
+from ..domain.value_objects import TradeType
+from ..infrastructure.config import Config, ConversionRate, load_configuration_from_file
+from ..infrastructure.logging_config import create_module_logger
 
 
-def persist_leftover(
-    leftover: Union[str, os.PathLike], leftover_trades: TradeCyclePerCompany
+def export_rollover_file(
+    leftover: str | os.PathLike, leftover_trades: TradeCyclePerCompany
 ) -> None:
     """
-    Generate a CSV report for leftover (unmatched) trades.
+    Export unmatched securities rollover file for next year's FIFO calculations.
+
+    This function creates a CSV file containing all trades that couldn't be matched
+    during the FIFO capital gains calculation process. These unmatched securities
+    are rolled over to the next tax year to maintain FIFO continuity.
 
     Args:
-        leftover: Output file path for the leftover trades CSV
-        leftover_trades: Dictionary of trades that couldn't be matched
+        leftover: Output file path for the unmatched securities rollover file
+        leftover_trades: Dictionary of trades to be rolled over to next year's calculations
     """
-    logger = get_logger(__name__)
-    logger.info(f"Generating leftover shares report: {Path(leftover).name}")
+    logger = create_module_logger(__name__)
+    logger.info(f"Generating unmatched securities rollover file: {Path(leftover).name}")
 
     safe_remove_file(leftover)
     processed_companies = 0
@@ -94,23 +94,27 @@ def persist_leftover(
                     row["Comm/Fee"] = action.fee
                     writer.writerow(row)
 
-    logger.info(f"Generated leftover report for {processed_companies} companies")
+    logger.info(f"Generated unmatched securities rollover file for {processed_companies} companies")
 
 
-def persist_results(
-    extract: Union[str, os.PathLike],
+def generate_tax_report(
+    extract: str | os.PathLike,
     capital_gain_lines_per_company: CapitalGainLinesPerCompany,
     dividend_income_per_company: DividendIncomePerCompany = None,
 ) -> None:
     """
-    Generate an Excel report with capital gains calculations and dividend income.
+    Generate comprehensive Excel tax report with capital gains and dividend income.
+
+    This function creates a professional Excel report containing all tax-relevant
+    information for capital gains and dividend income reporting, including currency
+    exchange rate tables and proper formatting for submission to tax authorities.
 
     Args:
-        extract: Output file path for the Excel report
+        extract: Output file path for the Excel tax report
         capital_gain_lines_per_company: Calculated capital gains grouped by company
         dividend_income_per_company: Dividend income data grouped by company (optional)
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     logger.info(f"Generating capital gains report: {Path(extract).name}")
 
     total_gain_lines = sum(len(lines) for lines in capital_gain_lines_per_company.values())
@@ -167,8 +171,8 @@ def persist_results(
     worksheet.title = "Reporting"
 
     try:
-        config: Config = read_config()
-        exchange_rates: Dict[str, str] = create_currency_table(
+        config: Config = load_configuration_from_file()
+        exchange_rates: dict[str, str] = create_currency_table(
             worksheet, last_column + 2, 1, config
         )
         logger.debug(f"Created currency exchange table with {len(config.rates) + 1} rates")
@@ -381,14 +385,14 @@ def persist_results(
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 
 
-def safe_remove_file(path: Union[str, os.PathLike]) -> None:
+def safe_remove_file(path: str | os.PathLike) -> None:
     """
     Safely remove a file if it exists, logging any errors.
 
     Args:
         path: File path to remove
     """
-    logger = get_logger(__name__)
+    logger = create_module_logger(__name__)
     try:
         if os.path.exists(path):
             os.remove(path)
@@ -401,10 +405,10 @@ def safe_remove_file(path: Union[str, os.PathLike]) -> None:
 # https://openpyxl.readthedocs.io/en/latest/tutorial.html
 def create_currency_table(
     worksheet: Worksheet, column_no: int, row_no: int, config: Config
-) -> Dict[str, str]:
-    logger = get_logger(__name__)
+) -> dict[str, str]:
+    logger = create_module_logger(__name__)
     currency_header = ["Base/target", "Rate"]
-    rates: List[ConversionRate] = config.rates
+    rates: list[ConversionRate] = config.rates
 
     logger.debug(f"Creating currency table starting at column {column_no}, row {row_no}")
 
@@ -413,7 +417,7 @@ def create_currency_table(
     for i in range(len(currency_header)):
         worksheet.cell(row_no, column_no, currency_header[i])
 
-    coordinates: Dict[str, str] = {}
+    coordinates: dict[str, str] = {}
     for j in range(len(rates)):
         worksheet.cell(row_no + j, column_no, rates[j].base + "/" + rates[j].calculated)
         cell = worksheet.cell(row_no + j, column_no + 1, str(rates[j].rate))

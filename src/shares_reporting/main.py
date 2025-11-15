@@ -6,24 +6,23 @@ Processes Interactive Brokers CSV exports to generate tax reporting data for cap
 
 import sys
 from pathlib import Path
-from typing import Optional
 
-from .application.extraction import parse_ib_export_complete
-from .application.persisting import persist_leftover, persist_results
-from .application.transformation import calculate
+from .application.extraction import parse_ib_export_all
+from .application.persisting import export_rollover_file, generate_tax_report
+from .application.transformation import calculate_fifo_gains
 from .domain.collections import (
     CapitalGainLinesPerCompany,
-    TradeCyclePerCompany,
     DividendIncomePerCompany,
     IBExportData,
+    TradeCyclePerCompany,
 )
-from .domain.exceptions import SharesReportingError, FileProcessingError, ReportGenerationError
-from .infrastructure.logging_config import setup_logging, get_logger
+from .domain.exceptions import FileProcessingError, ReportGenerationError, SharesReportingError
+from .infrastructure.logging_config import configure_application_logging, create_module_logger
 from .infrastructure.validation import validate_output_directory
 
 
 def main(
-    source_file: Optional[Path] = None, output_dir: Optional[Path] = None, log_level: str = "INFO"
+    source_file: Path | None = None, output_dir: Path | None = None, log_level: str = "INFO"
 ) -> None:
     """
     Main application entry point.
@@ -35,8 +34,8 @@ def main(
     """
     # Set up logging
     log_file = Path("logs", "shares-reporting.log") if output_dir else None
-    setup_logging(level=log_level, log_file=log_file)
-    logger = get_logger(__name__)
+    configure_application_logging(level=log_level, log_file=log_file)
+    logger = create_module_logger(__name__)
 
     try:
         # Default paths
@@ -76,9 +75,9 @@ def main(
         logger.info(f"Processing file: {validated_source.name}")
         logger.info(f"Output files will be: {extract_path.name} and {leftover_path.name}")
 
-        # Parse raw IB export data
+        # Extract comprehensive data from IB export
         try:
-            ib_data: IBExportData = parse_ib_export_complete(validated_source)
+            ib_data: IBExportData = parse_ib_export_all(validated_source)
             trade_lines_per_company: TradeCyclePerCompany = ib_data.trade_cycles
             dividend_income_per_company: DividendIncomePerCompany = ib_data.dividend_income
             logger.info(
@@ -87,27 +86,29 @@ def main(
         except Exception as e:
             raise FileProcessingError(f"Failed to parse source file: {e}") from e
 
-        # Calculate capital gains
+        # Calculate capital gains using FIFO matching algorithm
         try:
             leftover_trades: TradeCyclePerCompany = {}
             capital_gains: CapitalGainLinesPerCompany = {}
-            calculate(trade_lines_per_company, leftover_trades, capital_gains)
+            calculate_fifo_gains(trade_lines_per_company, leftover_trades, capital_gains)
             logger.info(
                 f"Calculated {sum(len(gains) for gains in capital_gains.values())} capital gain lines"
             )
         except Exception as e:
             raise SharesReportingError(f"Failed to calculate capital gains: {e}") from e
 
-        # Generate leftover shares report
+        # Export unmatched securities rollover file
         try:
-            persist_leftover(leftover_path, leftover_trades)
-            logger.info(f"Generated leftover shares report: {leftover_path}")
+            export_rollover_file(leftover_path, leftover_trades)
+            logger.info(f"Generated unmatched securities rollover file: {leftover_path}")
         except Exception as e:
-            raise ReportGenerationError(f"Failed to generate leftover report: {e}") from e
+            raise ReportGenerationError(
+                f"Failed to generate unmatched securities rollover file: {e}"
+            ) from e
 
-        # Generate capital gains and dividend income report
+        # Generate comprehensive tax report
         try:
-            persist_results(extract_path, capital_gains, dividend_income_per_company)
+            generate_tax_report(extract_path, capital_gains, dividend_income_per_company)
             report_type = (
                 "capital gains and dividend income"
                 if dividend_income_per_company

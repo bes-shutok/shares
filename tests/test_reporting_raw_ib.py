@@ -8,26 +8,22 @@ when processing equivalent data.
 from datetime import datetime
 from decimal import Decimal
 
-from shares_reporting.application.extraction import parse_raw_ib_export
-from shares_reporting.application.persisting import persist_results
-from shares_reporting.application.transformation import calculate, split_by_days
+from test_data import sell_action1
+
+from shares_reporting.application.extraction import parse_ib_export
+from shares_reporting.application.transformation import calculate_fifo_gains, split_by_days
+from shares_reporting.domain.collections import (
+    CapitalGainLinesPerCompany,
+    QuantitatedTradeAction,
+    TradeCyclePerCompany,
+)
+from shares_reporting.domain.entities import CurrencyCompany
 from shares_reporting.domain.value_objects import (
     TradeDate,
     TradeType,
-    get_trade_date,
-    get_currency,
-    get_company,
+    parse_company,
+    parse_currency,
 )
-from shares_reporting.domain.accumulators import TradePartsWithinDay
-from shares_reporting.domain.collections import (
-    DayPartitionedTrades,
-    TradeCyclePerCompany,
-    CapitalGainLinesPerCompany,
-    QuantitatedTradeAction,
-    QuantitatedTradeActions,
-)
-from shares_reporting.domain.entities import CurrencyCompany
-from test_data import sell_action1
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
 test_dict2 = ["202201", "202112", "202102"]
@@ -78,14 +74,14 @@ def test_comparing_raw_ib():
 
     source = Path("tests", "resources", "ib_simple_raw.csv")
 
-    trade_actions_per_company: TradeCyclePerCompany = parse_raw_ib_export(source)
+    trade_actions_per_company: TradeCyclePerCompany = parse_ib_export(source)
     capital_gains: CapitalGainLinesPerCompany = {}
     leftover_trades: TradeCyclePerCompany = {}
-    calculate(trade_actions_per_company, leftover_trades, capital_gains)
+    calculate_fifo_gains(trade_actions_per_company, leftover_trades, capital_gains)
 
     # Verify that raw IB parsing produces valid capital gains structure
-    currency = get_currency("USD")
-    company = get_company("BTU", "US7045491033", "United States")
+    currency = parse_currency("USD")
+    company = parse_company("BTU", "US7045491033", "United States")
     currency_company = CurrencyCompany(currency, company)
 
     assert currency_company in capital_gains
