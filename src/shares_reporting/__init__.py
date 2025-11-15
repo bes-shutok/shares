@@ -32,7 +32,6 @@ __all__ = [
     "get_currency",
     "Company",
     "get_company",
-
     # Entities
     "TradeAction",
     "QuantitatedTradeAction",
@@ -40,11 +39,9 @@ __all__ = [
     "CurrencyCompany",
     "CapitalGainLine",
     "DividendIncomePerSecurity",
-
     # Accumulators
     "CapitalGainLineAccumulator",
     "TradePartsWithinDay",
-
     # Collections and Type Aliases
     "QuantitatedTradeActions",
     "CapitalGainLines",
@@ -57,7 +54,6 @@ __all__ = [
     "CurrencyToCoordinates",
     "DividendIncomePerSecurityList",
     "DividendIncomePerCompany",
-
     # Functions from each module
     "parse_data",
     "calculate",

@@ -18,17 +18,20 @@ logger = get_logger(__name__)
 
 class ValidationError(Exception):
     """Raised when input validation fails."""
+
     pass
 
 
 class SecurityError(Exception):
     """Raised when a security issue is detected."""
+
     pass
 
 
 @dataclass
 class SecurityConfig:
     """Configuration for security validation limits."""
+
     max_file_size_mb: int = 100
     max_ticker_length: int = 10
     max_currency_length: int = 3
@@ -40,13 +43,13 @@ class SecurityConfig:
 
     def __post_init__(self):
         if self.allowed_extensions is None:
-            self.allowed_extensions = ['.csv', '.txt']
+            self.allowed_extensions = [".csv", ".txt"]
         if self.blocked_patterns is None:
             self.blocked_patterns = [
-                r'\.\.[\\/]',  # Directory traversal
+                r"\.\.[\\/]",  # Directory traversal
                 r'[<>:"|?*]',  # Invalid filename characters
-                r'\0',  # Null bytes
-                r'^CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]$',  # Reserved Windows names
+                r"\0",  # Null bytes
+                r"^CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]$",  # Reserved Windows names
             ]
 
 
@@ -57,7 +60,7 @@ DEFAULT_SECURITY_CONFIG = SecurityConfig()
 def sanitize_file_path(
     file_path: Union[str, Path],
     allowed_directories: Optional[List[Path]] = None,
-    config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+    config: SecurityConfig = DEFAULT_SECURITY_CONFIG,
 ) -> Path:
     """
     Sanitize and validate file paths to prevent directory traversal attacks.
@@ -76,11 +79,15 @@ def sanitize_file_path(
 
         # Validate filename length
         if len(path_obj.name) > config.max_filename_length:
-            raise ValidationError(f"Filename too long (max {config.max_filename_length} characters): {path_obj.name}")
+            raise ValidationError(
+                f"Filename too long (max {config.max_filename_length} characters): {path_obj.name}"
+            )
 
         # Check file extension
         if path_obj.suffix.lower() not in config.allowed_extensions:
-            raise ValidationError(f"File extension not allowed: {path_obj.suffix}. Allowed: {config.allowed_extensions}")
+            raise ValidationError(
+                f"File extension not allowed: {path_obj.suffix}. Allowed: {config.allowed_extensions}"
+            )
 
         # Convert to absolute path
         abs_path = path_obj.resolve()
@@ -117,7 +124,9 @@ def sanitize_file_path(
         raise ValidationError(f"Invalid file path {file_path}: {str(e)}")
 
 
-def validate_csv_file(file_path: Union[str, Path], config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> Path:
+def validate_csv_file(
+    file_path: Union[str, Path], config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+) -> Path:
     """
     Validate that a file is a valid CSV file for processing.
 
@@ -146,14 +155,14 @@ def validate_csv_file(file_path: Union[str, Path], config: SecurityConfig = DEFA
 
     # Try to read first few lines to ensure it's readable
     try:
-        with open(safe_path, 'r', encoding='utf-8') as f:
+        with open(safe_path, "r", encoding="utf-8") as f:
             # Read first 1024 bytes to check if it's text
             sample = f.read(1024)
             if not sample.strip():
                 raise ValidationError(f"File appears to be empty: {safe_path}")
 
             # Check for binary content (heuristic)
-            if '\x00' in sample:  # Null bytes indicate binary
+            if "\x00" in sample:  # Null bytes indicate binary
                 raise ValidationError(f"File appears to be binary, not CSV: {safe_path}")
 
     except UnicodeDecodeError:
@@ -168,8 +177,7 @@ def validate_csv_file(file_path: Union[str, Path], config: SecurityConfig = DEFA
 
 
 def sanitize_directory_path(
-    directory_path: Union[str, Path],
-    config: SecurityConfig = DEFAULT_SECURITY_CONFIG
+    directory_path: Union[str, Path], config: SecurityConfig = DEFAULT_SECURITY_CONFIG
 ) -> Path:
     """
     Sanitize and validate directory paths to prevent directory traversal attacks.
@@ -187,7 +195,9 @@ def sanitize_directory_path(
 
         # Validate directory name length
         if len(path_obj.name) > config.max_filename_length:
-            raise ValidationError(f"Directory name too long (max {config.max_filename_length} characters): {path_obj.name}")
+            raise ValidationError(
+                f"Directory name too long (max {config.max_filename_length} characters): {path_obj.name}"
+            )
 
         # Convert to absolute path
         abs_path = path_obj.resolve()
@@ -223,7 +233,7 @@ def validate_output_directory(output_path: Union[str, Path]) -> Path:
         safe_path.mkdir(parents=True, exist_ok=True)
 
         # Check if we can write to the directory
-        test_file = safe_path / '.write_test'
+        test_file = safe_path / ".write_test"
         test_file.touch()
         test_file.unlink()
 
@@ -258,7 +268,9 @@ def validate_company_ticker(ticker: str, config: SecurityConfig = DEFAULT_SECURI
         raise ValidationError(f"Invalid ticker format: '{ticker}'")
 
     if len(clean_ticker) > config.max_ticker_length:
-        raise ValidationError(f"Ticker too long (max {config.max_ticker_length} characters): '{ticker}'")
+        raise ValidationError(
+            f"Ticker too long (max {config.max_ticker_length} characters): '{ticker}'"
+        )
 
     return clean_ticker
 
@@ -282,7 +294,9 @@ def validate_currency_code(currency: str, config: SecurityConfig = DEFAULT_SECUR
 
     # Check currency format using constant pattern
     if not re.match(CURRENCY_FORMAT_PATTERN, clean_currency):
-        raise ValidationError(f"Invalid currency code format: '{currency}' (must be {config.max_currency_length} letters)")
+        raise ValidationError(
+            f"Invalid currency code format: '{currency}' (must be {config.max_currency_length} letters)"
+        )
 
     return clean_currency
 
@@ -303,7 +317,7 @@ def validate_quantity(quantity_str: str, config: SecurityConfig = DEFAULT_SECURI
 
     try:
         # Remove commas and convert to float
-        clean_quantity = quantity_str.replace(',', '')
+        clean_quantity = quantity_str.replace(",", "")
         quantity = float(clean_quantity)
 
         # Check for reasonable bounds using configurable limit
@@ -332,7 +346,7 @@ def validate_price(price_str: str, config: SecurityConfig = DEFAULT_SECURITY_CON
 
     try:
         # Remove commas and convert to float
-        clean_price = price_str.replace(',', '')
+        clean_price = price_str.replace(",", "")
         price = float(clean_price)
 
         # Check for reasonable bounds

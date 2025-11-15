@@ -5,7 +5,12 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Union
 
-from ..domain.collections import QuantitatedTradeActions, TradeCyclePerCompany, DividendIncomePerCompany, IBExportData
+from ..domain.collections import (
+    QuantitatedTradeActions,
+    TradeCyclePerCompany,
+    DividendIncomePerCompany,
+    IBExportData,
+)
 from ..domain.entities import (
     CurrencyCompany,
     QuantitatedTradeAction,
@@ -22,6 +27,7 @@ from ..infrastructure.logging_config import get_logger
 
 class IBCsvSection(Enum):
     """Enum to track current section being processed in IB CSV file."""
+
     UNKNOWN = "unknown"
     FINANCIAL_INSTRUMENT = "financial_instrument"
     TRADES = "trades"
@@ -33,6 +39,7 @@ class IBCsvSection(Enum):
 @dataclass
 class IBCsvData:
     """Container for all raw data extracted from IB CSV file."""
+
     security_info: Dict[str, Dict[str, str]]
     raw_trade_data: List[Dict[str, str]]
     raw_dividend_data: List[Dict[str, str]]
@@ -79,12 +86,13 @@ class FinancialInstrumentContext(BaseSectionContext):
 
     def process_header(self, row: List[str]) -> None:
         """Process Financial Instrument Information header."""
-        if (len(row) >= 7 and row[1] == "Header" and
-            row[3] == "Symbol" and row[6] == "Security ID"):
+        if len(row) >= 7 and row[1] == "Header" and row[3] == "Symbol" and row[6] == "Security ID":
             self.headers_found = True
             self.logger.debug("Found Financial Instrument Information header")
         else:
-            raise FileProcessingError(f"Invalid 'Financial Instrument Information' header format: {row}")
+            raise FileProcessingError(
+                f"Invalid 'Financial Instrument Information' header format: {row}"
+            )
 
     def process_data_row(self, row: List[str]) -> None:
         """Process security info data row."""
@@ -103,14 +111,15 @@ class FinancialInstrumentContext(BaseSectionContext):
                     self.processed_count += 1
                     self.logger.debug(f"Extracted security info for {symbol}: {isin} ({country})")
                 except Exception as e:
-                    self.logger.warning(f"Failed to extract country for {symbol} with ISIN {isin}: {e}")
+                    self.logger.warning(
+                        f"Failed to extract country for {symbol} with ISIN {isin}: {e}"
+                    )
                     self.security_info[symbol] = {"isin": isin, "country": "Unknown"}
                     self.processed_count += 1
 
     def validate_header(self, row: List[str]) -> bool:
         """Validate Financial Instrument Information header."""
-        return (len(row) >= 2 and row[0] == "Financial Instrument Information" and
-                row[1] == "Header")
+        return len(row) >= 2 and row[0] == "Financial Instrument Information" and row[1] == "Header"
 
 
 class TradesContext(BaseSectionContext):
@@ -153,7 +162,9 @@ class TradesContext(BaseSectionContext):
                 self.logger.debug(f"Column mapping: {self.trades_col_mapping}")
             except ValueError as e:
                 if self.require_trades_section:
-                    raise FileProcessingError(f"Missing required column in Trades section: {e}") from e
+                    raise FileProcessingError(
+                        f"Missing required column in Trades section: {e}"
+                    ) from e
                 else:
                     # If trades section is not required, just skip it
                     self.logger.debug(f"Skipping Trades section due to missing columns: {e}")
@@ -178,18 +189,36 @@ class TradesContext(BaseSectionContext):
         # Extract trade data as dictionary for deferred processing
         fee_value = ""
         if self.trades_col_mapping["fee"] is not None:
-            fee_value = row[self.trades_col_mapping["fee"]] if len(row) > self.trades_col_mapping["fee"] else ""
+            fee_value = (
+                row[self.trades_col_mapping["fee"]]
+                if len(row) > self.trades_col_mapping["fee"]
+                else ""
+            )
 
         trade_row = {
-            "symbol": row[self.trades_col_mapping["symbol"]] if len(row) > self.trades_col_mapping["symbol"] else "",
-            "currency": row[self.trades_col_mapping["currency"]] if len(row) > self.trades_col_mapping["currency"] else "",
-            "datetime": row[self.trades_col_mapping["datetime"]] if len(row) > self.trades_col_mapping["datetime"] else "",
-            "quantity": row[self.trades_col_mapping["quantity"]] if len(row) > self.trades_col_mapping["quantity"] else "",
-            "price": row[self.trades_col_mapping["price"]] if len(row) > self.trades_col_mapping["price"] else "",
+            "symbol": row[self.trades_col_mapping["symbol"]]
+            if len(row) > self.trades_col_mapping["symbol"]
+            else "",
+            "currency": row[self.trades_col_mapping["currency"]]
+            if len(row) > self.trades_col_mapping["currency"]
+            else "",
+            "datetime": row[self.trades_col_mapping["datetime"]]
+            if len(row) > self.trades_col_mapping["datetime"]
+            else "",
+            "quantity": row[self.trades_col_mapping["quantity"]]
+            if len(row) > self.trades_col_mapping["quantity"]
+            else "",
+            "price": row[self.trades_col_mapping["price"]]
+            if len(row) > self.trades_col_mapping["price"]
+            else "",
             "fee": fee_value,
         }
 
-        if not trade_row["symbol"] or not trade_row["datetime"] or trade_row["datetime"].strip() == "":
+        if (
+            not trade_row["symbol"]
+            or not trade_row["datetime"]
+            or trade_row["datetime"].strip() == ""
+        ):
             self.skipped_trades += 1
             return
 
@@ -197,7 +226,9 @@ class TradesContext(BaseSectionContext):
         self.processed_count += 1
 
         if self.processed_count <= 5 or self.processed_count % 100 == 0:
-            self.logger.debug(f"Collected trade {self.processed_count}: {trade_row['symbol']} {trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}")
+            self.logger.debug(
+                f"Collected trade {self.processed_count}: {trade_row['symbol']} {trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}"
+            )
 
     def validate_header(self, row: List[str]) -> bool:
         """Validate Trades header."""
@@ -242,10 +273,18 @@ class DividendsContext(BaseSectionContext):
             return
 
         dividend_row = {
-            "currency": row[self.dividends_col_mapping["currency"]] if len(row) > self.dividends_col_mapping["currency"] else "",
-            "date": row[self.dividends_col_mapping["date"]] if len(row) > self.dividends_col_mapping["date"] else "",
-            "description": row[self.dividends_col_mapping["description"]] if len(row) > self.dividends_col_mapping["description"] else "",
-            "amount": row[self.dividends_col_mapping["amount"]] if len(row) > self.dividends_col_mapping["amount"] else "",
+            "currency": row[self.dividends_col_mapping["currency"]]
+            if len(row) > self.dividends_col_mapping["currency"]
+            else "",
+            "date": row[self.dividends_col_mapping["date"]]
+            if len(row) > self.dividends_col_mapping["date"]
+            else "",
+            "description": row[self.dividends_col_mapping["description"]]
+            if len(row) > self.dividends_col_mapping["description"]
+            else "",
+            "amount": row[self.dividends_col_mapping["amount"]]
+            if len(row) > self.dividends_col_mapping["amount"]
+            else "",
         }
 
         if dividend_row["description"] and dividend_row["amount"]:
@@ -253,7 +292,9 @@ class DividendsContext(BaseSectionContext):
             self.processed_count += 1
 
             if self.processed_count <= 5:
-                self.logger.debug(f"Collected dividend {self.processed_count}: {dividend_row['description']} {dividend_row['currency']} {dividend_row['amount']}")
+                self.logger.debug(
+                    f"Collected dividend {self.processed_count}: {dividend_row['description']} {dividend_row['currency']} {dividend_row['amount']}"
+                )
 
     def validate_header(self, row: List[str]) -> bool:
         """Validate Dividends header."""
@@ -284,7 +325,9 @@ class WithholdingTaxContext(BaseSectionContext):
                     "amount": self.withholding_tax_headers.index("Amount"),
                 }
                 self.headers_found = True
-                self.logger.debug(f"Withholding Tax column mapping: {self.withholding_tax_col_mapping}")
+                self.logger.debug(
+                    f"Withholding Tax column mapping: {self.withholding_tax_col_mapping}"
+                )
             except ValueError as e:
                 self.logger.debug(f"Skipping Withholding Tax section due to missing columns: {e}")
                 self.withholding_tax_headers = None
@@ -298,10 +341,18 @@ class WithholdingTaxContext(BaseSectionContext):
             return
 
         tax_row = {
-            "currency": row[self.withholding_tax_col_mapping["currency"]] if len(row) > self.withholding_tax_col_mapping["currency"] else "",
-            "date": row[self.withholding_tax_col_mapping["date"]] if len(row) > self.withholding_tax_col_mapping["date"] else "",
-            "description": row[self.withholding_tax_col_mapping["description"]] if len(row) > self.withholding_tax_col_mapping["description"] else "",
-            "amount": row[self.withholding_tax_col_mapping["amount"]] if len(row) > self.withholding_tax_col_mapping["amount"] else "",
+            "currency": row[self.withholding_tax_col_mapping["currency"]]
+            if len(row) > self.withholding_tax_col_mapping["currency"]
+            else "",
+            "date": row[self.withholding_tax_col_mapping["date"]]
+            if len(row) > self.withholding_tax_col_mapping["date"]
+            else "",
+            "description": row[self.withholding_tax_col_mapping["description"]]
+            if len(row) > self.withholding_tax_col_mapping["description"]
+            else "",
+            "amount": row[self.withholding_tax_col_mapping["amount"]]
+            if len(row) > self.withholding_tax_col_mapping["amount"]
+            else "",
         }
 
         if tax_row["description"] and tax_row["amount"]:
@@ -309,7 +360,9 @@ class WithholdingTaxContext(BaseSectionContext):
             self.processed_count += 1
 
             if self.processed_count <= 5:
-                self.logger.debug(f"Collected withholding tax {self.processed_count}: {tax_row['description']} {tax_row['currency']} {tax_row['amount']}")
+                self.logger.debug(
+                    f"Collected withholding tax {self.processed_count}: {tax_row['description']} {tax_row['currency']} {tax_row['amount']}"
+                )
 
     def validate_header(self, row: List[str]) -> bool:
         """Validate Withholding Tax header."""
@@ -384,7 +437,9 @@ class IBCsvStateMachine:
                 self.financial_context.process_header(row)
                 self.found_financial_instrument_header = True
             except Exception as e:
-                self.logger.warning(f"Failed to process financial instrument header: {e}, row: {row}")
+                self.logger.warning(
+                    f"Failed to process financial instrument header: {e}, row: {row}"
+                )
                 # Continue processing even if header validation fails
 
     def _transition_to_trades(self, row: List[str]) -> None:
@@ -442,8 +497,12 @@ class IBCsvStateMachine:
             "security_processed_count": self.financial_context.security_processed_count,
         }
 
-        self.logger.info(f"Extracted security data for {len(self.security_info)} symbols ({self.financial_context.security_processed_count} with country data)")
-        self.logger.info(f"Collected {self.trades_context.processed_count} trades, {self.dividends_context.processed_count} dividends and {self.withholding_tax_context.processed_count} withholding taxes")
+        self.logger.info(
+            f"Extracted security data for {len(self.security_info)} symbols ({self.financial_context.security_processed_count} with country data)"
+        )
+        self.logger.info(
+            f"Collected {self.trades_context.processed_count} trades, {self.dividends_context.processed_count} dividends and {self.withholding_tax_context.processed_count} withholding taxes"
+        )
         if self.trades_context.skipped_trades > 0:
             self.logger.warning(f"Skipped {self.trades_context.skipped_trades} invalid trades")
 
@@ -452,7 +511,7 @@ class IBCsvStateMachine:
             raw_trade_data=self.raw_trade_data,
             raw_dividend_data=self.raw_dividend_data,
             raw_withholding_tax_data=self.raw_withholding_tax_data,
-            metadata=metadata
+            metadata=metadata,
         )
 
 
@@ -532,18 +591,14 @@ def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany
             company = get_company(symbol, isin, country)
             currency = get_currency(currency_str)
 
-            currency_company: CurrencyCompany = CurrencyCompany(
-                currency=currency, company=company
-            )
+            currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
             if currency_company in trade_cycles_per_company:
                 trade_cycle: TradeCycle = trade_cycles_per_company[currency_company]
             else:
                 trade_cycle: TradeCycle = TradeCycle()
                 trade_cycles_per_company[currency_company] = trade_cycle
 
-            trade_action = TradeAction(
-                company, datetime_val, currency, quantity, price, fee
-            )
+            trade_action = TradeAction(company, datetime_val, currency, quantity, price, fee)
             quantitated_trade_actions: QuantitatedTradeActions = trade_cycle.get(
                 trade_action.trade_type
             )
@@ -555,7 +610,9 @@ def _process_trades_with_securities(csv_data: IBCsvData) -> TradeCyclePerCompany
             logger.warning(f"Failed to process trade for {symbol}: {e}")
             continue
 
-    logger.info(f"Processed {len(csv_data.raw_trade_data)} trades for {len(trade_cycles_per_company)} currency-company pairs")
+    logger.info(
+        f"Processed {len(csv_data.raw_trade_data)} trades for {len(trade_cycles_per_company)} currency-company pairs"
+    )
     return trade_cycles_per_company
 
 
@@ -576,7 +633,9 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
     dividend_income_per_company: DividendIncomePerCompany = {}
 
     # Temporary aggregation structure
-    aggregation: Dict[str, Dict[str, Decimal]] = {}  # symbol -> {gross_amount, total_taxes, currency}
+    aggregation: Dict[
+        str, Dict[str, Decimal]
+    ] = {}  # symbol -> {gross_amount, total_taxes, currency}
 
     for dividend_row in csv_data.raw_dividend_data:
         description = dividend_row["description"]
@@ -589,7 +648,7 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 symbol = description.split(" - ")[0].strip()
             else:
                 # Fallback: try to extract what looks like a ticker symbol
-                symbol_match = re.search(r'([A-Z]{1,5})', description)
+                symbol_match = re.search(r"([A-Z]{1,5})", description)
                 symbol = symbol_match.group(1) if symbol_match else description.strip()
 
             if not symbol:
@@ -603,15 +662,15 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 continue
 
             # Parse amounts (no tax in dividend section)
-            amount = Decimal(amount_str.replace(",", "")) if amount_str else Decimal('0')
+            amount = Decimal(amount_str.replace(",", "")) if amount_str else Decimal("0")
 
             # Aggregate by symbol and currency
             key = f"{symbol}_{currency_str}"
             if key not in aggregation:
                 aggregation[key] = {
-                    "gross_amount": Decimal('0'),
-                    "total_taxes": Decimal('0'),
-                    "currency": currency_str
+                    "gross_amount": Decimal("0"),
+                    "total_taxes": Decimal("0"),
+                    "currency": currency_str,
                 }
 
             aggregation[key]["gross_amount"] += amount
@@ -628,9 +687,11 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
 
         try:
             # Extract ISIN from withholding tax description (format: "SYMBOL(ISIN) Description - Tax")
-            isin_match = re.search(r'\(([A-Z0-9]+)\)', description)
+            isin_match = re.search(r"\(([A-Z0-9]+)\)", description)
             if not isin_match:
-                logger.warning(f"Could not extract ISIN from withholding tax description: {description}")
+                logger.warning(
+                    f"Could not extract ISIN from withholding tax description: {description}"
+                )
                 continue
 
             isin = isin_match.group(1)
@@ -643,11 +704,15 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                     break
 
             if not symbol:
-                logger.warning(f"Could not find symbol for ISIN {isin} in withholding tax: {description}")
+                logger.warning(
+                    f"Could not find symbol for ISIN {isin} in withholding tax: {description}"
+                )
                 continue
 
             # Parse tax amount (withholding tax amounts are negative)
-            tax_amount = Decimal(tax_amount_str.replace(",", "")) if tax_amount_str else Decimal('0')
+            tax_amount = (
+                Decimal(tax_amount_str.replace(",", "")) if tax_amount_str else Decimal("0")
+            )
             # Use absolute value since we track positive tax amounts
             tax_amount = abs(tax_amount)
 
@@ -655,9 +720,9 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
             key = f"{symbol}_{currency_str}"
             if key not in aggregation:
                 aggregation[key] = {
-                    "gross_amount": Decimal('0'),
-                    "total_taxes": Decimal('0'),
-                    "currency": currency_str
+                    "gross_amount": Decimal("0"),
+                    "total_taxes": Decimal("0"),
+                    "currency": currency_str,
                 }
 
             aggregation[key]["total_taxes"] += tax_amount
@@ -688,7 +753,7 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
                 country=country,
                 gross_amount=data["gross_amount"],
                 total_taxes=data["total_taxes"],
-                currency=currency
+                currency=currency,
             )
 
             dividend_income.validate()
@@ -698,10 +763,10 @@ def _process_dividends_with_securities(csv_data: IBCsvData) -> DividendIncomePer
             logger.warning(f"Failed to create dividend income object for {key}: {e}")
             continue
 
-    logger.info(f"Processed {len(csv_data.raw_dividend_data)} dividend entries into {len(dividend_income_per_company)} securities")
+    logger.info(
+        f"Processed {len(csv_data.raw_dividend_data)} dividend entries into {len(dividend_income_per_company)} securities"
+    )
     return dividend_income_per_company
-
-
 
 
 def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
@@ -725,7 +790,7 @@ def parse_raw_ib_export(path: Union[str, Path]) -> TradeCyclePerCompany:
             raise FileNotFoundError(f"File not found: {validated_path}")
         if not validated_path.is_file():
             raise FileProcessingError(f"Path is not a file: {validated_path}")
-        if validated_path.suffix.lower() != '.csv':
+        if validated_path.suffix.lower() != ".csv":
             raise FileProcessingError(f"File must have .csv extension: {validated_path}")
     except Exception as e:
         raise FileProcessingError(f"Invalid source file: {e}") from e
@@ -764,7 +829,7 @@ def extract_dividend_income(path: Union[str, Path]) -> DividendIncomePerCompany:
             raise FileNotFoundError(f"File not found: {validated_path}")
         if not validated_path.is_file():
             raise FileProcessingError(f"Path is not a file: {validated_path}")
-        if validated_path.suffix.lower() != '.csv':
+        if validated_path.suffix.lower() != ".csv":
             raise FileProcessingError(f"File must have .csv extension: {validated_path}")
     except Exception as e:
         raise FileProcessingError(f"Invalid source file: {e}") from e
@@ -804,7 +869,7 @@ def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
             raise FileNotFoundError(f"File not found: {validated_path}")
         if not validated_path.is_file():
             raise FileProcessingError(f"Path is not a file: {validated_path}")
-        if validated_path.suffix.lower() != '.csv':
+        if validated_path.suffix.lower() != ".csv":
             raise FileProcessingError(f"File must have .csv extension: {validated_path}")
     except Exception as e:
         raise FileProcessingError(f"Invalid source file: {e}") from e
@@ -816,11 +881,6 @@ def parse_ib_export_complete(path: Union[str, Path]) -> IBExportData:
         trade_cycles = _process_trades_with_securities(csv_data)
         dividend_income = _process_dividends_with_securities(csv_data)
 
-        return IBExportData(
-            trade_cycles=trade_cycles,
-            dividend_income=dividend_income
-        )
+        return IBExportData(trade_cycles=trade_cycles, dividend_income=dividend_income)
     except Exception as e:
         raise FileProcessingError(f"Failed to parse complete IB export: {e}") from e
-
-

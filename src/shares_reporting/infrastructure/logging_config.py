@@ -12,9 +12,7 @@ from typing import Optional
 
 
 def setup_logging(
-    level: str = "INFO",
-    log_file: Optional[Path] = None,
-    enable_console: bool = True
+    level: str = "INFO", log_file: Optional[Path] = None, enable_console: bool = True
 ) -> None:
     """
     Set up logging configuration for the application.
@@ -33,8 +31,7 @@ def setup_logging(
 
     # Create formatter
     formatter = logging.Formatter(
-        fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Add console handler if enabled

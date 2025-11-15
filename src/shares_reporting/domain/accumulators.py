@@ -33,9 +33,14 @@ class CapitalGainLineAccumulator:
                 self.sell_date = trade_date
             else:
                 if self.sell_date != trade_date:
-                    raise DataValidationError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.sell_date) + "] " +
-                                     " and got [" + str(trade_date) + "]")
+                    raise DataValidationError(
+                        "Incompatible dates in capital gain line add function! Expected ["
+                        + str(self.sell_date)
+                        + "] "
+                        + " and got ["
+                        + str(trade_date)
+                        + "]"
+                    )
             self.sell_counts.append(count)
             self.sell_trades.append(ta)
 
@@ -44,9 +49,14 @@ class CapitalGainLineAccumulator:
                 self.buy_date = trade_date
             else:
                 if self.buy_date != trade_date:
-                    raise DataValidationError("Incompatible dates in capital gain line add function! Expected ["
-                                     + str(self.buy_date) + "] " + " and got ["
-                                     + str(trade_date) + "]")
+                    raise DataValidationError(
+                        "Incompatible dates in capital gain line add function! Expected ["
+                        + str(self.buy_date)
+                        + "] "
+                        + " and got ["
+                        + str(trade_date)
+                        + "]"
+                    )
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
 
@@ -59,9 +69,16 @@ class CapitalGainLineAccumulator:
     # noinspection PyTypeChecker
     def finalize(self) -> CapitalGainLine:
         self.validate()
-        result = CapitalGainLine(self.company, self.currency,
-                                 self.sell_date, self.sell_counts, self.sell_trades,
-                                 self.buy_date, self.buy_counts, self.buy_trades)
+        result = CapitalGainLine(
+            self.company,
+            self.currency,
+            self.sell_date,
+            self.sell_counts,
+            self.sell_trades,
+            self.buy_date,
+            self.buy_counts,
+            self.buy_trades,
+        )
         self.sell_date = None
         self.sell_counts = []
         self.sell_trades = []
@@ -74,18 +91,28 @@ class CapitalGainLineAccumulator:
         if self.sold_quantity() <= 0 or self.bought_quantity() <= 0:
             raise DataValidationError("Cannot finalize empty Accumulator object!")
         if self.sold_quantity() != self.bought_quantity():
-            raise DataValidationError("Different counts for sales ["
-                             + str(self.sell_counts) + "] " + " and buys [" + str(self.buy_counts) +
-                             "] in capital gain line!")
+            raise DataValidationError(
+                "Different counts for sales ["
+                + str(self.sell_counts)
+                + "] "
+                + " and buys ["
+                + str(self.buy_counts)
+                + "] in capital gain line!"
+            )
         if len(self.sell_counts) != len(self.sell_trades):
-            raise DataValidationError("Different number of counts ["
-                             + str(len(self.sell_counts)) + "] " + " and trades [" + str(len(self.sell_trades)) +
-                             "] for sales in capital gain line!")
+            raise DataValidationError(
+                "Different number of counts ["
+                + str(len(self.sell_counts))
+                + "] "
+                + " and trades ["
+                + str(len(self.sell_trades))
+                + "] for sales in capital gain line!"
+            )
 
 
 @dataclass
 class TradePartsWithinDay:
-    company: Company= None
+    company: Company = None
     currency: Currency = None
     trade_date: TradeDate = None
     trade_type: TradeType = None
@@ -102,18 +129,26 @@ class TradePartsWithinDay:
             self.trade_type = ta.trade_type
             self.trade_date = get_trade_date(ta.date_time)
 
-        if self.company == ta.company and self.currency == ta.currency \
-                and self.trade_type == ta.trade_type and self.trade_date == get_trade_date(ta.date_time):
+        if (
+            self.company == ta.company
+            and self.currency == ta.currency
+            and self.trade_type == ta.trade_type
+            and self.trade_date == get_trade_date(ta.date_time)
+        ):
             self.dates.append(ta.date_time)
             self.quantities.append(quantity)
             self.trades.append(ta)
         else:
-            raise DataValidationError(f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] and got [{ta.trade_type} and {get_trade_date(ta.date_time)}]")
+            raise DataValidationError(
+                f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] and got [{ta.trade_type} and {get_trade_date(ta.date_time)}]"
+            )
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
         idx: int = self.__get_top_index()
         self.dates.pop(idx)
-        return QuantitatedTradeAction(quantity=self.quantities.pop(idx), action=self.trades.pop(idx))
+        return QuantitatedTradeAction(
+            quantity=self.quantities.pop(idx), action=self.trades.pop(idx)
+        )
 
     def get_top_count(self) -> Decimal:
         idx: int = self.__get_top_index()

@@ -51,6 +51,22 @@ poetry run pytest -vvl              # Verbose output with all variables
 poetry run pytest --cov=.           # Run with coverage
 ```
 
+### Code Quality and Linting
+```bash
+# Run Ruff linter (checks code quality)
+poetry run ruff check .                    # Check all files
+poetry run ruff check . --fix              # Auto-fix issues
+poetry run ruff check . --statistics       # Show issue statistics
+poetry run ruff check src/ tests/          # Check specific directories
+
+# Run Ruff formatter (formats code)
+poetry run ruff format .                   # Format all files
+poetry run ruff format --check .           # Check if formatting is needed
+
+# Combined workflow
+poetry run ruff check . --fix && poetry run ruff format .  # Fix and format
+```
+
 ### Dependency Management
 ```bash
 # Add new dependency

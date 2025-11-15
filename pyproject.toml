@@ -30,7 +30,7 @@ pycountry = "^24.6.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
-pytest-flakes = "^4.0.5"
+ruff = "^0.14.5"
 
 [tool.poetry.scripts]
 shares-reporting = "shares_reporting.main:main"
@@ -72,14 +72,122 @@ exclude_lines = [
     "if __name__ == .__main__.:"
 ]
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503"]
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py313"
+
+# Include source files
+include = ["src/**/*.py", "tests/**/*.py"]
+
+# Exclude patterns
 exclude = [
     ".git",
     "__pycache__",
     "venv",
     ".venv",
     "build",
-    "dist"
+    "dist",
+    "*.egg-info"
 ]
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pep8-naming
+    "N",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-no-pep420
+    "FA",
+    # flake8-datetimez
+    "DTZ",
+    # flake8-pathlib
+    "PTH",
+    # flake8-todos
+    "TD",
+    # flake8-fixme
+    "FIX",
+    # flake8-raise
+    "RSE",
+    # flake8-bandit (basic security checks)
+    "S",
+    # flake8-comprehensions
+    "C4",
+    # flake8-pytest-style
+    "PT",
+]
+
+ignore = [
+    # Star imports are allowed for type checking and package exports
+    "F405",
+    "F403",
+    # Allow unused arguments when prefixed with underscore
+    "ARG001",
+    "ARG002",
+    # Allow TODO comments without specific formats
+    "TD001",
+    "TD002",
+    "TD003",
+    # Allow FIXME comments
+    "FIX001",
+    "FIX002",
+    # Allow datetime imports without timezone awareness for this domain
+    "DTZ001",
+    "DTZ005",
+    # Magic numbers are acceptable in some domain contexts
+    "S105",
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings.
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["shares_reporting"]
+known-third-party = ["pytest", "openpyxl", "pycountry"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",  # Allow assert statements in tests
+    "ARG001",  # Allow unused arguments in tests
+    "ARG002",  # Allow unused arguments in tests
+    "PT001",  # Allow pytest fixture names without underscore prefix
+    "PT023",  # Allow @pytest.fixture without parentheses
+]
+
+"__init__.py" = [
+    "F401",  # Allow unused imports in __init__.py files
+]
+

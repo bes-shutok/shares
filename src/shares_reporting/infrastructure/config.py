@@ -32,11 +32,13 @@ def create_config():
     config.optionxform = str
     config.allow_no_value = True
     config["COMMON"] = {"TARGET CURRENCY": "EUR", "YEAR": "2022"}
-    config["EXCHANGE RATES"] = {"EUR/CAD": "0.69252",
-                                "EUR/USD": "0.93756",
-                                "EUR/GBP": "1.12748",
-                                "EUR/HKD": "0.12025",
-                                "EUR/PLN": "0.21364"}
+    config["EXCHANGE RATES"] = {
+        "EUR/CAD": "0.69252",
+        "EUR/USD": "0.93756",
+        "EUR/GBP": "1.12748",
+        "EUR/HKD": "0.12025",
+        "EUR/PLN": "0.21364",
+    }
     config["SECURITY"] = {
         "MAX_FILE_SIZE_MB": "100",
         "MAX_TICKER_LENGTH": "10",
@@ -44,15 +46,17 @@ def create_config():
         "MAX_QUANTITY_VALUE": "10000000000",
         "MAX_PRICE_VALUE": "1000000000",
         "MAX_FILENAME_LENGTH": "255",
-        "ALLOWED_EXTENSIONS": ".csv,.txt"
+        "ALLOWED_EXTENSIONS": ".csv,.txt",
     }
 
-    config_path = 'config.ini'
+    config_path = "config.ini"
     try:
-        with open(config_path, 'w') as configfile:
+        with open(config_path, "w") as configfile:
             config.write(configfile)
         logger.info(f"Created default configuration file: {config_path}")
-        logger.info("Configuration includes 5 exchange rates for EUR base currency and security settings")
+        logger.info(
+            "Configuration includes 5 exchange rates for EUR base currency and security settings"
+        )
     except OSError as e:
         logger.error(f"Failed to create configuration file {config_path}: {e}")
         raise
@@ -63,7 +67,7 @@ def read_config() -> Config:
     config = configparser.ConfigParser()
     config.optionxform = str
 
-    config_path = 'config.ini'
+    config_path = "config.ini"
     try:
         files_read = config.read(config_path)
         if not files_read:
@@ -124,11 +128,13 @@ def _load_security_config(config: configparser.ConfigParser, logger) -> Security
             max_quantity_value=max_quantity_value,
             max_price_value=max_price_value,
             max_filename_length=max_filename_length,
-            allowed_extensions=allowed_extensions
+            allowed_extensions=allowed_extensions,
         )
 
-        logger.info(f"Loaded security configuration: max_file_size={max_file_size_mb}MB, "
-                   f"max_ticker_length={max_ticker_length}, allowed_extensions={allowed_extensions}")
+        logger.info(
+            f"Loaded security configuration: max_file_size={max_file_size_mb}MB, "
+            f"max_ticker_length={max_ticker_length}, allowed_extensions={allowed_extensions}"
+        )
 
         return security_config
 

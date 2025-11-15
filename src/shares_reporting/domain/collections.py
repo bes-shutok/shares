@@ -1,6 +1,12 @@
 from typing import Dict, List, NamedTuple
 
-from .entities import QuantitatedTradeAction, TradeCycle, CapitalGainLine, CurrencyCompany, DividendIncomePerSecurity
+from .entities import (
+    QuantitatedTradeAction,
+    TradeCycle,
+    CapitalGainLine,
+    CurrencyCompany,
+    DividendIncomePerSecurity,
+)
 from .value_objects import TradeDate, Currency
 from .accumulators import TradePartsWithinDay
 from .value_objects import TradeType
@@ -27,16 +33,16 @@ CurrencyToCoordinates = List[CurrencyToCoordinate]
 
 # Type aliases for dividend income collections
 DividendIncomePerSecurityList = List[DividendIncomePerSecurity]
-DividendIncomePerCompany = Dict[str, DividendIncomePerSecurity]  # symbol -> DividendIncomePerSecurity
+DividendIncomePerCompany = Dict[
+    str, DividendIncomePerSecurity
+]  # symbol -> DividendIncomePerSecurity
 
 
 class IBExportData:
     """Container for all data extracted from an Interactive Brokers export file."""
 
     def __init__(
-        self,
-        trade_cycles: TradeCyclePerCompany,
-        dividend_income: DividendIncomePerCompany
+        self, trade_cycles: TradeCyclePerCompany, dividend_income: DividendIncomePerCompany
     ):
         self.trade_cycles = trade_cycles
         self.dividend_income = dividend_income

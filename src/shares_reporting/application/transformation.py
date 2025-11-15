@@ -8,14 +8,22 @@ from ..domain.collections import (
     SortedDateRanges,
     TradeCyclePerCompany,
 )
-from ..domain.entities import TradeAction, TradeCycle, CapitalGainLine, CurrencyCompany, QuantitatedTradeAction
+from ..domain.entities import (
+    TradeAction,
+    TradeCycle,
+    CapitalGainLine,
+    CurrencyCompany,
+    QuantitatedTradeAction,
+)
 from ..domain.value_objects import TradeType, get_trade_date, Company, Currency
 from ..domain.accumulators import TradePartsWithinDay, CapitalGainLineAccumulator
 from ..domain.exceptions import CapitalGainsCalculationError, DataValidationError
 from ..infrastructure.logging_config import get_logger
 
 
-def log_day_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, label: str = "") -> None:
+def log_day_partitioned_trades(
+    day_partitioned_trades: DayPartitionedTrades, label: str = ""
+) -> None:
     """
     Log day partitioned trades for debugging purposes.
 
@@ -35,7 +43,9 @@ def log_day_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, lab
     logger.debug("}")
 
 
-def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currency: Currency) -> CapitalGainLines:
+def capital_gains_for_company(
+    trade_cycle: TradeCycle, company: Company, currency: Currency
+) -> CapitalGainLines:
     """
     Calculate capital gains for a specific company and currency.
 
@@ -52,9 +62,13 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     sale_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.SELL)
     buy_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.BUY)
     if not sale_actions:
-        raise DataValidationError("There are buys but no sell trades in the provided 'trade_actions' object!")
+        raise DataValidationError(
+            "There are buys but no sell trades in the provided 'trade_actions' object!"
+        )
     if not buy_actions:
-        raise DataValidationError("There are sells but no buy trades in the provided 'trade_actions' object!")
+        raise DataValidationError(
+            "There are sells but no buy trades in the provided 'trade_actions' object!"
+        )
 
     sales_daily_slices: DayPartitionedTrades = split_by_days(sale_actions, TradeType.SELL)
     logger.debug("sales_daily_slices:")
@@ -83,7 +97,9 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
         logger.debug(str(buy_trade_parts))
 
         if buy_trade_parts.quantity() != sale_trade_parts.quantity():
-            logger.debug(f"Buy quantity [{buy_trade_parts.quantity()}] != sale quantity [{sale_trade_parts.quantity()}]")
+            logger.debug(
+                f"Buy quantity [{buy_trade_parts.quantity()}] != sale quantity [{sale_trade_parts.quantity()}]"
+            )
         target_quantity: Decimal = min(buy_trade_parts.quantity(), sale_trade_parts.quantity())
         sale_quantity_left = target_quantity
         buy_quantity_left = target_quantity
@@ -128,7 +144,9 @@ def capital_gains_for_company(trade_cycle: TradeCycle, company: Company, currenc
     return capital_gain_lines
 
 
-def process_remaining_trades(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay) -> None:
+def process_remaining_trades(
+    buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay
+) -> None:
     total: Decimal = trade_part.quantity()
     for trade in trade_part.get_trades():
         if total == 0:
@@ -141,7 +159,11 @@ def process_remaining_trades(buy_actions: QuantitatedTradeActions, trade_part: T
             buy_actions.append(QuantitatedTradeAction(trade.quantity, trade))
 
 
-def extract_trades(quantity_left: Decimal, trade_parts: TradePartsWithinDay, capital_gain_line_accumulator: CapitalGainLineAccumulator) -> None:
+def extract_trades(
+    quantity_left: Decimal,
+    trade_parts: TradePartsWithinDay,
+    capital_gain_line_accumulator: CapitalGainLineAccumulator,
+) -> None:
     while quantity_left > 0:
         part = trade_parts.pop_trade_part()
         quantity_left -= part.quantity
@@ -174,10 +196,18 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
         quantity: Decimal = quantitated_trade_action.quantity
         trade_action: TradeAction = quantitated_trade_action.action
         if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
-            raise DataValidationError("Incompatible trade types! Got " + trade_type.name + "for expected output and " +
-                             str(trade_action.trade_type) + " for the trade_action" + str(trade_action))
+            raise DataValidationError(
+                "Incompatible trade types! Got "
+                + trade_type.name
+                + "for expected output and "
+                + str(trade_action.trade_type)
+                + " for the trade_action"
+                + str(trade_action)
+            )
         trade_date = get_trade_date(trade_action.date_time)
-        trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(trade_date, TradePartsWithinDay())
+        trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(
+            trade_date, TradePartsWithinDay()
+        )
         logger.debug(f"pushing trade action {trade_action}")
         trades_within_day.push_trade_part(quantity, trade_action)
         day_partitioned_trades[trade_date] = trades_within_day
@@ -188,7 +218,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
 def calculate(
     trade_cycle_per_company: TradeCyclePerCompany,
     leftover_trades: TradeCyclePerCompany,
-    capital_gains: CapitalGainLinesPerCompany
+    capital_gains: CapitalGainLinesPerCompany,
 ) -> None:
     """
     Calculate capital gains and leftover trades for all companies.
@@ -207,7 +237,9 @@ def calculate(
         if not trade_cycle.has_sold() or not trade_cycle.has_bought():
             leftover_trades[company_currency] = trade_cycle
             continue
-        capital_gain_lines: CapitalGainLines = capital_gains_for_company(trade_cycle, company, currency)
+        capital_gain_lines: CapitalGainLines = capital_gains_for_company(
+            trade_cycle, company, currency
+        )
         if not trade_cycle.is_empty():
             leftover_trades[company_currency] = trade_cycle
         capital_gains[CurrencyCompany(currency, company)] = capital_gain_lines

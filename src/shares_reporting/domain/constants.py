@@ -3,18 +3,19 @@ Domain constants for the shares reporting application.
 
 Contains business logic constants that are used throughout the application.
 """
+
 from decimal import Decimal
 
 # Currency and market constants
 CURRENCY_CODE_LENGTH = 3
 MAX_TICKER_LETTERS = 5
-TICKER_FORMAT_PATTERN = r'^[A-Z]{1,5}[0-9]*$'
-CURRENCY_FORMAT_PATTERN = r'^[A-Z]{3}$'
+TICKER_FORMAT_PATTERN = r"^[A-Z]{1,5}[0-9]*$"
+CURRENCY_FORMAT_PATTERN = r"^[A-Z]{3}$"
 
 # File processing constants
 DEFAULT_LOG_LEVEL = "INFO"
 LOG_PROGRESS_INTERVAL = 100  # Log progress every N trades
-INITIAL_DEBUG_TRADES = 5     # Show first N trades in debug mode
+INITIAL_DEBUG_TRADES = 5  # Show first N trades in debug mode
 
 # CSV/Excel column indices
 SYMBOL_COLUMN_INDEX = 3
@@ -39,4 +40,4 @@ FINANCIAL_INSTRUMENT_MIN_COLUMNS = 7
 
 # Trade validation constants
 ZERO_QUANTITY = 0
-DECIMAL_ZERO = Decimal('0')
+DECIMAL_ZERO = Decimal("0")

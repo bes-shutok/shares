@@ -3,12 +3,23 @@ from decimal import Decimal
 from datetime import datetime
 
 from shares_reporting.domain.collections import (
-    QuantitatedTradeActions, CapitalGainLines, SortedDateRanges, TradeCyclePerCompany,
-    CapitalGainLinesPerCompany, DayPartitionedTrades, PartitionedTradesByType,
-    CurrencyToCoordinate, CurrencyToCoordinates
+    QuantitatedTradeActions,
+    CapitalGainLines,
+    SortedDateRanges,
+    TradeCyclePerCompany,
+    CapitalGainLinesPerCompany,
+    DayPartitionedTrades,
+    PartitionedTradesByType,
+    CurrencyToCoordinate,
+    CurrencyToCoordinates,
 )
 from shares_reporting.domain.value_objects import TradeDate, get_currency, get_company, TradeType
-from shares_reporting.domain.entities import QuantitatedTradeAction, TradeAction, CapitalGainLine, TradeCycle
+from shares_reporting.domain.entities import (
+    QuantitatedTradeAction,
+    TradeAction,
+    CapitalGainLine,
+    TradeCycle,
+)
 from shares_reporting.domain.accumulators import TradePartsWithinDay
 
 
@@ -43,7 +54,7 @@ class TestTypeAliases:
             sell_trades=[],
             buy_date=[TradeDate(2023, 1, 15)],
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         lines: CapitalGainLines = [line]
@@ -72,6 +83,7 @@ class TestTypeAliases:
         currency = get_currency("USD")
 
         from shares_reporting.domain.entities import CurrencyCompany
+
         currency_company = CurrencyCompany(currency, company)
         cycle = TradeCycle()
 
@@ -88,6 +100,7 @@ class TestTypeAliases:
         currency = get_currency("USD")
 
         from shares_reporting.domain.entities import CurrencyCompany
+
         currency_company = CurrencyCompany(currency, company)
 
         line = CapitalGainLine(
@@ -98,7 +111,7 @@ class TestTypeAliases:
             sell_trades=[],
             buy_date=[TradeDate(2023, 1, 15)],
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         lines: CapitalGainLinesPerCompany = {currency_company: [line]}
@@ -135,7 +148,7 @@ class TestTypeAliases:
 
         partitioned: PartitionedTradesByType = {
             TradeType.BUY: {trade_date: trade_parts},
-            TradeType.SELL: {}
+            TradeType.SELL: {},
         }
 
         assert isinstance(partitioned, dict)
@@ -197,7 +210,7 @@ class TestCollectionBehavior:
             sell_trades=[],
             buy_date=[TradeDate(2023, 1, 15)],
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
         lines_per_company[currency_company].append(line)
 
@@ -217,10 +230,7 @@ class TestCollectionBehavior:
         trade_parts1 = TradePartsWithinDay(company, currency)
         trade_parts2 = TradePartsWithinDay(company, currency)
 
-        partitioned: DayPartitionedTrades = {
-            date1: trade_parts1,
-            date2: trade_parts2
-        }
+        partitioned: DayPartitionedTrades = {date1: trade_parts1, date2: trade_parts2}
 
         assert len(partitioned) == 2
         assert date1 in partitioned
@@ -304,6 +314,7 @@ class TestCollectionBehavior:
 
         # Single key-value pair
         from shares_reporting.domain.entities import CurrencyCompany
+
         currency_company = CurrencyCompany(currency, company)
         single_cycle: TradeCyclePerCompany = {currency_company: TradeCycle()}
         assert len(single_cycle) == 1

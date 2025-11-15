@@ -20,7 +20,7 @@ class TradeAction:
     def __init__(self, company, date_time, currency, quantity: str, price, fee):
         quantity = quantity.replace(",", "")
         self.company = company
-        self.date_time = datetime.strptime(date_time, '%Y-%m-%d, %H:%M:%S')
+        self.date_time = datetime.strptime(date_time, "%Y-%m-%d, %H:%M:%S")
         self.currency = currency
         if Decimal(quantity) < 0:
             self.trade_type = TradeType.SELL
@@ -93,24 +93,39 @@ class CapitalGainLine:
         return self.currency
 
     def sell_quantity(self) -> Decimal:
-        return sum(self.sell_quantities, Decimal('0'))
+        return sum(self.sell_quantities, Decimal("0"))
 
     def buy_quantity(self) -> Decimal:
-        return sum(self.buy_quantities, Decimal('0'))
+        return sum(self.buy_quantities, Decimal("0"))
 
     def validate(self):
         if self.sell_quantity() != self.buy_quantity():
-            raise DataValidationError("Different counts for sales ["
-                             + str(self.sell_quantities) + "] " + " and buys [" +
-                             str(self.buy_quantities) + "] in capital gain line!")
+            raise DataValidationError(
+                "Different counts for sales ["
+                + str(self.sell_quantities)
+                + "] "
+                + " and buys ["
+                + str(self.buy_quantities)
+                + "] in capital gain line!"
+            )
         if len(self.sell_quantities) != len(self.sell_trades):
-            raise DataValidationError("Different number of counts ["
-                             + str(len(self.sell_quantities)) + "] " + " and trades [" +
-                             str(len(self.sell_trades)) + "] for sales in capital gain line!")
+            raise DataValidationError(
+                "Different number of counts ["
+                + str(len(self.sell_quantities))
+                + "] "
+                + " and trades ["
+                + str(len(self.sell_trades))
+                + "] for sales in capital gain line!"
+            )
         if len(self.buy_quantities) != len(self.buy_trades):
-            raise DataValidationError("Different number of counts ["
-                             + str(len(self.buy_quantities)) + "] " + " and trades [" +
-                             str(len(self.buy_trades)) + "] for buys in capital gain line!")
+            raise DataValidationError(
+                "Different number of counts ["
+                + str(len(self.buy_quantities))
+                + "] "
+                + " and trades ["
+                + str(len(self.buy_trades))
+                + "] for buys in capital gain line!"
+            )
 
     def get_sell_date(self) -> TradeDate:
         return self.sell_date
@@ -133,11 +148,23 @@ class CapitalGainLine:
     def get_expense_amount(self) -> str:
         result = "0"
         for i in range(len(self.sell_quantities)):
-            result += "+" + str(self.sell_quantities[i]) + "*" + str(self.sell_trades[i].fee) \
-                      + "/" + str(self.sell_trades[i].quantity)
+            result += (
+                "+"
+                + str(self.sell_quantities[i])
+                + "*"
+                + str(self.sell_trades[i].fee)
+                + "/"
+                + str(self.sell_trades[i].quantity)
+            )
         for i in range(len(self.buy_quantities)):
-            result += "+" + str(self.buy_quantities[i]) + "*" + str(self.buy_trades[i].fee) \
-                      + "/" + str(self.buy_trades[i].quantity)
+            result += (
+                "+"
+                + str(self.buy_quantities[i])
+                + "*"
+                + str(self.buy_trades[i].fee)
+                + "/"
+                + str(self.buy_trades[i].quantity)
+            )
 
         return result
 
@@ -145,6 +172,7 @@ class CapitalGainLine:
 @dataclass
 class DividendIncomePerSecurity:
     """Container for dividend income data per security for capital investment income reporting."""
+
     symbol: str
     isin: str
     country: str
@@ -163,7 +191,9 @@ class DividendIncomePerSecurity:
         if self.total_taxes < 0:
             raise DataValidationError(f"Total taxes cannot be negative: {self.total_taxes}")
         if self.total_taxes > self.gross_amount:
-            raise DataValidationError(f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})")
+            raise DataValidationError(
+                f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})"
+            )
         if not self.symbol:
             raise DataValidationError("Symbol cannot be empty")
         if not self.isin:

@@ -16,7 +16,15 @@ class TradeDate(NamedTuple):
         return calendar.month_name[self.month]
 
     def __repr__(self) -> str:
-        return "[" + str(self.day) + " " + calendar.month_name[self.month] + ", " + str(self.year) + "]"
+        return (
+            "["
+            + str(self.day)
+            + " "
+            + calendar.month_name[self.month]
+            + ", "
+            + str(self.year)
+            + "]"
+        )
 
 
 def get_trade_date(date: datetime) -> TradeDate:
@@ -36,7 +44,9 @@ def get_currency(currency: str) -> Currency:
     if len(currency) == CURRENCY_CODE_LENGTH:
         pass
     else:
-        raise DataValidationError(f"Currency is expected to be a length of {CURRENCY_CODE_LENGTH}, instead got [{currency}]!")
+        raise DataValidationError(
+            f"Currency is expected to be a length of {CURRENCY_CODE_LENGTH}, instead got [{currency}]!"
+        )
     return Currency(currency.upper())
 
 

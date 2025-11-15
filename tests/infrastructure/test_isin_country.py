@@ -7,7 +7,7 @@ import pytest
 from shares_reporting.infrastructure.isin_country import (
     isin_to_country,
     isin_to_country_code,
-    is_valid_isin_format
+    is_valid_isin_format,
 )
 
 

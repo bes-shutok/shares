@@ -2,13 +2,25 @@ import pytest
 from decimal import Decimal
 from datetime import datetime
 
-from shares_reporting.domain.entities import TradeAction, TradeCycle, CapitalGainLine, QuantitatedTradeAction, CurrencyCompany
+from shares_reporting.domain.entities import (
+    TradeAction,
+    TradeCycle,
+    CapitalGainLine,
+    QuantitatedTradeAction,
+    CurrencyCompany,
+)
 from shares_reporting.domain.exceptions import DataValidationError
-from shares_reporting.domain.value_objects import TradeType, Currency, Company, TradeDate, get_currency, get_company
+from shares_reporting.domain.value_objects import (
+    TradeType,
+    Currency,
+    Company,
+    TradeDate,
+    get_currency,
+    get_company,
+)
 
 
 class TestTradeAction:
-
     def test_trade_action_creation_with_positive_quantity_should_set_buy_type(self):
         """Test that TradeAction with positive quantity sets BUY type."""
         company = get_company("AAPL")
@@ -116,7 +128,6 @@ class TestTradeAction:
 
 
 class TestQuantitatedTradeAction:
-
     def test_quantitated_trade_action_creation(self):
         """Test QuantitatedTradeAction creation."""
         company = get_company("AAPL")
@@ -141,7 +152,6 @@ class TestQuantitatedTradeAction:
 
 
 class TestCurrencyCompany:
-
     def test_currency_company_creation(self):
         """Test CurrencyCompany creation."""
         company = get_company("AAPL")
@@ -159,11 +169,12 @@ class TestCurrencyCompany:
         currency_company = CurrencyCompany(currency, company)
 
         with pytest.raises(AttributeError):
-            currency_company.currency = get_currency("EUR")  # Should fail as NamedTuple is immutable
+            currency_company.currency = get_currency(
+                "EUR"
+            )  # Should fail as NamedTuple is immutable
 
 
 class TestTradeCycle:
-
     def test_trade_cycle_creation(self):
         """Test TradeCycle creation."""
         cycle = TradeCycle()
@@ -226,10 +237,12 @@ class TestTradeCycle:
         # Add sold trades with different currencies
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", usd, "-5", "150.25", "1.50")
         trade2 = TradeAction(company, "2024-03-28, 15:30:45", eur, "-3", "140.00", "1.40")
-        cycle.sold.extend([
-            QuantitatedTradeAction(Decimal("3"), trade1),
-            QuantitatedTradeAction(Decimal("2"), trade2)
-        ])
+        cycle.sold.extend(
+            [
+                QuantitatedTradeAction(Decimal("3"), trade1),
+                QuantitatedTradeAction(Decimal("2"), trade2),
+            ]
+        )
 
         # The validate method checks against provided currency/company, not internal consistency
         # It should return False since the trades don't match the provided EUR currency
@@ -246,10 +259,12 @@ class TestTradeCycle:
         # Add sold trades with different companies
         trade1 = TradeAction(aapl, "2024-03-28, 14:30:45", currency, "-5", "150.25", "1.50")
         trade2 = TradeAction(googl, "2024-03-28, 15:30:45", currency, "-3", "140.00", "1.40")
-        cycle.sold.extend([
-            QuantitatedTradeAction(Decimal("3"), trade1),
-            QuantitatedTradeAction(Decimal("2"), trade2)
-        ])
+        cycle.sold.extend(
+            [
+                QuantitatedTradeAction(Decimal("3"), trade1),
+                QuantitatedTradeAction(Decimal("2"), trade2),
+            ]
+        )
 
         # The validate method checks against provided currency/company, not internal consistency
         # It should return False since the trades don't match the provided GOOGL company
@@ -279,10 +294,12 @@ class TestTradeCycle:
         # Add bought trades with different currencies
         trade1 = TradeAction(company, "2024-03-28, 14:30:45", usd, "10", "150.25", "1.50")
         trade2 = TradeAction(company, "2024-03-28, 15:30:45", eur, "5", "140.00", "1.40")
-        cycle.bought.extend([
-            QuantitatedTradeAction(Decimal("5"), trade1),
-            QuantitatedTradeAction(Decimal("3"), trade2)
-        ])
+        cycle.bought.extend(
+            [
+                QuantitatedTradeAction(Decimal("5"), trade1),
+                QuantitatedTradeAction(Decimal("3"), trade2),
+            ]
+        )
 
         # The validate method only checks the first trade in the list
         # Since the first trade (trade1) uses USD, validating against USD should return True
@@ -344,7 +361,6 @@ class TestTradeCycle:
 
 
 class TestCapitalGainLine:
-
     def test_capital_gain_line_creation(self):
         """Test CapitalGainLine creation."""
         company = get_company("AAPL")
@@ -364,7 +380,7 @@ class TestCapitalGainLine:
             sell_trades=sell_trades,
             buy_date=buy_date,
             buy_quantities=buy_quantities,
-            buy_trades=buy_trades
+            buy_trades=buy_trades,
         )
 
         assert line.ticker == company.ticker
@@ -383,7 +399,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.get_ticker() == company.ticker
@@ -399,7 +415,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.get_currency() == currency  # Returns the Currency object, not the string
@@ -415,7 +431,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("6")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.sell_quantity() == Decimal("6")
@@ -431,7 +447,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=buy_quantities,
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.buy_quantity() == Decimal("6")
@@ -453,7 +469,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade1, sell_trade2],  # Matching number of trades
             buy_date=TradeDate(2023, 1, 15),  # Single TradeDate, not list
             buy_quantities=[Decimal("5")],  # Total: 5
-            buy_trades=[buy_trade1]  # Matching number of trades
+            buy_trades=[buy_trade1],  # Matching number of trades
         )
 
         # Should not raise an error
@@ -475,7 +491,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],  # Total: 5
-            buy_trades=[buy_trade]
+            buy_trades=[buy_trade],
         )
 
         with pytest.raises(DataValidationError, match="Different counts for sales"):
@@ -497,7 +513,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade],  # Only 1 trade - mismatch!
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[buy_trade]
+            buy_trades=[buy_trade],
         )
 
         with pytest.raises(DataValidationError, match="Different number of counts"):
@@ -519,7 +535,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("3"), Decimal("2")],  # 2 quantities
-            buy_trades=[buy_trade1]  # Only 1 trade - mismatch!
+            buy_trades=[buy_trade1],  # Only 1 trade - mismatch!
         )
 
         with pytest.raises(DataValidationError, match="Different number of counts"):
@@ -536,7 +552,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.get_sell_date() == sell_date
@@ -552,7 +568,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=buy_date,
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         assert line.get_buy_date() == buy_date
@@ -574,7 +590,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade1, sell_trade2],  # Add matching trades
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[buy_trade]
+            buy_trades=[buy_trade],
         )
 
         # Should generate a formula that references the appropriate cells
@@ -597,7 +613,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[buy_trade]  # Add matching trade
+            buy_trades=[buy_trade],  # Add matching trade
         )
 
         # Should generate a formula that references the appropriate cells
@@ -620,7 +636,7 @@ class TestCapitalGainLine:
             sell_trades=[sell_trade],  # Add matching trade
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[buy_trade]
+            buy_trades=[buy_trade],
         )
 
         # Should generate a formula that references the appropriate cells
@@ -638,7 +654,7 @@ class TestCapitalGainLine:
             sell_trades=[],
             buy_date=TradeDate(2023, 1, 15),
             buy_quantities=[Decimal("5")],
-            buy_trades=[]
+            buy_trades=[],
         )
 
         # Dataclass is mutable, so this should work

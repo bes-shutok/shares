@@ -1,12 +1,19 @@
 import pytest
 from datetime import datetime
 
-from shares_reporting.domain.value_objects import TradeDate, get_trade_date, Currency, get_currency, Company, get_company, TradeType
+from shares_reporting.domain.value_objects import (
+    TradeDate,
+    get_trade_date,
+    Currency,
+    get_currency,
+    Company,
+    get_company,
+    TradeType,
+)
 from shares_reporting.domain.exceptions import DataValidationError
 
 
 class TestTradeDate:
-
     def test_trade_date_creation(self):
         """Test that TradeDate can be created with valid parameters."""
         trade_date = TradeDate(2024, 3, 28)
@@ -47,7 +54,6 @@ class TestTradeDate:
 
 
 class TestGetTradeDate:
-
     def test_get_trade_date_with_datetime_should_create_trade_date(self):
         """Test that get_trade_date creates TradeDate from datetime."""
         dt = datetime(2024, 3, 28, 14, 30, 45)
@@ -71,7 +77,6 @@ class TestGetTradeDate:
 
 
 class TestTradeType:
-
     def test_trade_type_enum_values(self):
         """Test that TradeType enum has correct values."""
         assert TradeType.BUY.value == 1
@@ -90,7 +95,6 @@ class TestTradeType:
 
 
 class TestCurrency:
-
     def test_currency_creation(self):
         """Test that Currency can be created with valid currency code."""
         currency = Currency("USD")
@@ -104,7 +108,6 @@ class TestCurrency:
 
 
 class TestGetCurrency:
-
     def test_get_currency_with_valid_three_letter_code_should_return_uppercase(self):
         """Test get_currency with valid 3-letter codes."""
         test_cases = [
@@ -133,7 +136,9 @@ class TestGetCurrency:
         invalid_codes = ["US", "USDD", "U", ""]
 
         for invalid_code in invalid_codes:
-            with pytest.raises(DataValidationError, match="Currency is expected to be a length of 3"):
+            with pytest.raises(
+                DataValidationError, match="Currency is expected to be a length of 3"
+            ):
                 get_currency(invalid_code)
 
     def test_get_currency_with_empty_string_should_raise_value_error(self):
@@ -158,7 +163,6 @@ class TestGetCurrency:
 
 
 class TestCompany:
-
     def test_company_creation(self):
         """Test that Company can be created with valid ticker."""
         company = Company("AAPL")
@@ -192,7 +196,6 @@ class TestCompany:
 
 
 class TestGetCompany:
-
     def test_get_company_with_valid_ticker_should_return_company(self):
         """Test get_company with valid ticker."""
         test_tickers = ["AAPL", "GOOGL", "MSFT", "TSLA"]

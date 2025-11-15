@@ -10,7 +10,6 @@ from shares_reporting.domain.entities import TradeAction, QuantitatedTradeAction
 
 
 class TestCapitalGainLineAccumulator:
-
     def test_capital_gain_line_accumulator_creation(self):
         """Test CapitalGainLineAccumulator creation with valid parameters."""
         company = get_company("AAPL")
@@ -120,7 +119,10 @@ class TestCapitalGainLineAccumulator:
         # Try to add sell trade with different date
         trade2 = TradeAction(company, "2024-03-29, 14:30:45", currency, "-3", "151.00", "1.51")
 
-        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(
+            DataValidationError,
+            match="Incompatible dates in capital gain line add function! Expected",
+        ):
             accumulator.add_trade(Decimal("2"), trade2)
 
     def test_add_trade_buy_with_different_date_should_raise_error(self):
@@ -136,7 +138,10 @@ class TestCapitalGainLineAccumulator:
         # Try to add buy trade with different date
         trade2 = TradeAction(company, "2023-01-16, 10:30:45", currency, "5", "142.00", "1.42")
 
-        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(
+            DataValidationError,
+            match="Incompatible dates in capital gain line add function! Expected",
+        ):
             accumulator.add_trade(Decimal("3"), trade2)
 
     def test_sold_quantity_should_sum_sell_counts(self):
@@ -290,7 +295,10 @@ class TestCapitalGainLineAccumulator:
 
         accumulator.add_trade(Decimal("3"), sell_trade1)
 
-        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(
+            DataValidationError,
+            match="Incompatible dates in capital gain line add function! Expected",
+        ):
             accumulator.add_trade(Decimal("2"), sell_trade2)
 
     def test_validate_with_mismatched_buy_counts_should_raise_error(self):
@@ -305,12 +313,14 @@ class TestCapitalGainLineAccumulator:
 
         accumulator.add_trade(Decimal("4"), buy_trade1)
 
-        with pytest.raises(DataValidationError, match="Incompatible dates in capital gain line add function! Expected"):
+        with pytest.raises(
+            DataValidationError,
+            match="Incompatible dates in capital gain line add function! Expected",
+        ):
             accumulator.add_trade(Decimal("3"), buy_trade2)
 
 
 class TestTradePartsWithinDay:
-
     def test_trade_parts_within_day_creation_with_parameters(self):
         """Test TradePartsWithinDay creation with all parameters."""
         company = get_company("AAPL")
@@ -327,7 +337,7 @@ class TestTradePartsWithinDay:
             trade_type=TradeType.BUY,
             dates=dates,
             quantities=quantities,
-            trades=trades
+            trades=trades,
         )
 
         assert trade_parts.company == company
@@ -414,7 +424,9 @@ class TestTradePartsWithinDay:
         # Try to add incompatible trade (different day)
         trade2 = TradeAction(company, "2024-03-29, 14:30:45", currency, "8", "151.00", "1.51")
 
-        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
+        with pytest.raises(
+            DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"
+        ):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_push_trade_part_incompatible_type_should_raise_error(self):
@@ -430,7 +442,9 @@ class TestTradePartsWithinDay:
         # Try to add SELL trade to BUY collection
         trade2 = TradeAction(company, "2024-03-28, 15:30:45", currency, "-5", "151.00", "1.51")
 
-        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
+        with pytest.raises(
+            DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"
+        ):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_pop_trade_part_should_remove_and_return_earliest_trade(self):

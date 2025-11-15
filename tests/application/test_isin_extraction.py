@@ -17,14 +17,77 @@ class TestExtractIsinMapping:
     def test_extractIsinMappingShouldParseValidFinancialInstrumentSection(self):
         # Given
         csv_content = [
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee"],
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014", "TSLA", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "1300", "TRIGIANT GROUP LTD", "104248119", "KYG905191022", "1300", "SEHK", "1", "COMMON", ""]
+            [
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "Comm/Fee",
+            ],
+            [
+                "Financial Instrument Information",
+                "Header",
+                "Asset Category",
+                "Symbol",
+                "Description",
+                "Conid",
+                "Security ID",
+                "Underlying",
+                "Listing Exch",
+                "Multiplier",
+                "Type",
+                "Code",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "AAPL",
+                "APPLE INC",
+                "265598",
+                "US0378331005",
+                "AAPL",
+                "NASDAQ",
+                "1",
+                "COMMON",
+                "",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "TSLA",
+                "TESLA INC",
+                "76792991",
+                "US88160R1014",
+                "TSLA",
+                "NASDAQ",
+                "1",
+                "COMMON",
+                "",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "1300",
+                "TRIGIANT GROUP LTD",
+                "104248119",
+                "KYG905191022",
+                "1300",
+                "SEHK",
+                "1",
+                "COMMON",
+                "",
+            ],
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name
@@ -48,12 +111,36 @@ class TestExtractIsinMapping:
     def test_extractIsinMappingShouldHandleEmptyIsin(self):
         # Given
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", ""],  # Empty ISIN
-            ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014"]
+            [
+                "Financial Instrument Information",
+                "Header",
+                "Asset Category",
+                "Symbol",
+                "Description",
+                "Conid",
+                "Security ID",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "AAPL",
+                "APPLE INC",
+                "265598",
+                "",
+            ],  # Empty ISIN
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "TSLA",
+                "TESLA INC",
+                "76792991",
+                "US88160R1014",
+            ],
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name
@@ -75,17 +162,31 @@ class TestExtractIsinMapping:
         # Given
         csv_content = [
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-01-01", "100", "150.00", "-1.00"]
+            [
+                "Trades",
+                "Data",
+                "Order",
+                "Stocks",
+                "USD",
+                "AAPL",
+                "2024-01-01",
+                "100",
+                "150.00",
+                "-1.00",
+            ],
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name
 
         try:
             # When / Then
-            with pytest.raises(FileProcessingError, match="Missing 'Financial Instrument Information' header in CSV"):
+            with pytest.raises(
+                FileProcessingError,
+                match="Missing 'Financial Instrument Information' header in CSV",
+            ):
                 _collect_ib_csv_data(temp_path, require_trades_section=False)
         finally:
             Path(temp_path).unlink()
@@ -97,15 +198,105 @@ class TestParseRawIbExport:
     def test_parseRawIbExportShouldProcessCompleteExport(self):
         # Given
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005", "AAPL", "NASDAQ", "1", "COMMON", ""],
-            ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014", "TSLA", "NASDAQ", "1", "COMMON", ""],
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "C. Price", "Proceeds", "Comm/Fee", "Basis", "Realized P/L", "MTM P/L", "Code"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-01-04, 09:58:29", "2", "181.33", "181.91", "-362.66", "-1", "363.66", "0", "1.16", "O"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "TSLA", "2024-03-06, 09:58:25", "3", "176.11", "176.54", "-528.33", "-1", "529.33", "0", "1.29", "O"]
+            [
+                "Financial Instrument Information",
+                "Header",
+                "Asset Category",
+                "Symbol",
+                "Description",
+                "Conid",
+                "Security ID",
+                "Underlying",
+                "Listing Exch",
+                "Multiplier",
+                "Type",
+                "Code",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "AAPL",
+                "APPLE INC",
+                "265598",
+                "US0378331005",
+                "AAPL",
+                "NASDAQ",
+                "1",
+                "COMMON",
+                "",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "TSLA",
+                "TESLA INC",
+                "76792991",
+                "US88160R1014",
+                "TSLA",
+                "NASDAQ",
+                "1",
+                "COMMON",
+                "",
+            ],
+            [
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "C. Price",
+                "Proceeds",
+                "Comm/Fee",
+                "Basis",
+                "Realized P/L",
+                "MTM P/L",
+                "Code",
+            ],
+            [
+                "Trades",
+                "Data",
+                "Order",
+                "Stocks",
+                "USD",
+                "AAPL",
+                "2024-01-04, 09:58:29",
+                "2",
+                "181.33",
+                "181.91",
+                "-362.66",
+                "-1",
+                "363.66",
+                "0",
+                "1.16",
+                "O",
+            ],
+            [
+                "Trades",
+                "Data",
+                "Order",
+                "Stocks",
+                "USD",
+                "TSLA",
+                "2024-03-06, 09:58:25",
+                "3",
+                "176.11",
+                "176.54",
+                "-528.33",
+                "-1",
+                "529.33",
+                "0",
+                "1.29",
+                "O",
+            ],
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name
@@ -136,12 +327,28 @@ class TestParseRawIbExport:
     def test_parseRawIbExportShouldHandleMissingTradesSection(self):
         # Given
         csv_content = [
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID"],
-            ["Financial Instrument Information", "Data", "Stocks", "AAPL", "APPLE INC", "265598", "US0378331005"]
+            [
+                "Financial Instrument Information",
+                "Header",
+                "Asset Category",
+                "Symbol",
+                "Description",
+                "Conid",
+                "Security ID",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "AAPL",
+                "APPLE INC",
+                "265598",
+                "US0378331005",
+            ],
             # No Trades section
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name
@@ -157,13 +364,69 @@ class TestParseRawIbExport:
         # Given
         csv_content = [
             # Financial Instrument Information section with empty ISIN for AAPL
-            ["Financial Instrument Information", "Header", "Asset Category", "Symbol", "Description", "Conid", "Security ID", "Underlying", "Listing Exch", "Multiplier", "Type", "Code"],
-            ["Financial Instrument Information", "Data", "Stocks", "TSLA", "TESLA INC", "76792991", "US88160R1014", "TSLA", "NASDAQ", "1", "COMMON", ""],
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol", "Date/Time", "Quantity", "T. Price", "Comm/Fee", "Basis", "Realized P/L", "MTM P/L", "Code"],
-            ["Trades", "Data", "Order", "Stocks", "USD", "AAPL", "2024-01-04, 09:58:29", "2", "181.33", "-1", "363.66", "0", "1.16", "O"]
+            [
+                "Financial Instrument Information",
+                "Header",
+                "Asset Category",
+                "Symbol",
+                "Description",
+                "Conid",
+                "Security ID",
+                "Underlying",
+                "Listing Exch",
+                "Multiplier",
+                "Type",
+                "Code",
+            ],
+            [
+                "Financial Instrument Information",
+                "Data",
+                "Stocks",
+                "TSLA",
+                "TESLA INC",
+                "76792991",
+                "US88160R1014",
+                "TSLA",
+                "NASDAQ",
+                "1",
+                "COMMON",
+                "",
+            ],
+            [
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "Comm/Fee",
+                "Basis",
+                "Realized P/L",
+                "MTM P/L",
+                "Code",
+            ],
+            [
+                "Trades",
+                "Data",
+                "Order",
+                "Stocks",
+                "USD",
+                "AAPL",
+                "2024-01-04, 09:58:29",
+                "2",
+                "181.33",
+                "-1",
+                "363.66",
+                "0",
+                "1.16",
+                "O",
+            ],
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
             writer = csv.writer(temp_file)
             writer.writerows(csv_content)
             temp_path = temp_file.name

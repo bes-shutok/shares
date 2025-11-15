@@ -2,7 +2,12 @@ import pytest
 from decimal import Decimal
 from pathlib import Path
 
-from shares_reporting.application.extraction import extract_dividend_income, _process_dividends_with_securities, _collect_ib_csv_data, IBCsvData
+from shares_reporting.application.extraction import (
+    extract_dividend_income,
+    _process_dividends_with_securities,
+    _collect_ib_csv_data,
+    IBCsvData,
+)
 from shares_reporting.domain.entities import DividendIncomePerSecurity
 from shares_reporting.domain.value_objects import get_currency
 from shares_reporting.domain.exceptions import DataValidationError
@@ -141,13 +146,28 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         """Test _process_dividends_with_securities function directly."""
         security_info = {
             "AAPL": {"isin": "US0378331005", "country": "US"},
-            "MSFT": {"isin": "US5949181045", "country": "US"}
+            "MSFT": {"isin": "US5949181045", "country": "US"},
         }
 
         raw_dividend_data = [
-            {"currency": "USD", "date": "2023-03-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00"},
-            {"currency": "USD", "date": "2023-06-15", "description": "AAPL - CASH DIVIDEND", "amount": "24.00"},
-            {"currency": "USD", "date": "2023-03-15", "description": "MSFT - CASH DIVIDEND", "amount": "68.00"},
+            {
+                "currency": "USD",
+                "date": "2023-03-15",
+                "description": "AAPL - CASH DIVIDEND",
+                "amount": "24.00",
+            },
+            {
+                "currency": "USD",
+                "date": "2023-06-15",
+                "description": "AAPL - CASH DIVIDEND",
+                "amount": "24.00",
+            },
+            {
+                "currency": "USD",
+                "date": "2023-03-15",
+                "description": "MSFT - CASH DIVIDEND",
+                "amount": "68.00",
+            },
         ]
 
         csv_data = IBCsvData(
@@ -155,7 +175,7 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
             raw_trade_data=[],
             raw_dividend_data=raw_dividend_data,
             raw_withholding_tax_data=[],
-            metadata={}
+            metadata={},
         )
 
         dividend_income = _process_dividends_with_securities(csv_data)
@@ -173,34 +193,43 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
             country="US",
             gross_amount=Decimal("100.00"),
             total_taxes=Decimal("15.00"),
-            currency=get_currency("USD")
+            currency=get_currency("USD"),
         )
         valid_dividend.validate()  # Should not raise
 
         # Negative gross amount
         with pytest.raises(DataValidationError, match="Gross amount cannot be negative"):
             invalid_dividend = DividendIncomePerSecurity(
-                symbol="AAPL", isin="US0378331005", country="US",
-                gross_amount=Decimal("-10.00"), total_taxes=Decimal("0"),
-                currency=get_currency("USD")
+                symbol="AAPL",
+                isin="US0378331005",
+                country="US",
+                gross_amount=Decimal("-10.00"),
+                total_taxes=Decimal("0"),
+                currency=get_currency("USD"),
             )
             invalid_dividend.validate()
 
         # Taxes exceeding gross amount
         with pytest.raises(DataValidationError, match="Taxes .* cannot exceed gross amount"):
             invalid_dividend = DividendIncomePerSecurity(
-                symbol="AAPL", isin="US0378331005", country="US",
-                gross_amount=Decimal("10.00"), total_taxes=Decimal("15.00"),
-                currency=get_currency("USD")
+                symbol="AAPL",
+                isin="US0378331005",
+                country="US",
+                gross_amount=Decimal("10.00"),
+                total_taxes=Decimal("15.00"),
+                currency=get_currency("USD"),
             )
             invalid_dividend.validate()
 
         # Empty symbol
         with pytest.raises(DataValidationError, match="Symbol cannot be empty"):
             invalid_dividend = DividendIncomePerSecurity(
-                symbol="", isin="US0378331005", country="US",
-                gross_amount=Decimal("10.00"), total_taxes=Decimal("0"),
-                currency=get_currency("USD")
+                symbol="",
+                isin="US0378331005",
+                country="US",
+                gross_amount=Decimal("10.00"),
+                total_taxes=Decimal("0"),
+                currency=get_currency("USD"),
             )
             invalid_dividend.validate()
 

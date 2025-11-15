@@ -11,16 +11,19 @@ from typing import Optional
 from .application.extraction import parse_ib_export_complete
 from .application.persisting import persist_leftover, persist_results
 from .application.transformation import calculate
-from .domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany, DividendIncomePerCompany, IBExportData
+from .domain.collections import (
+    CapitalGainLinesPerCompany,
+    TradeCyclePerCompany,
+    DividendIncomePerCompany,
+    IBExportData,
+)
 from .domain.exceptions import SharesReportingError, FileProcessingError, ReportGenerationError
 from .infrastructure.logging_config import setup_logging, get_logger
 from .infrastructure.validation import validate_output_directory
 
 
 def main(
-    source_file: Optional[Path] = None,
-    output_dir: Optional[Path] = None,
-    log_level: str = "INFO"
+    source_file: Optional[Path] = None, output_dir: Optional[Path] = None, log_level: str = "INFO"
 ) -> None:
     """
     Main application entry point.
@@ -78,7 +81,9 @@ def main(
             ib_data: IBExportData = parse_ib_export_complete(validated_source)
             trade_lines_per_company: TradeCyclePerCompany = ib_data.trade_cycles
             dividend_income_per_company: DividendIncomePerCompany = ib_data.dividend_income
-            logger.info(f"Parsed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries")
+            logger.info(
+                f"Parsed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries"
+            )
         except Exception as e:
             raise FileProcessingError(f"Failed to parse source file: {e}") from e
 
@@ -87,7 +92,9 @@ def main(
             leftover_trades: TradeCyclePerCompany = {}
             capital_gains: CapitalGainLinesPerCompany = {}
             calculate(trade_lines_per_company, leftover_trades, capital_gains)
-            logger.info(f"Calculated {sum(len(gains) for gains in capital_gains.values())} capital gain lines")
+            logger.info(
+                f"Calculated {sum(len(gains) for gains in capital_gains.values())} capital gain lines"
+            )
         except Exception as e:
             raise SharesReportingError(f"Failed to calculate capital gains: {e}") from e
 
@@ -101,17 +108,25 @@ def main(
         # Generate capital gains and dividend income report
         try:
             persist_results(extract_path, capital_gains, dividend_income_per_company)
-            report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+            report_type = (
+                "capital gains and dividend income"
+                if dividend_income_per_company
+                else "capital gains"
+            )
             logger.info(f"Generated {report_type} report: {extract_path}")
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate report: {e}") from e
 
         logger.info("Application completed successfully")
         logger.info(f"Output directory: {validated_output_dir.name}")
-        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        report_type = (
+            "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        )
         logger.info(f"Generated {report_type} report: {extract_path.name}")
         logger.info(f"Leftover shares report: {leftover_path.name}")
-        logger.info(f"Processed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries")
+        logger.info(
+            f"Processed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries"
+        )
         print("Processing completed successfully!")
 
     except SharesReportingError as e:

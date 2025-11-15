@@ -6,13 +6,26 @@ from typing import Dict, List, Union
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
-from ..domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany, DividendIncomePerCompany
+from ..domain.collections import (
+    CapitalGainLinesPerCompany,
+    TradeCyclePerCompany,
+    DividendIncomePerCompany,
+)
 from ..domain.entities import CurrencyCompany, TradeCycle
 from ..domain.value_objects import TradeType
 from ..infrastructure.config import Config, ConversionRate, read_config
 from ..infrastructure.logging_config import get_logger
 from ..domain.exceptions import ReportGenerationError
-from ..domain.constants import EXCEL_START_COLUMN, EXCEL_START_ROW, EXCEL_HEADER_ROW_1, EXCEL_HEADER_ROW_2, EXCEL_WITHOLDING_TAX_COLUMN, EXCEL_COUNTRY_COLUMN, EXCEL_COLUMN_OFFSET, EXCEL_NUMBER_FORMAT
+from ..domain.constants import (
+    EXCEL_START_COLUMN,
+    EXCEL_START_ROW,
+    EXCEL_HEADER_ROW_1,
+    EXCEL_HEADER_ROW_2,
+    EXCEL_WITHOLDING_TAX_COLUMN,
+    EXCEL_COUNTRY_COLUMN,
+    EXCEL_COLUMN_OFFSET,
+    EXCEL_NUMBER_FORMAT,
+)
 
 
 def persist_leftover(
@@ -66,15 +79,15 @@ def persist_leftover(
             # we are not expecting any sold shares in the leftover file
             if trade_cycle.has_bought():
                 bought_trades = trade_cycle.get(TradeType.BUY)
-                logger.debug(f"Writing {len(bought_trades)} leftover buy trades for {row['Symbol']}")
+                logger.debug(
+                    f"Writing {len(bought_trades)} leftover buy trades for {row['Symbol']}"
+                )
 
                 for bought_trade in bought_trades:
                     row["Quantity"] = bought_trade.quantity
                     action = bought_trade.action
                     row["Date/Time"] = (
-                        str(action.date_time.date())
-                        + ", "
-                        + str(action.date_time.time())
+                        str(action.date_time.date()) + ", " + str(action.date_time.time())
                     )
                     row["T. Price"] = action.price
                     row["Proceeds"] = action.price * bought_trade.quantity
@@ -101,7 +114,9 @@ def persist_results(
     logger.info(f"Generating capital gains report: {Path(extract).name}")
 
     total_gain_lines = sum(len(lines) for lines in capital_gain_lines_per_company.values())
-    logger.debug(f"Processing {total_gain_lines} capital gain lines across {len(capital_gain_lines_per_company)} companies")
+    logger.debug(
+        f"Processing {total_gain_lines} capital gain lines across {len(capital_gain_lines_per_company)} companies"
+    )
 
     first_header = [
         "Beneficiary",
@@ -158,7 +173,9 @@ def persist_results(
         )
         logger.debug(f"Created currency exchange table with {len(config.rates) + 1} rates")
     except Exception as e:
-        raise ReportGenerationError(f"Failed to read configuration for currency exchange: {e}") from e
+        raise ReportGenerationError(
+            f"Failed to read configuration for currency exchange: {e}"
+        ) from e
 
     for i in range(len(first_header)):
         worksheet.cell(EXCEL_HEADER_ROW_1, i + 1, first_header[i])
@@ -188,11 +205,7 @@ def persist_results(
             worksheet.cell(
                 line_number,
                 idx,
-                "="
-                + exchange_rates[currency.currency]
-                + "*("
-                + line.get_sell_amount()
-                + ")",
+                "=" + exchange_rates[currency.currency] + "*(" + line.get_sell_amount() + ")",
             )
 
             # PURCHASE information
@@ -206,11 +219,7 @@ def persist_results(
             worksheet.cell(
                 line_number,
                 idx,
-                "="
-                + exchange_rates[currency.currency]
-                + "*("
-                + line.get_buy_amount()
-                + ")",
+                "=" + exchange_rates[currency.currency] + "*(" + line.get_buy_amount() + ")",
             )
 
             # WITHOLDING TAX information (skip Country and Amount columns for now)
@@ -220,11 +229,7 @@ def persist_results(
             expense_cell = worksheet.cell(
                 line_number,
                 idx,
-                "="
-                + exchange_rates[currency.currency]
-                + "*("
-                + line.get_expense_amount()
-                + ")",
+                "=" + exchange_rates[currency.currency] + "*(" + line.get_expense_amount() + ")",
             )
             expense_cell.number_format = EXCEL_NUMBER_FORMAT
             idx += 2
@@ -265,7 +270,9 @@ def persist_results(
 
     # Add CAPITAL INVESTMENT INCOME section if dividend data is provided
     if dividend_income_per_company:
-        logger.info(f"Adding CAPITAL INVESTMENT INCOME section with {len(dividend_income_per_company)} securities")
+        logger.info(
+            f"Adding CAPITAL INVESTMENT INCOME section with {len(dividend_income_per_company)} securities"
+        )
 
         # Add empty row for spacing
         line_number += 1
@@ -292,7 +299,7 @@ def persist_results(
             "Currency",
             "Original gross amount",
             "Original tax amount",
-            "Net amount"
+            "Net amount",
         ]
 
         for i, header in enumerate(dividend_headers):
@@ -309,14 +316,24 @@ def persist_results(
 
             # Convert amounts using exchange rates and add Excel formulas
             gross_amount_cell = worksheet.cell(
-                line_number, 5,
-                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.gross_amount) + ")"
+                line_number,
+                5,
+                "="
+                + exchange_rates[dividend_data.currency.currency]
+                + "*("
+                + str(dividend_data.gross_amount)
+                + ")",
             )
             gross_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
             tax_amount_cell = worksheet.cell(
-                line_number, 6,
-                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.total_taxes) + ")"
+                line_number,
+                6,
+                "="
+                + exchange_rates[dividend_data.currency.currency]
+                + "*("
+                + str(dividend_data.total_taxes)
+                + ")",
             )
             tax_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
@@ -338,7 +355,9 @@ def persist_results(
             net_amount_cell = worksheet.cell(line_number, 13, str(net_amount))
             net_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
-            logger.debug(f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, {dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})")
+            logger.debug(
+                f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, {dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})"
+            )
             line_number += 1
 
     # auto width for the populated cells
@@ -352,8 +371,12 @@ def persist_results(
     try:
         workbook.save(extract)
         workbook.close()
-        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
-        logger.info(f"Successfully generated {report_type} report with {processed_lines} capital gain lines")
+        report_type = (
+            "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        )
+        logger.info(
+            f"Successfully generated {report_type} report with {processed_lines} capital gain lines"
+        )
     except Exception as e:
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 

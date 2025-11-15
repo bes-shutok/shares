@@ -16,7 +16,7 @@ import test_data as test_data
 
 def test_parsing_raw_ib():
     """Test that raw IB parsing produces same results as simple.csv parsing"""
-    source_file = Path('tests', 'resources', 'ib_simple_raw.csv')
+    source_file = Path("tests", "resources", "ib_simple_raw.csv")
     actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
 
     # Should have same structure as simple.csv parsing
@@ -24,7 +24,9 @@ def test_parsing_raw_ib():
 
     # Find the BTU USD company
     currency = get_currency("USD")
-    company = get_company("BTU", "US7045491033", "United States")  # Raw IB includes ISIN and country
+    company = get_company(
+        "BTU", "US7045491033", "United States"
+    )  # Raw IB includes ISIN and country
     currency_company = CurrencyCompany(currency, company)
     assert currency_company in actual_trades
 
@@ -60,7 +62,7 @@ def test_parsing_raw_ib():
 
 def test_fifo_strategy_with_simple_raw_ib_data():
     """Test FIFO strategy with raw IB data - ensures raw IB parsing works with FIFO logic"""
-    source_file = Path('tests', 'resources', 'ib_simple_raw.csv')
+    source_file = Path("tests", "resources", "ib_simple_raw.csv")
     actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
 
     # Use the correct calculate function signature
@@ -76,7 +78,10 @@ def test_fifo_strategy_with_simple_raw_ib_data():
     assert len(capital_gains[btu_company]) == 2
 
     # Verify FIFO behavior (first purchase sold first)
-    cg_lines = sorted(capital_gains[btu_company], key=lambda x: (x.get_sell_date().year, x.get_sell_date().month, x.get_sell_date().day))
+    cg_lines = sorted(
+        capital_gains[btu_company],
+        key=lambda x: (x.get_sell_date().year, x.get_sell_date().month, x.get_sell_date().day),
+    )
 
     # First sale (June 3): 10 shares sold from first purchase (15 @ $6.77)
     first_cg = cg_lines[0]
@@ -96,7 +101,7 @@ def test_fifo_strategy_with_simple_raw_ib_data():
 
 def test_ib_multi_strategy_raw_data_structure():
     """Test that our raw IB multi-strategy test data has the right structure for strategy testing"""
-    source_file = Path('tests', 'resources', 'ib_multi_strategy_raw.csv')
+    source_file = Path("tests", "resources", "ib_multi_strategy_raw.csv")
     actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
 
     # Should have AAPL and TSLA companies with USD currency
@@ -120,7 +125,7 @@ def test_ib_multi_strategy_raw_data_structure():
     total_aapl_bought = sum(trade.quantity for trade in aapl_buys)
     total_aapl_sold = sum(abs(trade.quantity) for trade in aapl_sells)
     assert total_aapl_bought == 155  # 50 + 75 + 30
-    assert total_aapl_sold == 135   # 40 + 60 + 35
+    assert total_aapl_sold == 135  # 40 + 60 + 35
     assert total_aapl_bought > total_aapl_sold  # Partial settlement case
 
     # TSLA: Bought 85, Sold 85 (complete settlement)
@@ -132,8 +137,8 @@ def test_ib_multi_strategy_raw_data_structure():
 
     total_tsla_bought = sum(trade.quantity for trade in tsla_buys)
     total_tsla_sold = sum(abs(trade.quantity) for trade in tsla_sells)
-    assert total_tsla_bought == 85   # 25 + 40 + 20
-    assert total_tsla_sold == 85    # 35 + 30 + 20
+    assert total_tsla_bought == 85  # 25 + 40 + 20
+    assert total_tsla_sold == 85  # 35 + 30 + 20
     assert total_tsla_bought == total_tsla_sold  # Complete settlement case
 
 
@@ -146,7 +151,7 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
     suggested in Portugal and many other jurisdictions. LIFO and HIFO strategies
     are planned as low-priority future enhancements for international users.
     """
-    source_file = Path('tests', 'resources', 'ib_multi_strategy_raw.csv')
+    source_file = Path("tests", "resources", "ib_multi_strategy_raw.csv")
     actual_trades: TradeCyclePerCompany = extraction.parse_raw_ib_export(source_file)
 
     # Get AAPL trades for strategy comparison
@@ -184,9 +189,14 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
     # LIFO: Take from last purchase (30 @ $95.75), then from middle purchase (10 @ $185.25)
     lifo_shares_from_last = min(40, prices_by_qty[2][0])  # 30 shares @ $95.75
     lifo_shares_remaining = 40 - lifo_shares_from_last  # 10 shares needed
-    lifo_cost = (lifo_shares_from_last * prices_by_qty[2][1]) + (lifo_shares_remaining * prices_by_qty[1][1])
+    lifo_cost = (lifo_shares_from_last * prices_by_qty[2][1]) + (
+        lifo_shares_remaining * prices_by_qty[1][1]
+    )
 
-    hifo_cost = min(40, max(prices_by_qty, key=lambda x: x[1])[0]) * max(prices_by_qty, key=lambda x: x[1])[1]
+    hifo_cost = (
+        min(40, max(prices_by_qty, key=lambda x: x[1])[0])
+        * max(prices_by_qty, key=lambda x: x[1])[1]
+    )
 
     # Verify all three strategies would produce different cost bases
     assert fifo_cost == 4820.0  # 40 * $120.50
