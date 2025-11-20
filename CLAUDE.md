@@ -122,6 +122,25 @@ The system processes data through a sophisticated tax-compliant pipeline:
 2. **Transformation**: `calculate_capital_gains_with_fifo_matching()` implements the core capital gains algorithm
 3. **Persistence**: `generate_comprehensive_tax_report()` creates Excel reports + `export_unmatched_securities_rollover_file()` for inventory rollover
 
+#### **CSV Extraction Architecture**
+
+The `extraction` package uses a **State Machine** pattern to parse complex Interactive Brokers CSV files:
+
+**Components:**
+- **`IBCsvStateMachine`**: Orchestrates the parsing process, transitioning between file sections.
+- **Contexts** (`contexts.py`): Specialized handlers for each CSV section:
+  - `FinancialInstrumentContext`: Extracts security info (ISIN, Country).
+  - `TradesContext`: Parses trade executions.
+  - `DividendsContext`: Extracts dividend records.
+  - `WithholdingTaxContext`: Parses tax records.
+- **Models** (`models.py`): Data structures for raw extracted data (`IBCsvData`, `IBCsvSection`).
+
+**Flow:**
+1. `IBCsvStateMachine` reads the CSV row by row.
+2. Detects section headers (e.g., "Financial Instrument Information", "Trades").
+3. Delegates row processing to the active `BaseSectionContext` subclass.
+4. Aggregates results into `IBCsvData` for downstream processing.
+
 #### **FIFO Algorithm Deep Dive**
 
 The `calculate_capital_gains_with_fifo_matching()` function implements sophisticated capital gains calculation:
