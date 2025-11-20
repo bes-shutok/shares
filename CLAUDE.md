@@ -118,9 +118,9 @@ The project follows **professional layered architecture** with **Domain-Driven D
 
 #### **Data Processing Flow**
 The system processes data through a sophisticated tax-compliant pipeline:
-1. **Extraction**: `extract_complete_ib_export_data()` parses Interactive Brokers CSV files into domain objects (trades + dividends + security info)
-2. **Transformation**: `calculate_capital_gains_with_fifo_matching()` implements the core capital gains algorithm
-3. **Persistence**: `generate_comprehensive_tax_report()` creates Excel reports + `export_unmatched_securities_rollover_file()` for inventory rollover
+1. **Extraction**: `parse_ib_export_all()` parses Interactive Brokers CSV files into domain objects (trades + dividends + security info)
+2. **Transformation**: `calculate_fifo_gains()` implements the core capital gains algorithm
+3. **Persistence**: `generate_tax_report()` creates Excel reports + `export_rollover_file()` for inventory rollover
 
 #### **CSV Extraction Architecture**
 
@@ -143,7 +143,7 @@ The `extraction` package uses a **State Machine** pattern to parse complex Inter
 
 #### **FIFO Algorithm Deep Dive**
 
-The `calculate_capital_gains_with_fifo_matching()` function implements sophisticated capital gains calculation:
+The `calculate_fifo_gains()` function implements sophisticated capital gains calculation:
 
 **State Machine Design:**
 - **Company-Level Processing**: Each company/currency processed independently
