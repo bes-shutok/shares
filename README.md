@@ -37,16 +37,8 @@ The clean architecture ensures that adding new investment types and data sources
 ```
 src/shares_reporting/
 ├── domain/                    # Domain Layer (investment-agnostic)
-│   ├── value_objects.py       # TradeDate, Currency, Company, TradeType
-│   ├── entities.py            # TradeAction, TradeCycle, CapitalGainLine
-│   ├── accumulators.py        # CapitalGainLineAccumulator, TradePartsWithinDay
-│   └── collections.py         # Type aliases and collections
 ├── application/               # Application Layer
-│   ├── extraction.py          # Data parsing (currently CSV, extensible to APIs)
-│   ├── transformation.py      # Investment calculations and matching
-│   └── persisting.py          # Report generation (Excel, CSV, future formats)
 ├── infrastructure/             # Infrastructure Layer
-│   └── config.py              # Configuration and external service management
 └── main.py                    # Application entry point
 ```
 
@@ -134,24 +126,16 @@ The tool generates comprehensive Excel reports with:
 ## Architecture & Modules
 
 ### **Domain Layer** (`src/shares_reporting/domain/`)
-Core business entities and rules that are independent of external concerns:
-- **`value_objects.py`** - Value objects: TradeDate, Currency, Company, TradeType (extensible for new investment types)
-- **`entities.py`** - Core entities: TradeAction, TradeCycle, CapitalGainLine (foundation for other investment vehicles)
-- **`accumulators.py`** - Business accumulators: CapitalGainLineAccumulator, TradePartsWithinDay
-- **`collections.py`** - Type aliases and collection utilities for trades, capital gains, and dividend income
+Core business entities and rules that are independent of external concerns. Contains value objects, entities, accumulators, and collection utilities.
 
 ### **Application Layer** (`src/shares_reporting/application/`)
-Business logic services and orchestration components:
-- **`extraction.py`** - Data parsing utilities (CSV extraction for trades and dividends, extensible to APIs)
-- **`transformation.py`** - Investment calculations and matching algorithms (extensible for different investment types)
-- **`persisting.py`** - Report generation with formulas (Excel reports for capital gains and dividend income)
+Business logic services and orchestration components. Handles data extraction, transformation (capital gains calculation), and persistence (report generation).
 
 ### **Infrastructure Layer** (`src/shares_reporting/infrastructure/`)
-External concerns and technical details:
-- **`config.py`** - Configuration management and currency exchange rates (future: API clients, data adapters)
+External concerns and technical details. Manages configuration, logging, and external adapters.
 
 ### **Presentation Layer**
-- **`main.py`** - Application entry point and main orchestration (future: web interface, API endpoints)
+- **`main.py`** - Application entry point and main orchestration
 
 ## Core Business Logic Deep Dive
 

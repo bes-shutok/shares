@@ -97,12 +97,17 @@ The project follows **professional layered architecture** with **Domain-Driven D
   - `entities.py` - TradeAction, TradeCycle, CapitalGainLine
   - `accumulators.py` - CapitalGainLineAccumulator, TradePartsWithinDay
   - `collections.py` - Type aliases and collections
+  - `constants.py` - Domain constants
+  - `exceptions.py` - Domain exceptions
 - **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
   - `extraction.py` - CSV data parsing for trades and dividends, domain object creation
   - `transformation.py` - Capital gains calculation and trade matching
   - `persisting.py` - Excel report generation with formulas (capital gains + dividend income)
 - **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns
   - `config.py` - Configuration management and currency exchange rates
+  - `isin_country.py` - ISIN to country resolution
+  - `logging_config.py` - Logging configuration
+  - `validation.py` - Input validation
 - **Presentation Layer** (`src/shares_reporting/main.py`): Application entry point and orchestration
 
 ### Core Business Logic Pipeline
@@ -286,7 +291,9 @@ shares-reporting/
 │       │   ├── value_objects.py   # TradeDate, Currency, Company, TradeType
 │       │   ├── entities.py      # TradeAction, TradeCycle, CapitalGainLine
 │       │   ├── accumulators.py   # CapitalGainLineAccumulator, TradePartsWithinDay
-│       │   └── collections.py    # Type aliases and utilities
+│       │   ├── collections.py    # Type aliases and utilities
+│       │   ├── constants.py      # Domain constants
+│       │   └── exceptions.py     # Domain exceptions
 │       ├── application/      # Application layer
 │       │   ├── __init__.py
 │       │   ├── extraction.py    # CSV data parsing
@@ -294,7 +301,10 @@ shares-reporting/
 │       │   └── persisting.py    # Excel/CSV generation
 │       └── infrastructure/    # Infrastructure layer
 │           ├── __init__.py
-│           └── config.py        # Configuration management
+│           ├── config.py        # Configuration management
+│           ├── isin_country.py  # ISIN to country resolution
+│           ├── logging_config.py # Logging configuration
+│           └── validation.py    # Input validation
 ├── tests/                  # Test suite
 │   ├── domain/             # Domain layer unit tests
 │   │   ├── test_value_objects.py
