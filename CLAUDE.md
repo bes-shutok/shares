@@ -100,7 +100,11 @@ The project follows **professional layered architecture** with **Domain-Driven D
   - `constants.py` - Domain constants
   - `exceptions.py` - Domain exceptions
 - **Application Layer** (`src/shares_reporting/application/`): Business logic and orchestration
-  - `extraction.py` - CSV data parsing for trades and dividends, domain object creation
+  - `extraction/` - CSV data parsing package
+    - `models.py` - Data structures
+    - `contexts.py` - Parsing contexts
+    - `state_machine.py` - Parsing state machine
+    - `processing.py` - Core processing logic
   - `transformation.py` - Capital gains calculation and trade matching
   - `persisting.py` - Excel report generation with formulas (capital gains + dividend income)
 - **Infrastructure Layer** (`src/shares_reporting/infrastructure/`): External concerns
@@ -296,7 +300,12 @@ shares-reporting/
 │       │   └── exceptions.py     # Domain exceptions
 │       ├── application/      # Application layer
 │       │   ├── __init__.py
-│       │   ├── extraction.py    # CSV data parsing
+│       │   ├── extraction/      # CSV data parsing package
+│       │   │   ├── __init__.py
+│       │   │   ├── models.py
+│       │   │   ├── contexts.py
+│       │   │   ├── state_machine.py
+│       │   │   └── processing.py
 │       │   ├── transformation.py # Capital gains calculation
 │       │   └── persisting.py    # Excel/CSV generation
 │       └── infrastructure/    # Infrastructure layer

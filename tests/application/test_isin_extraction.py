@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from shares_reporting.application.extraction import _extract_csv_data, parse_ib_export
+from shares_reporting.application.extraction import parse_ib_export
+from shares_reporting.application.extraction.processing import _extract_csv_data
 from shares_reporting.domain.exceptions import FileProcessingError
 
 

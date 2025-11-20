@@ -2,11 +2,9 @@ from decimal import Decimal
 
 import pytest
 
-from shares_reporting.application.extraction import (
-    IBCsvData,
-    _process_dividends,
-    parse_dividend_income,
-)
+from shares_reporting.application.extraction import parse_dividend_income
+from shares_reporting.application.extraction.models import IBCsvData
+from shares_reporting.application.extraction.processing import _process_dividends
 from shares_reporting.domain.entities import DividendIncomePerSecurity
 from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import parse_currency
