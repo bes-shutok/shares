@@ -55,19 +55,28 @@ class IBCsvStateMachine:
     def _detect_section_transition(self, row: list[str]) -> bool:
         """Detect if this row represents a section transition."""
         # Only treat as section transition if it's a header row
-        if row[0] == "Financial Instrument Information" and len(row) >= 2 and row[1] == "Header":
+        # IB CSV format: Section Name, Header, Column1, Column2, ...
+        if len(row) < 2 or row[1] != "Header":
+            return False
+
+        section_name = row[0]
+        
+        if section_name == "Financial Instrument Information":
             self._transition_to_financial_instruments(row)
             return True
-        elif row[0] == "Trades" and len(row) >= 2 and row[1] == "Header":
+        elif section_name == "Trades":
             self._transition_to_trades(row)
             return True
-        elif row[0] == "Dividends" and len(row) >= 2 and row[1] == "Header":
+        elif section_name == "Dividends":
             self._transition_to_dividends(row)
             return True
-        elif row[0] == "Withholding Tax" and len(row) >= 2 and row[1] == "Header":
+        elif section_name == "Withholding Tax":
             self._transition_to_withholding_tax(row)
             return True
-        return False
+        else:
+            # Found a header for a section we don't process (e.g. "Interest", "Fees", etc.)
+            self._transition_to_other(row)
+            return True
 
     def _transition_to_financial_instruments(self, row: list[str]) -> None:
         """Transition to Financial Instrument section."""
@@ -99,6 +108,11 @@ class IBCsvStateMachine:
         self.current_section = IBCsvSection.WITHHOLDING_TAX
         if len(row) >= 2 and row[1] == "Header":
             self.withholding_tax_context.process_header(row)
+
+    def _transition_to_other(self, row: list[str]) -> None:
+        """Transition to ignored/other section."""
+        self.current_section = IBCsvSection.OTHER
+        # We don't need to process headers or data for ignored sections
 
     def _process_financial_instrument_row(self, row: list[str]) -> None:
         """Process row in Financial Instrument section."""

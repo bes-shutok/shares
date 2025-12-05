@@ -77,3 +77,4 @@ resources/result/*
 # Configuration files with sensitive data
 config.ini
 !tests/config.ini
+*.txt

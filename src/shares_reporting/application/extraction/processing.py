@@ -110,12 +110,8 @@ def _process_trades(csv_data: IBCsvData) -> TradeCyclePerCompany:
                 trade_cycles_per_company[currency_company] = trade_cycle
 
             trade_action = TradeAction(company, datetime_val, currency, quantity, price, fee)
-            quantitated_trade_actions: QuantitatedTradeActions = trade_cycle.get(
-                trade_action.trade_type
-            )
-            quantitated_trade_actions.append(
-                QuantitatedTradeAction(trade_action.quantity, trade_action)
-            )
+            quantitated_trade_actions: QuantitatedTradeActions = trade_cycle.get(trade_action.trade_type)
+            quantitated_trade_actions.append(QuantitatedTradeAction(trade_action.quantity, trade_action))
 
         except Exception as e:
             logger.warning(f"Failed to process trade for {symbol}: {e}")
@@ -144,9 +140,7 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:
     dividend_income_per_company: DividendIncomePerCompany = {}
 
     # Temporary aggregation structure
-    aggregation: dict[
-        str, dict[str, Decimal]
-    ] = {}  # symbol -> {gross_amount, total_taxes, currency}
+    aggregation: dict[str, dict[str, Decimal]] = {}  # symbol -> {gross_amount, total_taxes, currency}
 
     for dividend_row in csv_data.raw_dividend_data:
         description = dividend_row["description"]
@@ -221,9 +215,7 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:
                 continue
 
             # Parse tax amount (withholding tax amounts are negative)
-            tax_amount = (
-                Decimal(tax_amount_str.replace(",", "")) if tax_amount_str else Decimal("0")
-            )
+            tax_amount = Decimal(tax_amount_str.replace(",", "")) if tax_amount_str else Decimal("0")
             # Use absolute value since we track positive tax amounts
             tax_amount = abs(tax_amount)
 
@@ -388,9 +380,13 @@ def parse_ib_export_all(path: str | Path) -> IBExportData:
     logger.info(f"Processing complete IB export: {validated_path.name}")
 
     try:
+        logger.info(f"Extracting CSV data from: {validated_path.name}")
         csv_data = _extract_csv_data(validated_path)
+        logger.info(f"Extracted CSV data from: {validated_path.name}")
         trade_cycles = _process_trades(csv_data)
+        logger.info(f"Processed trades from: {validated_path.name}")
         dividend_income = _process_dividends(csv_data)
+        logger.info(f"Processed dividends from: {validated_path.name}")
 
         return IBExportData(trade_cycles=trade_cycles, dividend_income=dividend_income)
     except Exception as e:
