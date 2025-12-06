@@ -4,7 +4,6 @@ from __future__ import annotations
 import configparser
 from dataclasses import dataclass
 from decimal import Decimal
-from pathlib import Path
 from typing import NamedTuple
 
 from .logging_config import create_module_logger
@@ -43,43 +42,6 @@ class Config:
         if self.security is None:
             self.security = DEFAULT_SECURITY_CONFIG
 
-
-# https://docs.python.org/3/library/configparser.html
-def initialize_default_configuration_file():
-    """Create a default configuration file if one does not exist."""
-    logger = create_module_logger(__name__)
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    config.allow_no_value = True
-    config["COMMON"] = {"TARGET CURRENCY": "EUR", "YEAR": "2022"}
-    config["EXCHANGE RATES"] = {
-        "EUR/CAD": "0.69252",
-        "EUR/USD": "0.93756",
-        "EUR/GBP": "1.12748",
-        "EUR/HKD": "0.12025",
-        "EUR/PLN": "0.21364",
-    }
-    config["SECURITY"] = {
-        "MAX_FILE_SIZE_MB": "100",
-        "MAX_TICKER_LENGTH": "10",
-        "MAX_CURRENCY_LENGTH": "3",
-        "MAX_QUANTITY_VALUE": "10000000000",
-        "MAX_PRICE_VALUE": "1000000000",
-        "MAX_FILENAME_LENGTH": "255",
-        "ALLOWED_EXTENSIONS": ".csv,.txt",
-    }
-
-    config_path = "config.ini"
-    try:
-        with Path(config_path).open("w", encoding="utf-8") as configfile:
-            config.write(configfile)
-        logger.info("Created default configuration file: %s", config_path)
-        logger.info(
-            "Configuration includes 5 exchange rates for EUR base currency and security settings"
-        )
-    except OSError as e:
-        logger.error("Failed to create configuration file %s: %s", config_path, e)
-        raise
 
 
 def load_configuration_from_file() -> Config:
@@ -174,10 +136,4 @@ def _load_security_config(config: configparser.ConfigParser, logger) -> Security
         return DEFAULT_SECURITY_CONFIG
 
 
-def main():
-    """Initialize the default configuration file."""
-    initialize_default_configuration_file()
 
-
-if __name__ == "__main__":
-    main()

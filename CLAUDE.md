@@ -209,8 +209,12 @@ Rich domain models with proper separation of concerns:
 
 - Uses Python's `configparser` for INI file handling
 - Configuration files: `config.ini` (production) and `tests/config.ini` (testing)
-- Supports target currency specification and exchange rate management
-- Currency exchange rates should be updated annually (e.g., from your national central bank or financial institution)
+- Both configs have identical structure with three sections:
+  - **[COMMON]**: Target currency specification
+  - **[EXCHANGE RATES]**: Currency conversion rates (different values for prod/test)
+  - **[SECURITY]**: Validation limits (file size, ticker length, allowed extensions, etc.)
+- Exchange rates should be updated annually (e.g., from your national central bank)
+- Security settings use defaults from code if missing from config file
 
 ## Excel Report Features
 

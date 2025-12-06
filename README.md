@@ -24,6 +24,7 @@ The investment reporting tool is designed to provide a simple and efficient way 
   - *Note*: Future updates will support additional data sources (crypto exchanges, DeFi platforms, etc.)
 - **Currency Rates**: Update `config.ini` with all required currency exchange pairs.
   - E.g. you can use the exchange rates from the last day of the year from your national central bank or financial institution.
+  - The config file also includes security validation settings (file size limits, allowed extensions, etc.)
 
 ## Installation & Usage
 
