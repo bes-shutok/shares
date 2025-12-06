@@ -1,8 +1,9 @@
-"""
-Main entry point for the shares reporting application.
+"""Main entry point for the shares reporting application.
 
 Processes Interactive Brokers CSV exports to generate tax reporting data for capital gains calculations.
 """
+
+from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -21,11 +22,10 @@ from .infrastructure.logging_config import configure_application_logging, create
 from .infrastructure.validation import validate_output_directory
 
 
-def main(
+def main(  # noqa: PLR0915
     source_file: Path | None = None, output_dir: Path | None = None, log_level: str = "INFO"
 ) -> None:
-    """
-    Main application entry point.
+    """Main application entry point.
 
     Args:
         source_file: Path to the source IB export CSV file
@@ -49,8 +49,8 @@ def main(
         leftover_path = output_dir / "shares-leftover.csv"
 
         logger.info("Starting shares reporting application")
-        logger.info(f"Source file: {source_file}")
-        logger.info(f"Output directory: {output_dir}")
+        logger.info("Source file: %s", source_file)
+        logger.info("Output directory: %s", output_dir)
 
         # Validate input file path
         try:
@@ -72,8 +72,8 @@ def main(
         extract_path = validated_output_dir / "extract.xlsx"
         leftover_path = validated_output_dir / "shares-leftover.csv"
 
-        logger.info(f"Processing file: {validated_source.name}")
-        logger.info(f"Output files will be: {extract_path.name} and {leftover_path.name}")
+        logger.info("Processing file: %s", validated_source.name)
+        logger.info("Output files will be: %s and %s", extract_path.name, leftover_path.name)
 
         # Extract comprehensive data from IB export
         try:
@@ -81,7 +81,9 @@ def main(
             trade_lines_per_company: TradeCyclePerCompany = ib_data.trade_cycles
             dividend_income_per_company: DividendIncomePerCompany = ib_data.dividend_income
             logger.info(
-                f"Parsed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries"
+                "Parsed %d trade cycles and %d dividend entries",
+                len(trade_lines_per_company),
+                len(dividend_income_per_company),
             )
         except Exception as e:
             raise FileProcessingError(f"Failed to parse source file: {e}") from e
@@ -92,7 +94,8 @@ def main(
             capital_gains: CapitalGainLinesPerCompany = {}
             calculate_fifo_gains(trade_lines_per_company, leftover_trades, capital_gains)
             logger.info(
-                f"Calculated {sum(len(gains) for gains in capital_gains.values())} capital gain lines"
+                "Calculated %d capital gain lines",
+                sum(len(gains) for gains in capital_gains.values()),
             )
         except Exception as e:
             raise SharesReportingError(f"Failed to calculate capital gains: {e}") from e
@@ -100,7 +103,7 @@ def main(
         # Export unmatched securities rollover file
         try:
             export_rollover_file(leftover_path, leftover_trades)
-            logger.info(f"Generated unmatched securities rollover file: {leftover_path}")
+            logger.info("Generated unmatched securities rollover file: %s", leftover_path)
         except Exception as e:
             raise ReportGenerationError(
                 f"Failed to generate unmatched securities rollover file: {e}"
@@ -114,28 +117,30 @@ def main(
                 if dividend_income_per_company
                 else "capital gains"
             )
-            logger.info(f"Generated {report_type} report: {extract_path}")
+            logger.info("Generated %s report: %s", report_type, extract_path)
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate report: {e}") from e
 
         logger.info("Application completed successfully")
-        logger.info(f"Output directory: {validated_output_dir.name}")
+        logger.info("Output directory: %s", validated_output_dir.name)
         report_type = (
             "capital gains and dividend income" if dividend_income_per_company else "capital gains"
         )
-        logger.info(f"Generated {report_type} report: {extract_path.name}")
-        logger.info(f"Leftover shares report: {leftover_path.name}")
+        logger.info("Generated %s report: %s", report_type, extract_path.name)
+        logger.info("Leftover shares report: %s", leftover_path.name)
         logger.info(
-            f"Processed {len(trade_lines_per_company)} trade cycles and {len(dividend_income_per_company)} dividend entries"
+            "Processed %d trade cycles and %d dividend entries",
+            len(trade_lines_per_company),
+            len(dividend_income_per_company),
         )
         print("Processing completed successfully!")
 
     except SharesReportingError as e:
-        logger.error(f"Application error: {e}")
+        logger.error("Application error: %s", e)
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
+        logger.exception("Unexpected error: %s", e)
         print(f"Unexpected error: {e}")
         print("Check logs for detailed information")
         sys.exit(1)

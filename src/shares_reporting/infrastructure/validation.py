@@ -1,8 +1,9 @@
-"""
-Input validation and file path sanitization utilities.
+"""Input validation and file path sanitization utilities.
 
 Provides secure validation functions for file operations and user input.
 """
+
+from __future__ import annotations
 
 import re
 from dataclasses import dataclass
@@ -17,13 +18,9 @@ logger = create_module_logger(__name__)
 class ValidationError(Exception):
     """Raised when input validation fails."""
 
-    pass
-
 
 class SecurityError(Exception):
     """Raised when a security issue is detected."""
-
-    pass
 
 
 @dataclass
@@ -40,6 +37,7 @@ class SecurityConfig:
     blocked_patterns: list[str] = None
 
     def __post_init__(self):
+        """Initialize default allowed extensions if none provided."""
         if self.allowed_extensions is None:
             self.allowed_extensions = [".csv", ".txt"]
         if self.blocked_patterns is None:
@@ -60,8 +58,7 @@ def sanitize_file_path(
     allowed_directories: list[Path] | None = None,
     config: SecurityConfig = DEFAULT_SECURITY_CONFIG,
 ) -> Path:
-    """
-    Sanitize and validate file paths to prevent directory traversal attacks.
+    """Sanitize and validate file paths to prevent directory traversal attacks.
 
     Args:
         file_path: The file path to validate
@@ -94,7 +91,7 @@ def sanitize_file_path(
         path_str = str(file_path)
         for pattern in config.blocked_patterns:
             if re.search(pattern, path_str, re.IGNORECASE):
-                logger.warning(f"Blocked dangerous path pattern: {pattern} in {file_path}")
+                logger.warning("Blocked dangerous path pattern: %s in %s", pattern, file_path)
                 raise SecurityError(f"Potentially dangerous path detected: {file_path}")
 
         # If allowed directories are specified, ensure path is within them
@@ -119,14 +116,13 @@ def sanitize_file_path(
         return abs_path
 
     except (OSError, ValueError) as e:
-        raise ValidationError(f"Invalid file path {file_path}: {str(e)}")
+        raise ValidationError(f"Invalid file path {file_path}: {str(e)}") from e
 
 
 def validate_csv_file(
     file_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
 ) -> Path:
-    """
-    Validate that a file is a valid CSV file for processing.
+    """Validate that a file is a valid CSV file for processing.
 
     Args:
         file_path: Path to the CSV file
@@ -153,7 +149,7 @@ def validate_csv_file(
 
     # Try to read first few lines to ensure it's readable
     try:
-        with open(safe_path, encoding="utf-8") as f:
+        with safe_path.open(encoding="utf-8") as f:
             # Read first 1024 bytes to check if it's text
             sample = f.read(1024)
             if not sample.strip():
@@ -163,22 +159,21 @@ def validate_csv_file(
             if "\x00" in sample:  # Null bytes indicate binary
                 raise ValidationError(f"File appears to be binary, not CSV: {safe_path}")
 
-    except UnicodeDecodeError:
-        raise ValidationError(f"File encoding error (not UTF-8): {safe_path}")
-    except PermissionError:
-        raise ValidationError(f"Permission denied reading file: {safe_path}")
+    except UnicodeDecodeError as e:
+        raise ValidationError(f"File encoding error (not UTF-8): {safe_path}") from e
+    except PermissionError as e:
+        raise ValidationError(f"Permission denied reading file: {safe_path}") from e
     except OSError as e:
-        raise ValidationError(f"Error reading file {safe_path}: {str(e)}")
+        raise ValidationError(f"Error reading file {safe_path}: {str(e)}") from e
 
-    logger.info(f"Validated CSV file: {safe_path}")
+    logger.info("Validated CSV file: %s", safe_path)
     return safe_path
 
 
 def sanitize_directory_path(
     directory_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
 ) -> Path:
-    """
-    Sanitize and validate directory paths to prevent directory traversal attacks.
+    """Sanitize and validate directory paths to prevent directory traversal attacks.
 
     Args:
         directory_path: The directory path to validate
@@ -204,18 +199,17 @@ def sanitize_directory_path(
         path_str = str(directory_path)
         for pattern in config.blocked_patterns:
             if re.search(pattern, path_str, re.IGNORECASE):
-                logger.warning(f"Blocked dangerous path pattern: {pattern} in {directory_path}")
+                logger.warning("Blocked dangerous path pattern: %s in %s", pattern, directory_path)
                 raise SecurityError(f"Potentially dangerous path detected: {directory_path}")
 
         return abs_path
 
     except (OSError, ValueError) as e:
-        raise ValidationError(f"Invalid directory path {directory_path}: {str(e)}")
+        raise ValidationError(f"Invalid directory path {directory_path}: {str(e)}") from e
 
 
 def validate_output_directory(output_path: str | Path) -> Path:
-    """
-    Validate and create output directory if needed.
+    """Validate and create output directory if needed.
 
     Args:
         output_path: Path to output directory
@@ -235,18 +229,17 @@ def validate_output_directory(output_path: str | Path) -> Path:
         test_file.touch()
         test_file.unlink()
 
-        logger.info(f"Validated output directory: {safe_path}")
+        logger.info("Validated output directory: %s", safe_path)
         return safe_path
 
-    except PermissionError:
-        raise ValidationError(f"Permission denied creating/writing directory: {safe_path}")
+    except PermissionError as e:
+        raise ValidationError(f"Permission denied creating/writing directory: {safe_path}") from e
     except OSError as e:
-        raise ValidationError(f"Error creating directory {safe_path}: {str(e)}")
+        raise ValidationError(f"Error creating directory {safe_path}: {str(e)}") from e
 
 
 def validate_company_ticker(ticker: str, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> str:
-    """
-    Validate company ticker symbol.
+    """Validate company ticker symbol.
 
     Args:
         ticker: Company ticker string
@@ -274,8 +267,7 @@ def validate_company_ticker(ticker: str, config: SecurityConfig = DEFAULT_SECURI
 
 
 def validate_currency_code(currency: str, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> str:
-    """
-    Validate currency code.
+    """Validate currency code.
 
     Args:
         currency: Currency code string
@@ -300,8 +292,7 @@ def validate_currency_code(currency: str, config: SecurityConfig = DEFAULT_SECUR
 
 
 def validate_quantity(quantity_str: str, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> float:
-    """
-    Validate and parse trade quantity.
+    """Validate and parse trade quantity.
 
     Args:
         quantity_str: Quantity as string
@@ -324,13 +315,12 @@ def validate_quantity(quantity_str: str, config: SecurityConfig = DEFAULT_SECURI
 
         return quantity
 
-    except ValueError:
-        raise ValidationError(f"Invalid quantity format: '{quantity_str}'")
+    except ValueError as e:
+        raise ValidationError(f"Invalid quantity format: '{quantity_str}'") from e
 
 
 def validate_price(price_str: str, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> float:
-    """
-    Validate and parse trade price.
+    """Validate and parse trade price.
 
     Args:
         price_str: Price as string
@@ -356,5 +346,5 @@ def validate_price(price_str: str, config: SecurityConfig = DEFAULT_SECURITY_CON
 
         return price
 
-    except ValueError:
-        raise ValidationError(f"Invalid price format: '{price_str}'")
+    except ValueError as e:
+        raise ValidationError(f"Invalid price format: '{price_str}'") from e

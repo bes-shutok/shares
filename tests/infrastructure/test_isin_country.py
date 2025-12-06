@@ -1,5 +1,4 @@
-"""
-Tests for ISIN country resolution functionality.
+"""Tests for ISIN country resolution functionality.
 """
 
 from shares_reporting.infrastructure.isin_country import (
@@ -12,7 +11,7 @@ from shares_reporting.infrastructure.isin_country import (
 class TestIsinToCountry:
     """Test ISIN to country conversion."""
 
-    def test_isinToCountryShouldConvertUsIsin(self):
+    def test_isin_to_country_should_convert_us_isin(self):
         # Given
         us_isin = "US0378331005"  # Apple Inc.
 
@@ -22,7 +21,7 @@ class TestIsinToCountry:
         # Then
         assert result == "United States"
 
-    def test_isinToCountryShouldConvertCaymanIslandsIsin(self):
+    def test_isin_to_country_should_convert_cayman_islands_isin(self):
         # Given
         cayman_isin = "KYG905191022"
 
@@ -32,7 +31,7 @@ class TestIsinToCountry:
         # Then
         assert result == "Cayman Islands"
 
-    def test_isinToCountryShouldConvertGermanIsin(self):
+    def test_isin_to_country_should_convert_german_isin(self):
         # Given
         german_isin = "DE0005557508"  # Allianz
 
@@ -42,7 +41,7 @@ class TestIsinToCountry:
         # Then
         assert result == "Germany"
 
-    def test_isinToCountryShouldReturnUnknownForInvalidIsin(self):
+    def test_isin_to_country_should_return_unknown_for_invalid_isin(self):
         # Given
         invalid_isin = "Unknown1234567890"
 
@@ -52,7 +51,7 @@ class TestIsinToCountry:
         # Then
         assert result == "Unknown"
 
-    def test_isinToCountryShouldReturnUnknownForEmptyString(self):
+    def test_isin_to_country_should_return_unknown_for_empty_string(self):
         # Given
         empty_isin = ""
 
@@ -62,7 +61,7 @@ class TestIsinToCountry:
         # Then
         assert result == "Unknown"
 
-    def test_isinToCountryShouldReturnUnknownForNone(self):
+    def test_isin_to_country_should_return_unknown_for_none(self):
         # Given
         none_isin = None
 
@@ -72,7 +71,7 @@ class TestIsinToCountry:
         # Then
         assert result == "Unknown"
 
-    def test_isinToCountryShouldHandleLowerCaseInput(self):
+    def test_isin_to_country_should_handle_lower_case_input(self):
         # Given
         lower_case_isin = "us0378331005"
 
@@ -86,7 +85,7 @@ class TestIsinToCountry:
 class TestIsinToCountryCode:
     """Test ISIN to country code conversion."""
 
-    def test_isinToCountryCodeShouldExtractUsCode(self):
+    def test_isin_to_country_code_should_extract_us_code(self):
         # Given
         us_isin = "US0378331005"
 
@@ -96,7 +95,7 @@ class TestIsinToCountryCode:
         # Then
         assert result == "US"
 
-    def test_isinToCountryCodeShouldExtractCaymanCode(self):
+    def test_isin_to_country_code_should_extract_cayman_code(self):
         # Given
         cayman_isin = "KYG905191022"
 
@@ -106,7 +105,7 @@ class TestIsinToCountryCode:
         # Then
         assert result == "KY"
 
-    def test_isinToCountryCodeShouldReturnUnknownForInvalidIsin(self):
+    def test_isin_to_country_code_should_return_unknown_for_invalid_isin(self):
         # Given
         invalid_isin = ""
 
@@ -116,7 +115,7 @@ class TestIsinToCountryCode:
         # Then
         assert result == "Unknown"
 
-    def test_isinToCountryCodeShouldHandleShortInput(self):
+    def test_isin_to_country_code_should_handle_short_input(self):
         # Given
         short_isin = "U"
 
@@ -130,7 +129,7 @@ class TestIsinToCountryCode:
 class TestIsValidIsinFormat:
     """Test ISIN format validation."""
 
-    def test_isValidIsinFormatShouldValidateCorrectFormat(self):
+    def test_is_valid_isin_format_should_validate_correct_format(self):
         # Given
         valid_isin = "US0378331005"
 
@@ -140,7 +139,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is True
 
-    def test_isValidIsinFormatShouldRejectTooShort(self):
+    def test_is_valid_isin_format_should_reject_too_short(self):
         # Given
         short_isin = "US123456789"
 
@@ -150,7 +149,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is False
 
-    def test_isValidIsinFormatShouldRejectTooLong(self):
+    def test_is_valid_isin_format_should_reject_too_long(self):
         # Given
         long_isin = "US037833100512"
 
@@ -160,7 +159,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is False
 
-    def test_isValidIsinFormatShouldRejectNonLetterCountryCode(self):
+    def test_is_valid_isin_format_should_reject_non_letter_country_code(self):
         # Given
         invalid_isin = "120378331005"
 
@@ -170,7 +169,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is False
 
-    def test_isValidIsinFormatShouldRejectNonDigitCheckDigit(self):
+    def test_is_valid_isin_format_should_reject_non_digit_check_digit(self):
         # Given
         invalid_isin = "US037833100X"
 
@@ -180,7 +179,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is False
 
-    def test_isValidIsinFormatShouldRejectEmptyString(self):
+    def test_is_valid_isin_format_should_reject_empty_string(self):
         # Given
         empty_isin = ""
 
@@ -190,7 +189,7 @@ class TestIsValidIsinFormat:
         # Then
         assert result is False
 
-    def test_isValidIsinFormatShouldRejectNone(self):
+    def test_is_valid_isin_format_should_reject_none(self):
         # Given
         none_isin = None
 

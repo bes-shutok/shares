@@ -1,5 +1,4 @@
-"""
-Tests that duplicate the functionality of test_shares.py but using raw IB export format.
+"""Tests that duplicate the functionality of test_shares.py but using raw IB export format.
 
 These tests ensure that parse_ib_export produces the same results as parse_data
 when processing equivalent data in raw IB format.
@@ -7,7 +6,7 @@ when processing equivalent data in raw IB format.
 
 from pathlib import Path
 
-import test_data as test_data
+import test_data
 
 from shares_reporting.application import extraction, transformation
 from shares_reporting.domain.collections import TradeCyclePerCompany
@@ -154,8 +153,7 @@ def test_ib_multi_strategy_raw_data_structure():
 
 
 def test_strategy_price_differences_for_future_reference_raw_ib():
-    """
-    Test that documents how different strategies would produce different results using raw IB data.
+    """Test that documents how different strategies would produce different results using raw IB data.
 
     NOTE: This test is for documentation and future reference only.
     The application currently only supports FIFO strategy, which is required/strongly
@@ -187,8 +185,7 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
     # HIFO order (by price): $185.25, $120.50, $95.75
 
     expected_fifo_prices = [120.50, 185.25, 95.75]
-    expected_lifo_prices = [95.75, 185.25, 120.50]
-    expected_hifo_prices = [185.25, 120.50, 95.75]
+
 
     assert chronological_prices == expected_fifo_prices
 

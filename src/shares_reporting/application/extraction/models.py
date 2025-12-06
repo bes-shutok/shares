@@ -1,3 +1,5 @@
+"""Data models and enums for the extraction process."""
+
 from dataclasses import dataclass
 from enum import Enum
 

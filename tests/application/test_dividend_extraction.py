@@ -13,16 +13,17 @@ from shares_reporting.domain.value_objects import parse_currency
 class TestDividendExtraction:
     def test_parse_dividend_income_with_simple_dividends(self, tmp_path):
         """Test extracting dividend income from simple dividend entries."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Financial Instrument Information,Data,Stocks,MSFT,Microsoft Corp.,234567,US5949181045,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-03-15,MSFT - CASH DIVIDEND 0.68 USD,68.00
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Financial Instrument Information,Data,Stocks,MSFT,Microsoft Corp.,234567,US5949181045,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-03-15,MSFT - CASH DIVIDEND 0.68 USD,68.00\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_dividends.csv"
         csv_file.write_text(csv_content)
 
@@ -48,17 +49,18 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 
     def test_parse_dividend_income_with_taxes(self, tmp_path):
         """Test extracting dividend income with tax amounts."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Withholding Tax,Header,Currency,Date,Description,Amount,Code
-Withholding Tax,Data,USD,2023-03-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,
-Withholding Tax,Data,USD,2023-06-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Withholding Tax,Header,Currency,Date,Description,Amount,Code\n"
+            "Withholding Tax,Data,USD,2023-03-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,\n"
+            "Withholding Tax,Data,USD,2023-06-15,AAPL(US0378331005) - CASH DIVIDEND US Tax,-3.60,,\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_dividends_tax.csv"
         csv_file.write_text(csv_content)
 
@@ -73,15 +75,16 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 
     def test_parse_dividend_income_multiple_currencies(self, tmp_path):
         """Test extracting dividend income with different currencies."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Financial Instrument Information,Data,Stocks,ASML,ASML Holding N.V.,345678,NL0010273215,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,EUR,2023-04-10,ASML - CASH DIVIDEND EUR 1.45 EUR,145.00
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Financial Instrument Information,Data,Stocks,ASML,ASML Holding N.V.,345678,NL0010273215,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,EUR,2023-04-10,ASML - CASH DIVIDEND EUR 1.45 EUR,145.00\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_multi_currency.csv"
         csv_file.write_text(csv_content)
 
@@ -100,16 +103,17 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 
     def test_parse_dividend_income_aggregates_multiple_entries_same_symbol(self, tmp_path):
         """Test that multiple dividend entries for same symbol and currency are aggregated."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-09-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-12-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-06-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-09-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-12-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_aggregation.csv"
         csv_file.write_text(csv_content)
 
@@ -122,14 +126,15 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 
     def test_parse_dividend_income_ignores_entries_without_security_info(self, tmp_path):
         """Test that dividend entries without corresponding security info are ignored."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00
-Dividends,Data,USD,2023-03-15,UNKNOWN - CASH DIVIDEND,10.00
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,AAPL - CASH DIVIDEND 0.24 USD,24.00\n"
+            "Dividends,Data,USD,2023-03-15,UNKNOWN - CASH DIVIDEND,10.00\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_unknown_security.csv"
         csv_file.write_text(csv_content)
 
@@ -195,48 +200,49 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
         valid_dividend.validate()  # Should not raise
 
         # Negative gross amount
+        invalid_dividend = DividendIncomePerSecurity(
+            symbol="AAPL",
+            isin="US0378331005",
+            country="US",
+            gross_amount=Decimal("-10.00"),
+            total_taxes=Decimal("0"),
+            currency=parse_currency("USD"),
+        )
         with pytest.raises(DataValidationError, match="Gross amount cannot be negative"):
-            invalid_dividend = DividendIncomePerSecurity(
-                symbol="AAPL",
-                isin="US0378331005",
-                country="US",
-                gross_amount=Decimal("-10.00"),
-                total_taxes=Decimal("0"),
-                currency=parse_currency("USD"),
-            )
             invalid_dividend.validate()
 
         # Taxes exceeding gross amount
+        invalid_dividend = DividendIncomePerSecurity(
+            symbol="AAPL",
+            isin="US0378331005",
+            country="US",
+            gross_amount=Decimal("10.00"),
+            total_taxes=Decimal("15.00"),
+            currency=parse_currency("USD"),
+        )
         with pytest.raises(DataValidationError, match="Taxes .* cannot exceed gross amount"):
-            invalid_dividend = DividendIncomePerSecurity(
-                symbol="AAPL",
-                isin="US0378331005",
-                country="US",
-                gross_amount=Decimal("10.00"),
-                total_taxes=Decimal("15.00"),
-                currency=parse_currency("USD"),
-            )
             invalid_dividend.validate()
 
         # Empty symbol
+        invalid_dividend = DividendIncomePerSecurity(
+            symbol="",
+            isin="US0378331005",
+            country="US",
+            gross_amount=Decimal("10.00"),
+            total_taxes=Decimal("0"),
+            currency=parse_currency("USD"),
+        )
         with pytest.raises(DataValidationError, match="Symbol cannot be empty"):
-            invalid_dividend = DividendIncomePerSecurity(
-                symbol="",
-                isin="US0378331005",
-                country="US",
-                gross_amount=Decimal("10.00"),
-                total_taxes=Decimal("0"),
-                currency=parse_currency("USD"),
-            )
             invalid_dividend.validate()
 
     def test_parse_dividend_income_handles_missing_dividend_section(self, tmp_path):
         """Test parse_dividend_income handles missing dividend section gracefully."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_no_dividends.csv"
         csv_file.write_text(csv_content)
 
@@ -246,17 +252,18 @@ Trades,Data,Stocks,AAPL,USD,2023-01-15, 10:30:00,100,150.25,1.00
 
     def test_parse_dividend_income_symbol_extraction_fallback(self, tmp_path):
         """Test symbol extraction from description using regex fallback."""
-        csv_content = """Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier
-Financial Instrument Information,Data,Stocks,TSLA,Tesla Inc.,456789,US88160R1014,1
-Dividends,Header,Currency,Date,Description,Amount
-Dividends,Data,USD,2023-03-15,Tesla Inc Cash Dividend,5.00
-Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee
-Trades,Data,Stocks,TSLA,USD,2023-01-15, 10:30:00,100,150.25,1.00
-"""
+        csv_content = (
+            "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
+            "Financial Instrument Information,Data,Stocks,TSLA,Tesla Inc.,456789,US88160R1014,1\n"
+            "Dividends,Header,Currency,Date,Description,Amount\n"
+            "Dividends,Data,USD,2023-03-15,Tesla Inc Cash Dividend,5.00\n"
+            "Trades,Header,Symbol,Currency,Date/Time,Quantity,T. Price,Comm/Fee\n"
+            "Trades,Data,Stocks,TSLA,USD,2023-01-15, 10:30:00,100,150.25,1.00\n"
+        )
         csv_file = tmp_path / "test_symbol_extraction.csv"
         csv_file.write_text(csv_content)
 
-        dividend_income = parse_dividend_income(csv_file)
+        _ = parse_dividend_income(csv_file)
 
         # This test shows the limitation - without proper format, symbol extraction may fail
         # The current implementation tries to extract ticker-like patterns but may not always succeed

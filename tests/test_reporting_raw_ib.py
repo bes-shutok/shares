@@ -1,11 +1,10 @@
-"""
-Tests that duplicate the functionality of test_reporting.py but using raw IB export format.
+"""Tests that duplicate the functionality of test_reporting.py but using raw IB export format.
 
 These tests ensure that raw IB parsing produces the same Excel output as parse_data
 when processing equivalent data.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from test_data import sell_action1
@@ -27,10 +26,18 @@ from shares_reporting.domain.value_objects import (
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
 test_dict2 = ["202201", "202112", "202102"]
-date_time1 = datetime.strptime("2021-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S")
-date_time2 = datetime.strptime("2022-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S")
-date_time3 = datetime.strptime("2021-01-18, 14:53:23", "%Y-%m-%d, %H:%M:%S")
-date_time4 = datetime.strptime("2021-12-18, 14:53:23", "%Y-%m-%d, %H:%M:%S")
+date_time1 = datetime.strptime("2021-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
+    tzinfo=UTC
+)
+date_time2 = datetime.strptime("2022-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
+    tzinfo=UTC
+)
+date_time3 = datetime.strptime("2021-01-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
+    tzinfo=UTC
+)
+date_time4 = datetime.strptime("2021-12-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
+    tzinfo=UTC
+)
 test_dict4 = [
     TradeDate(date_time1.year, date_time1.month, date_time1.day),
     TradeDate(date_time2.year, date_time2.month, date_time2.day),

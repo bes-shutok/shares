@@ -12,7 +12,7 @@ repository = "https://github.com/bes-shutok/shares"
 keywords = ["finance", "tax", "reporting", "shares", "trading"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.9",
     "Development Status :: 4 - Beta",
     "Environment :: Other Environment",
     "Intended Audience :: Developers",
@@ -128,6 +128,14 @@ select = [
     "C4",
     # flake8-pytest-style
     "PT",
+    # pydocstyle
+    "D",
+    # Pylint
+    "PL",
+    # Pylint errors (including logging format)
+    "PLE",
+    # flake8-logging-format
+    "G",
 ]
 
 ignore = [
@@ -149,6 +157,8 @@ ignore = [
     "DTZ005",
     # Magic numbers are acceptable in some domain contexts
     "S105",
+    # Allow missing docstrings for trivial getter/setter methods
+    "D102",
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -157,6 +167,11 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+# Ignore missing docstrings for trivial property methods
+ignore-decorators = ["property"]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
@@ -185,6 +200,9 @@ known-third-party = ["pytest", "openpyxl", "pycountry"]
     "ARG002",  # Allow unused arguments in tests
     "PT001",  # Allow pytest fixture names without underscore prefix
     "PT023",  # Allow @pytest.fixture without parentheses
+    "PLR2004",  # Allow magic values in tests
+    "D",        # Allow missing docstrings in tests
+    "PLC0415",  # Allow imports outside top-level in tests
 ]
 
 "__init__.py" = [

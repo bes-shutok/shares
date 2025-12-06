@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -32,7 +32,7 @@ class TestTradeAction:
         trade = TradeAction(company, date_time, currency, quantity, price, fee)
 
         assert trade.company == company
-        assert trade.date_time == datetime(2024, 3, 28, 14, 30, 45)
+        assert trade.date_time == datetime(2024, 3, 28, 14, 30, 45, tzinfo=UTC)
         assert trade.currency == currency
         assert trade.quantity == Decimal("10")
         assert trade.price == Decimal("150.25")
@@ -122,7 +122,12 @@ class TestTradeAction:
         currency = parse_currency("USD")
         trade = TradeAction(company, "2024-03-28, 14:30:45", currency, "10", "150.25", "1.50")
 
-        expected = "TradeAction(company=Company(ticker='AAPL', isin='', country_of_issuance='Unknown'), date_time=datetime.datetime(2024, 3, 28, 14, 30, 45), currency=Currency(currency='USD'), quantity=Decimal('10'), price=Decimal('150.25'), fee=Decimal('1.50'))"
+        expected = (
+            "TradeAction(company=Company(ticker='AAPL', isin='', country_of_issuance='Unknown'), "
+            "date_time=datetime.datetime(2024, 3, 28, 14, 30, 45, tzinfo=datetime.timezone.utc), "
+            "currency=Currency(currency='USD'), quantity=Decimal('10'), "
+            "price=Decimal('150.25'), fee=Decimal('1.50'))"
+        )
         assert repr(trade) == expected
 
 

@@ -1,5 +1,4 @@
-"""
-Tests for ISIN extraction from raw IB exports.
+"""Tests for ISIN extraction from raw IB exports.
 """
 
 import csv
@@ -16,7 +15,7 @@ from shares_reporting.domain.exceptions import FileProcessingError
 class TestExtractIsinMapping:
     """Test ISIN mapping extraction from raw IB exports."""
 
-    def test_extractIsinMappingShouldParseValidFinancialInstrumentSection(self):
+    def test_extract_isin_mapping_should_parse_valid_financial_instrument_section(self):
         # Given
         csv_content = [
             [
@@ -110,7 +109,7 @@ class TestExtractIsinMapping:
         finally:
             Path(temp_path).unlink()
 
-    def test_extractIsinMappingShouldHandleEmptyIsin(self):
+    def test_extract_isin_mapping_should_handle_empty_isin(self):
         # Given
         csv_content = [
             [
@@ -160,7 +159,7 @@ class TestExtractIsinMapping:
         finally:
             Path(temp_path).unlink()
 
-    def test_extractIsinMappingShouldHandleMissingFinancialInstrumentSection(self):
+    def test_extract_isin_mapping_should_handle_missing_financial_instrument_section(self):
         # Given
         csv_content = [
             ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol"],
@@ -197,7 +196,7 @@ class TestExtractIsinMapping:
 class TestParseRawIbExport:
     """Test raw IB export parsing."""
 
-    def test_parseRawIbExportShouldProcessCompleteExport(self):
+    def test_parse_raw_ib_export_should_process_complete_export(self):
         # Given
         csv_content = [
             [
@@ -326,7 +325,7 @@ class TestParseRawIbExport:
         finally:
             Path(temp_path).unlink()
 
-    def test_parseRawIbExportShouldHandleMissingTradesSection(self):
+    def test_parse_raw_ib_export_should_handle_missing_trades_section(self):
         # Given
         csv_content = [
             [
@@ -362,7 +361,7 @@ class TestParseRawIbExport:
         finally:
             Path(temp_path).unlink()
 
-    def test_parseRawIbExportShouldHandleMissingIsinData(self):
+    def test_parse_raw_ib_export_should_handle_missing_isin_data(self):
         # Given
         csv_content = [
             # Financial Instrument Information section with empty ISIN for AAPL
@@ -441,7 +440,7 @@ class TestParseRawIbExport:
             assert len(result) == 1
 
             # Company should have default values when no ISIN data is available
-            for currency_company, trade_cycle in result.items():
+            for currency_company, _ in result.items():
                 company = currency_company.company
                 assert company.ticker == "AAPL"
                 assert company.isin == ""

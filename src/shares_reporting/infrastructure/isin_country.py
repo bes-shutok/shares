@@ -1,5 +1,4 @@
-"""
-ISIN country resolution utility.
+"""ISIN country resolution utility.
 
 This module provides functionality to extract country information from ISIN codes.
 ISIN (International Securities Identification Number) format:
@@ -9,10 +8,12 @@ ISIN (International Securities Identification Number) format:
 
 import pycountry
 
+MIN_COUNTRY_CODE_LENGTH = 2
+ISIN_LENGTH = 12
+
 
 def isin_to_country_code(isin: str) -> str:
-    """
-    Convert ISIN code to ISO 3166-1 alpha-2 country code.
+    """Convert ISIN code to ISO 3166-1 alpha-2 country code.
 
     Args:
         isin: The ISIN code (e.g., "US0378331005", "KYG905191022")
@@ -30,15 +31,14 @@ def isin_to_country_code(isin: str) -> str:
         >>> isin_to_country_code("")
         'Unknown'
     """
-    if not isin or len(isin) < 2:
+    if not isin or len(isin) < MIN_COUNTRY_CODE_LENGTH:
         return "Unknown"
 
-    return isin[:2].upper()
+    return isin[:MIN_COUNTRY_CODE_LENGTH].upper()
 
 
 def isin_to_country(isin: str) -> str:
-    """
-    Convert ISIN code to country name.
+    """Convert ISIN code to country name.
 
     Args:
         isin: The ISIN code (e.g., "US0378331005", "KYG905191022")
@@ -66,8 +66,7 @@ def isin_to_country(isin: str) -> str:
 
 
 def is_valid_isin_format(isin: str) -> bool:
-    """
-    Check if the string has a valid ISIN format (basic length check).
+    """Check if the string has a valid ISIN format (basic length check).
 
     Note: This is a basic format check. A full ISIN validation would include
     Luhn algorithm validation of the check digit, which is more complex.
@@ -82,11 +81,11 @@ def is_valid_isin_format(isin: str) -> bool:
         return False
 
     # ISIN should be 12 characters: 2-letter country code + 9-character national identifier + 1 check digit
-    if len(isin) != 12:
+    if len(isin) != ISIN_LENGTH:
         return False
 
     # First 2 characters should be letters
-    if not isin[:2].isalpha():
+    if not isin[:MIN_COUNTRY_CODE_LENGTH].isalpha():
         return False
 
     # Next 9 characters should be alphanumeric
@@ -94,7 +93,4 @@ def is_valid_isin_format(isin: str) -> bool:
         return False
 
     # Last character should be a digit (check digit)
-    if not isin[11].isdigit():
-        return False
-
-    return True
+    return isin[11].isdigit()

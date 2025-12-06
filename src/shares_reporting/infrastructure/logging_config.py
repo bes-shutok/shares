@@ -1,9 +1,10 @@
-"""
-Logging configuration for the shares reporting application.
+"""Logging configuration for the shares reporting application.
 
 Provides centralized logging setup with appropriate log levels,
 formatters, and handlers for different environments.
 """
+
+from __future__ import annotations
 
 import logging
 import sys
@@ -13,8 +14,7 @@ from pathlib import Path
 def configure_application_logging(
     level: str = "INFO", log_file: Path | None = None, enable_console: bool = True
 ) -> None:
-    """
-    Configure application logging with standardized formatting and output options.
+    """Configure application logging with standardized formatting and output options.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -52,8 +52,7 @@ def configure_application_logging(
 
 
 def create_module_logger(name: str) -> logging.Logger:
-    """
-    Create standardized logger for specific module with consistent configuration.
+    """Create standardized logger for specific module with consistent configuration.
 
     Args:
         name: Logger name (typically __name__ for module-level logging)

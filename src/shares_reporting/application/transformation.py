@@ -1,3 +1,4 @@
+"""Transformation layer for calculating capital gains from raw trade data."""
 from decimal import Decimal
 
 from ..domain.accumulators import CapitalGainLineAccumulator, TradePartsWithinDay
@@ -22,8 +23,7 @@ from ..infrastructure.logging_config import create_module_logger
 
 
 def log_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, label: str = "") -> None:
-    """
-    Log day partitioned trades for debugging purposes.
+    """Log day partitioned trades for debugging purposes.
 
     Args:
         day_partitioned_trades: The trades to log
@@ -31,21 +31,20 @@ def log_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, label: 
     """
     logger = create_module_logger(__name__)
     if label:
-        logger.debug(f"{label} - DayPartitionedTrades{{")
+        logger.debug("%s - DayPartitionedTrades{{", label)
     else:
         logger.debug("DayPartitionedTrades{")
 
     keys = sorted(day_partitioned_trades.keys())
     for key in keys:
-        logger.debug(f"  {key} : {day_partitioned_trades[key]}")
+        logger.debug("  %s : %s", key, day_partitioned_trades[key])
     logger.debug("}")
 
 
-def calculate_company_gains(
+def calculate_company_gains(  # noqa: PLR0915
     trade_cycle: TradeCycle, company: Company, currency: Currency
 ) -> CapitalGainLines:
-    """
-    Calculate capital gains for a specific company and currency.
+    """Calculate capital gains for a specific company and currency.
 
     Args:
         trade_cycle: Trade cycle containing buy and sell actions
@@ -103,7 +102,7 @@ def calculate_company_gains(
         buy_quantity_left = target_quantity
         iteration_count = 0
         while sale_trade_parts.quantity() > 0 and buy_trade_parts.quantity() > 0:
-            logger.debug(f"capital_gain_line aggregation cycle ({iteration_count})")
+            logger.debug("capital_gain_line aggregation cycle (%s)", iteration_count)
             iteration_count += 1
 
             allocate_to_gain_line(
@@ -129,7 +128,7 @@ def calculate_company_gains(
             redistribute_unmatched_trades(sale_actions, trade_part)
         logger.debug("Leftover sales_daily_slices:")
         log_partitioned_trades(sales_daily_slices, "Leftover sales_daily_slices")
-        logger.debug(f"Leftover sale_actions: {sale_actions}")
+        logger.debug("Leftover sale_actions: %s", sale_actions)
 
     buy_actions.clear()
     if len(buys_daily_slices) > 0:
@@ -137,9 +136,9 @@ def calculate_company_gains(
             redistribute_unmatched_trades(buy_actions, trade_part)
         logger.debug("Leftover buys_daily_slices:")
         log_partitioned_trades(buys_daily_slices, "Leftover buys_daily_slices")
-        logger.debug(f"Leftover buy_actions: {buy_actions}")
+        logger.debug("Leftover buy_actions: %s", buy_actions)
 
-    logger.debug(f"Final capital_gain_lines: {len(capital_gain_lines)} lines")
+    logger.debug("Final capital_gain_lines: %s lines", len(capital_gain_lines))
 
     return capital_gain_lines
 
@@ -147,8 +146,7 @@ def calculate_company_gains(
 def redistribute_unmatched_trades(
     buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay
 ) -> None:
-    """
-    Redistribute unmatched trade quantities after FIFO matching process.
+    """Redistribute unmatched trade quantities after FIFO matching process.
 
     This function handles the remaining trade quantities that couldn't be matched
     during the FIFO algorithm execution. It ensures that all quantities are
@@ -175,8 +173,7 @@ def allocate_to_gain_line(
     trade_parts: TradePartsWithinDay,
     capital_gain_line_accumulator: CapitalGainLineAccumulator,
 ) -> None:
-    """
-    Allocate specific trade quantities to a capital gain calculation line.
+    """Allocate specific trade quantities to a capital gain calculation line.
 
     This function handles the allocation of trade quantities to capital gain lines,
     supporting partial matching scenarios where quantities don't align perfectly.
@@ -200,8 +197,7 @@ def allocate_to_gain_line(
 
 
 def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> DayPartitionedTrades:
-    """
-    Split trade actions by day for FIFO matching.
+    """Split trade actions by day for FIFO matching.
 
     Args:
         actions: List of quantitated trade actions
@@ -232,7 +228,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
         trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(
             trade_date, TradePartsWithinDay()
         )
-        logger.debug(f"pushing trade action {trade_action}")
+        logger.debug("pushing trade action %s", trade_action)
         trades_within_day.push_trade_part(quantity, trade_action)
         day_partitioned_trades[trade_date] = trades_within_day
 
@@ -244,8 +240,7 @@ def calculate_fifo_gains(
     leftover_trades: TradeCyclePerCompany,
     capital_gains: CapitalGainLinesPerCompany,
 ) -> None:
-    """
-    Calculate capital gains using FIFO (First In, First Out) matching algorithm for tax reporting.
+    """Calculate capital gains using FIFO (First In, First Out) matching algorithm for tax reporting.
 
     This is the core business logic function that implements Portuguese tax-compliant capital gains
     calculation by matching buy/sell transactions chronologically within daily time buckets.

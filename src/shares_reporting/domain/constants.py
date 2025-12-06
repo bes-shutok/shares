@@ -1,5 +1,4 @@
-"""
-Domain constants for the shares reporting application.
+"""Domain constants for the shares reporting application.
 
 Contains business logic constants that are used throughout the application.
 """

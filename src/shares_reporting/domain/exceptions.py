@@ -1,5 +1,4 @@
-"""
-Custom exceptions for the shares reporting domain.
+"""Custom exceptions for the shares reporting domain.
 
 Provides specific exception types for different error scenarios
 to enable better error handling and user-friendly messages.

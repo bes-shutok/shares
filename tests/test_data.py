@@ -58,4 +58,4 @@ line2 = CapitalGainLineAccumulator(company, currency)
 line2.add_trade(Decimal(5), buy_action1)
 line2.add_trade(Decimal(5), sell_action2)
 line2.validate()
-capitalGainLinesPerCompany = {company: [line1, line2]}
+capital_gain_lines_per_company = {company: [line1, line2]}

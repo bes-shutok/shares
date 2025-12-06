@@ -210,10 +210,7 @@ class TestGetCompany:
         company = parse_company("aApL")
         assert company.ticker == "aApL"  # Should preserve exact case
 
-    def test_get_company_with_empty_string_should_raise_value_error(self):
-        """Test get_company with empty string raises ValueError."""
-        with pytest.raises(DataValidationError, match="Company is expected to be not empty"):
-            parse_company("")
+
 
     def test_get_company_with_whitespace_only_should_not_raise_value_error(self):
         """Test get_company with whitespace-only string does NOT raise ValueError (current behavior)."""

@@ -1,5 +1,4 @@
-"""
-Infrastructure layer for shares reporting.
+"""Infrastructure layer for shares reporting.
 
 Contains external concerns like configuration management,
 file I/O, database access, and third-party integrations.

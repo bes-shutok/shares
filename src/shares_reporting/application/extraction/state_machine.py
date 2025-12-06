@@ -1,3 +1,4 @@
+"""State machine orchestration for Interactive Brokers CSV parsing."""
 from ...domain.exceptions import FileProcessingError
 from ...infrastructure.logging_config import create_module_logger
 from .contexts import (
@@ -12,7 +13,15 @@ from .models import IBCsvData, IBCsvSection
 class IBCsvStateMachine:
     """State machine for processing IB CSV files."""
 
+    MAX_SAMPLE_SIZE = 2
+    MIN_ROW_LENGTH = 2
+
     def __init__(self, require_trades_section: bool = True):
+        """Initialize the CSV state machine.
+
+        Args:
+            require_trades_section: Whether to enforce presence of Trades section.
+        """
         self.logger = create_module_logger(__name__)
         self.current_section = IBCsvSection.UNKNOWN
         self.require_trades_section = require_trades_section
@@ -34,7 +43,7 @@ class IBCsvStateMachine:
 
     def process_row(self, row: list[str]) -> None:
         """Process a single CSV row using the state machine."""
-        if len(row) < 2:
+        if len(row) < self.MIN_ROW_LENGTH:
             return
 
         # Check for section transitions
@@ -56,7 +65,7 @@ class IBCsvStateMachine:
         """Detect if this row represents a section transition."""
         # Only treat as section transition if it's a header row
         # IB CSV format: Section Name, Header, Column1, Column2, ...
-        if len(row) < 2 or row[1] != "Header":
+        if len(row) < self.MIN_ROW_LENGTH or row[1] != "Header":
             return False
 
         section_name = row[0]
@@ -81,32 +90,32 @@ class IBCsvStateMachine:
     def _transition_to_financial_instruments(self, row: list[str]) -> None:
         """Transition to Financial Instrument section."""
         self.current_section = IBCsvSection.FINANCIAL_INSTRUMENT
-        if len(row) >= 2 and row[1] == "Header":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Header":
             try:
                 self.financial_context.process_header(row)
                 self.found_financial_instrument_header = True
             except Exception as e:
                 self.logger.warning(
-                    f"Failed to process financial instrument header: {e}, row: {row}"
+                    "Failed to process financial instrument header: %s, row: %s", e, row
                 )
                 # Continue processing even if header validation fails
 
     def _transition_to_trades(self, row: list[str]) -> None:
         """Transition to Trades section."""
         self.current_section = IBCsvSection.TRADES
-        if len(row) >= 2 and row[1] == "Header":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Header":
             self.trades_context.process_header(row)
 
     def _transition_to_dividends(self, row: list[str]) -> None:
         """Transition to Dividends section."""
         self.current_section = IBCsvSection.DIVIDENDS
-        if len(row) >= 2 and row[1] == "Header":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Header":
             self.dividends_context.process_header(row)
 
     def _transition_to_withholding_tax(self, row: list[str]) -> None:
         """Transition to Withholding Tax section."""
         self.current_section = IBCsvSection.WITHHOLDING_TAX
-        if len(row) >= 2 and row[1] == "Header":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Header":
             self.withholding_tax_context.process_header(row)
 
     def _transition_to_other(self, row: list[str]) -> None:
@@ -116,22 +125,22 @@ class IBCsvStateMachine:
 
     def _process_financial_instrument_row(self, row: list[str]) -> None:
         """Process row in Financial Instrument section."""
-        if len(row) >= 2 and row[1] == "Data":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Data":
             self.financial_context.process_data_row(row)
 
     def _process_trades_row(self, row: list[str]) -> None:
         """Process row in Trades section."""
-        if len(row) >= 2 and row[1] == "Data":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Data":
             self.trades_context.process_data_row(row)
 
     def _process_dividends_row(self, row: list[str]) -> None:
         """Process row in Dividends section."""
-        if len(row) >= 2 and row[1] == "Data":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Data":
             self.dividends_context.process_data_row(row)
 
     def _process_withholding_tax_row(self, row: list[str]) -> None:
         """Process row in Withholding Tax section."""
-        if len(row) >= 2 and row[1] == "Data":
+        if len(row) >= self.MIN_ROW_LENGTH and row[1] == "Data":
             self.withholding_tax_context.process_data_row(row)
 
     def finalize(self) -> IBCsvData:
@@ -152,13 +161,18 @@ class IBCsvStateMachine:
         }
 
         self.logger.info(
-            f"Extracted security data for {len(self.security_info)} symbols ({self.financial_context.security_processed_count} with country data)"
+            "Extracted security data for %s symbols (%s with country data)",
+            len(self.security_info),
+            self.financial_context.security_processed_count,
         )
         self.logger.info(
-            f"Collected {self.trades_context.processed_count} trades, {self.dividends_context.processed_count} dividends and {self.withholding_tax_context.processed_count} withholding taxes"
+            "Collected %s trades, %s dividends and %s withholding taxes",
+            self.trades_context.processed_count,
+            self.dividends_context.processed_count,
+            self.withholding_tax_context.processed_count,
         )
         if self.trades_context.skipped_trades > 0:
-            self.logger.warning(f"Skipped {self.trades_context.skipped_trades} invalid trades")
+            self.logger.warning("Skipped %s invalid trades", self.trades_context.skipped_trades)
 
         return IBCsvData(
             security_info=self.security_info,

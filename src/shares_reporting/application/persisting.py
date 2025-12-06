@@ -1,3 +1,6 @@
+"""Persistence layer containing logic for generating reports and saving data."""
+from __future__ import annotations
+
 import csv
 import os
 from pathlib import Path
@@ -27,8 +30,7 @@ from ..infrastructure.logging_config import create_module_logger
 def export_rollover_file(
     leftover: str | os.PathLike, leftover_trades: TradeCyclePerCompany
 ) -> None:
-    """
-    Export unmatched securities rollover file for next year's FIFO calculations.
+    """Export unmatched securities rollover file for next year's FIFO calculations.
 
     This function creates a CSV file containing all trades that couldn't be matched
     during the FIFO capital gains calculation process. These unmatched securities
@@ -39,12 +41,12 @@ def export_rollover_file(
         leftover_trades: Dictionary of trades to be rolled over to next year's calculations
     """
     logger = create_module_logger(__name__)
-    logger.info(f"Generating unmatched securities rollover file: {Path(leftover).name}")
+    logger.info("Generating unmatched securities rollover file: %s", Path(leftover).name)
 
     safe_remove_file(leftover)
     processed_companies = 0
 
-    with open(leftover, "w", newline="") as right_obj:
+    with Path(leftover).open("w", newline="") as right_obj:
         writer = csv.DictWriter(
             right_obj,
             fieldnames=[
@@ -74,13 +76,13 @@ def export_rollover_file(
                 "Symbol": currency_company.company.ticker,
             }
 
-            logger.debug(f"Processing leftover trades for {row['Symbol']} ({row['Currency']})")
+            logger.debug("Processing leftover trades for %s (%s)", row['Symbol'], row['Currency'])
 
             # we are not expecting any sold shares in the leftover file
             if trade_cycle.has_bought():
                 bought_trades = trade_cycle.get(TradeType.BUY)
                 logger.debug(
-                    f"Writing {len(bought_trades)} leftover buy trades for {row['Symbol']}"
+                    "Writing %s leftover buy trades for %s", len(bought_trades), row['Symbol']
                 )
 
                 for bought_trade in bought_trades:
@@ -94,16 +96,15 @@ def export_rollover_file(
                     row["Comm/Fee"] = action.fee
                     writer.writerow(row)
 
-    logger.info(f"Generated unmatched securities rollover file for {processed_companies} companies")
+    logger.info("Generated unmatched securities rollover file for %s companies", processed_companies)
 
 
-def generate_tax_report(
+def generate_tax_report(  # noqa: PLR0915
     extract: str | os.PathLike,
     capital_gain_lines_per_company: CapitalGainLinesPerCompany,
     dividend_income_per_company: DividendIncomePerCompany = None,
 ) -> None:
-    """
-    Generate comprehensive Excel tax report with capital gains and dividend income.
+    """Generate comprehensive Excel tax report with capital gains and dividend income.
 
     This function creates a professional Excel report containing all tax-relevant
     information for capital gains and dividend income reporting, including currency
@@ -115,11 +116,12 @@ def generate_tax_report(
         dividend_income_per_company: Dividend income data grouped by company (optional)
     """
     logger = create_module_logger(__name__)
-    logger.info(f"Generating capital gains report: {Path(extract).name}")
+    logger.info("Generating capital gains report: %s", Path(extract).name)
 
     total_gain_lines = sum(len(lines) for lines in capital_gain_lines_per_company.values())
     logger.debug(
-        f"Processing {total_gain_lines} capital gain lines across {len(capital_gain_lines_per_company)} companies"
+        "Processing %s capital gain lines across %s companies",
+        total_gain_lines, len(capital_gain_lines_per_company),
     )
 
     first_header = [
@@ -175,7 +177,7 @@ def generate_tax_report(
         exchange_rates: dict[str, str] = create_currency_table(
             worksheet, last_column + 2, 1, config
         )
-        logger.debug(f"Created currency exchange table with {len(config.rates) + 1} rates")
+        logger.debug("Created currency exchange table with %s rates", len(config.rates) + 1)
     except Exception as e:
         raise ReportGenerationError(
             f"Failed to read configuration for currency exchange: {e}"
@@ -192,10 +194,11 @@ def generate_tax_report(
     for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
         currency = currency_company.currency
         company = currency_company.company
-        logger.debug(f"Processing capital gain lines for {company.ticker} ({currency.currency})")
+        logger.debug("Processing capital gain lines for %s (%s)", company.ticker, currency.currency)
 
         for line in capital_gain_lines:
-            assert currency == line.get_currency()
+            if currency != line.get_currency():
+                raise ReportGenerationError(f"Currency mismatch in line: {currency} != {line.get_currency()}")
             processed_lines += 1
             idx = start_column
 
@@ -256,14 +259,14 @@ def generate_tax_report(
 
             line_number += 1
 
-    logger.debug(f"Processed {processed_lines} capital gain lines")
+    logger.debug("Processed %s capital gain lines", processed_lines)
 
     # Populate Country of Source column for all rows
     # This is done after the main loop to ensure we have all data
     line_number = EXCEL_START_ROW
     for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
         company = currency_company.company
-        for line in capital_gain_lines:
+        for _ in capital_gain_lines:
             # Column 2 is "Country of Source" (according to first_header array)
             worksheet.cell(line_number, 2, company.country_of_issuance)
 
@@ -275,7 +278,7 @@ def generate_tax_report(
     # Add CAPITAL INVESTMENT INCOME section if dividend data is provided
     if dividend_income_per_company:
         logger.info(
-            f"Adding CAPITAL INVESTMENT INCOME section with {len(dividend_income_per_company)} securities"
+            "Adding CAPITAL INVESTMENT INCOME section with %s securities", len(dividend_income_per_company)
         )
 
         # Add empty row for spacing
@@ -360,7 +363,8 @@ def generate_tax_report(
             net_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
             logger.debug(
-                f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, {dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})"
+                f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, "
+                f"{dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})"
             )
             line_number += 1
 
@@ -379,26 +383,26 @@ def generate_tax_report(
             "capital gains and dividend income" if dividend_income_per_company else "capital gains"
         )
         logger.info(
-            f"Successfully generated {report_type} report with {processed_lines} capital gain lines"
+            "Successfully generated %s report with %s capital gain lines", report_type, processed_lines
         )
     except Exception as e:
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 
 
 def safe_remove_file(path: str | os.PathLike) -> None:
-    """
-    Safely remove a file if it exists, logging any errors.
+    """Safely remove a file if it exists, logging any errors.
 
     Args:
         path: File path to remove
     """
     logger = create_module_logger(__name__)
     try:
-        if os.path.exists(path):
-            os.remove(path)
-            logger.debug(f"Removed existing file: {Path(path).name}")
+        p = Path(path)
+        if p.exists():
+            p.unlink()
+            logger.debug("Removed existing file: %s", p.name)
     except OSError as e:
-        logger.warning(f"Failed to remove file {path}: {e}")
+        logger.warning("Failed to remove file %s: %s", path, e)
         # Non-critical error, continue processing
 
 
@@ -406,11 +410,22 @@ def safe_remove_file(path: str | os.PathLike) -> None:
 def create_currency_table(
     worksheet: Worksheet, column_no: int, row_no: int, config: Config
 ) -> dict[str, str]:
+    """Create a currency configuration table in the excel worksheet.
+
+    Args:
+        worksheet: The target excel worksheet.
+        column_no: The starting column number (1-based).
+        row_no: The starting row number (1-based).
+        config: The application configuration object.
+
+    Returns:
+        A dictionary mapping cell coordinates to their formatted values.
+    """
     logger = create_module_logger(__name__)
     currency_header = ["Base/target", "Rate"]
     rates: list[ConversionRate] = config.rates
 
-    logger.debug(f"Creating currency table starting at column {column_no}, row {row_no}")
+    logger.debug("Creating currency table starting at column %s, row %s", column_no, row_no)
 
     worksheet.cell(row_no, column_no, "Currency exchange rate")
     row_no += 1
@@ -422,13 +437,13 @@ def create_currency_table(
         worksheet.cell(row_no + j, column_no, rates[j].base + "/" + rates[j].calculated)
         cell = worksheet.cell(row_no + j, column_no + 1, str(rates[j].rate))
         coordinates[rates[j].calculated] = cell.coordinate
-        logger.debug(f"Added currency rate {rates[j].base}/{rates[j].calculated} = {rates[j].rate}")
+        logger.debug("Added currency rate %s/%s = %s", rates[j].base, rates[j].calculated, rates[j].rate)
 
     # Add base currency rate (1:1)
     worksheet.cell(row_no + len(rates), column_no, config.base + "/" + config.base)
     cell = worksheet.cell(row_no + len(rates), column_no + 1, "1")
     coordinates[config.base] = cell.coordinate
-    logger.debug(f"Added base currency {config.base}/{config.base} = 1")
+    logger.debug("Added base currency %s/%s = 1", config.base, config.base)
 
-    logger.debug(f"Created currency table with {len(coordinates)} exchange rates")
+    logger.debug("Created currency table with %s exchange rates", len(coordinates))
     return coordinates

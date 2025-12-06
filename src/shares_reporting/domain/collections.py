@@ -1,3 +1,4 @@
+"""Domain collection types and containers."""
 from typing import NamedTuple
 
 from .accumulators import TradePartsWithinDay
@@ -23,6 +24,8 @@ PartitionedTradesByType = dict[TradeType, DayPartitionedTrades]
 
 
 class CurrencyToCoordinate(NamedTuple):
+    """Maps a currency to an Excel cell coordinate."""
+
     currency: Currency
     coordinate: str
 
@@ -42,10 +45,17 @@ class IBExportData:
     def __init__(
         self, trade_cycles: TradeCyclePerCompany, dividend_income: DividendIncomePerCompany
     ):
+        """Initialize the IBExportData container.
+
+        Args:
+            trade_cycles: Extracted trade cycles grouped by company.
+            dividend_income: Extracted dividend income grouped by company.
+        """
         self.trade_cycles = trade_cycles
         self.dividend_income = dividend_income
 
     def __repr__(self) -> str:
+        """Return string representation."""
         return (
             f"IBExportData("
             f"trade_cycles={len(self.trade_cycles)}, "

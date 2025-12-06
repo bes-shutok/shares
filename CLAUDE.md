@@ -259,8 +259,8 @@ tests/
 │   └── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
 ├── infrastructure/             # Infrastructure layer tests
 │   └── test_config.py         # Configuration management
-├── test_shares.py             # Integration tests (existing)
-└── test_reporting.py          # End-to-end tests (existing)
+├── test_shares_raw_ib.py             # Integration tests (existing)
+└── test_reporting_raw_ib.py          # End-to-end tests (existing)
 ```
 
 #### **Testing Commands**
@@ -280,7 +280,7 @@ poetry run pytest --cov=src --cov-report=html
 poetry run pytest tests/domain/ tests/application/ tests/infrastructure/
 
 # Run existing integration tests
-poetry run pytest tests/test_shares.py tests/test_reporting.py
+poetry run pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
 ```
 
 #### **Testing Best Practices**
@@ -293,13 +293,80 @@ poetry run pytest tests/test_shares.py tests/test_reporting.py
 
 ## Development Environment
 
-- **Python 3.11+ required** (f-string usage and modern features)
+- **Python 3.13+ required** (Modern Python features, `datetime.UTC` alias)
 - **Poetry for dependency management** (recommended approach)
 - **Professional package structure** with `src/` layout
 - **Clean Architecture** with Domain-Driven Design
 - **Type hints extensively used** throughout codebase
 - **pytest framework** with comprehensive unit and integration tests
-- **Modern tooling**: Coverage reporting, professional packaging
+- **Modern tooling**: Ruff linter/formatter, coverage reporting, professional packaging
+
+## Code Quality Standards
+
+### Linting and Formatting
+- **Ruff** is the primary linter and formatter (configured in `pyproject.toml`)
+- **Target**: Python 3.13 (`target-version = "py313"`)
+- **Line length**: 120 characters maximum
+- **Enabled rulesets**: `E`, `F`, `UP`, `B`, `SIM`, `I`, `N`, `ARG`, `FA`, `DTZ`, `PTH`, `TD`, `FIX`, `RSE`, `S`, `C4`, `PT`, `D`, `PL`
+- **Docstring convention**: Google-style (`pydocstyle`)
+
+### Documentation Best Practices
+
+#### When to Write Docstrings
+- **Always document**:
+  - Public modules (`__init__.py`, top-level modules)
+  - Public classes and their `__init__` methods
+  - Public functions and methods with complex logic or non-obvious behavior
+  - Functions with multiple parameters or return values
+
+- **Skip docstrings for**:
+  - Self-explanatory property getters/setters (e.g., `def get_currency(self): return self.currency`)
+  - Trivial magic methods like `__repr__` when the implementation is obvious
+  - Private methods (`_method_name`) when the name and implementation are clear
+  - Test functions (docstrings optional in tests per `pyproject.toml`)
+
+#### Docstring Style (Google Convention)
+```python
+def complex_function(param1: str, param2: int) -> dict:
+    """Brief one-line summary ending with a period.
+
+    Extended description if needed. Explain the purpose, algorithm,
+    or any non-obvious behavior.
+
+    Args:
+        param1: Description of param1.
+        param2: Description of param2.
+
+    Returns:
+        Description of return value.
+
+    Raises:
+        ValueError: When validation fails.
+    """
+```
+
+#### Package `__init__.py` Docstrings
+Use multi-line format with summary + description:
+```python
+"""Package name for specific purpose.
+
+Extended description explaining what the package contains,
+its responsibilities, and key modules or functionality.
+"""
+```
+
+### Code Style Guidelines
+- **Type hints**: Use modern syntax (`X | Y` instead of `Union[X, Y]`) with `from __future__ import annotations`
+- **Imports**: Sorted automatically by Ruff (isort)
+- **Magic numbers**: Replace with named constants (except in tests)
+- **Datetime**: Use `datetime.UTC` instead of `timezone.utc` (Python 3.11+)
+- **Path handling**: Use `pathlib.Path` instead of `os.path`
+- **Logging**: Use lazy formatting (`logger.info("Message: %s", value)` not f-strings)
+
+### Complexity Management
+- Functions with high complexity (`PLR0912`, `PLR0915`) should be refactored when possible
+- If refactoring is too risky, use explicit `# noqa: PLR0912, PLR0915` with a comment explaining why
+- Avoid deeply nested logic; extract helper functions
 
 ## Project Structure
 
@@ -346,8 +413,8 @@ shares-reporting/
 │   │   └── test_raw_ib_export_parsing.py
 │   ├── infrastructure/     # Infrastructure layer tests
 │   │   └── test_config.py
-│   ├── test_shares.py       # Integration tests (existing)
-│   ├── test_reporting.py    # End-to-end tests (existing)
+│   ├── test_shares_raw_ib.py       # Integration tests (existing)
+│   ├── test_reporting_raw_ib.py    # End-to-end tests (existing)
 │   └── test_data.py         # Test fixtures (existing)
 ├── resources/              # Data directories
 │   ├── source/             # Input CSV files

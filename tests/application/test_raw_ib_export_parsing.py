@@ -1,14 +1,14 @@
-"""
-Tests for parse_ib_export function that mirror the parse_data tests.
+"""Tests for parse_ib_export function that mirror the parse_data tests.
 
 These tests duplicate the parse_data test scenarios but use the raw IB export format
 with Financial Instrument Information and Trades sections.
 """
 
+import contextlib
 import csv
-import os
 import tempfile
 from decimal import Decimal
+from pathlib import Path
 
 from shares_reporting.application.extraction import parse_ib_export
 from shares_reporting.domain.entities import CurrencyCompany
@@ -112,10 +112,8 @@ class TestParseRawIbExport:
                 assert quantitated_trade.action.company.country_of_issuance == "United States"
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_with_multiple_trades_same_company(self):
         """Test parse_ib_export with multiple trades for the same company."""
@@ -225,10 +223,8 @@ class TestParseRawIbExport:
                 assert sell_trade.action.trade_type == TradeType.SELL
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_with_multiple_companies(self):
         """Test parse_ib_export with trades for multiple companies."""
@@ -356,10 +352,8 @@ class TestParseRawIbExport:
                 assert googl_cycle.has(TradeType.SELL) is False
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_with_different_currencies(self):
         """Test parse_ib_export with trades in different currencies."""
@@ -468,10 +462,8 @@ class TestParseRawIbExport:
                 assert eur_asml in result
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_ignores_empty_date_time_rows(self):
         """Test parse_ib_export ignores rows with empty Date/Time."""
@@ -572,10 +564,8 @@ class TestParseRawIbExport:
                 assert len(cycle.get(TradeType.SELL)) == 1
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_handles_missing_isin_data(self):
         """Test parse_ib_export handles missing ISIN data gracefully."""
@@ -641,10 +631,8 @@ class TestParseRawIbExport:
                 assert trade.action.company.country_of_issuance == "Unknown"
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_handles_decimal_quantities(self):
         """Test parse_ib_export handles decimal quantities correctly."""
@@ -719,10 +707,8 @@ class TestParseRawIbExport:
                 assert trade.quantity == Decimal("2.5")
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()
 
     def test_parse_ib_export_handles_negative_quantities_as_sell(self):
         """Test parse_ib_export treats negative quantities as sell trades."""
@@ -798,7 +784,5 @@ class TestParseRawIbExport:
                 assert trade.quantity == Decimal("5")  # Stored as absolute value
 
             finally:
-                try:
-                    os.unlink(f.name)
-                except (OSError, PermissionError):
-                    pass
+                with contextlib.suppress(OSError, PermissionError):
+                    Path(f.name).unlink()

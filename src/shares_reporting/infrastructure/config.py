@@ -1,6 +1,10 @@
+"""Configuration management for the shares reporting application."""
+from __future__ import annotations
+
 import configparser
 from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 from typing import NamedTuple
 
 from .logging_config import create_module_logger
@@ -8,6 +12,13 @@ from .validation import DEFAULT_SECURITY_CONFIG, SecurityConfig
 
 
 class ConversionRate(NamedTuple):
+    """Represents a currency exchange rate pair.
+
+    Attributes:
+        base: The base currency code (e.g., 'EUR').
+        calculated: The target currency code (e.g., 'USD').
+    """
+
     base: str
     calculated: str
     rate: Decimal
@@ -15,17 +26,27 @@ class ConversionRate(NamedTuple):
 
 @dataclass
 class Config:
+    """Application configuration container.
+
+    Attributes:
+        base: The base currency for reporting (e.g. 'EUR').
+        rates: List of configured currency conversion pairs.
+        security: Security configuration settings.
+    """
+
     base: str
     rates: list[ConversionRate]
     security: SecurityConfig = None
 
     def __post_init__(self):
+        """Initialize default security config if none provided."""
         if self.security is None:
             self.security = DEFAULT_SECURITY_CONFIG
 
 
 # https://docs.python.org/3/library/configparser.html
 def initialize_default_configuration_file():
+    """Create a default configuration file if one does not exist."""
     logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
     config.optionxform = str
@@ -50,18 +71,26 @@ def initialize_default_configuration_file():
 
     config_path = "config.ini"
     try:
-        with open(config_path, "w") as configfile:
+        with Path(config_path).open("w", encoding="utf-8") as configfile:
             config.write(configfile)
-        logger.info(f"Created default configuration file: {config_path}")
+        logger.info("Created default configuration file: %s", config_path)
         logger.info(
             "Configuration includes 5 exchange rates for EUR base currency and security settings"
         )
     except OSError as e:
-        logger.error(f"Failed to create configuration file {config_path}: {e}")
+        logger.error("Failed to create configuration file %s: %s", config_path, e)
         raise
 
 
 def load_configuration_from_file() -> Config:
+    """Load configuration from the standard config.ini file.
+
+    Returns:
+        Config: The loaded application configuration.
+
+    Raises:
+        ValueError: If main currency or required exchange rates are missing.
+    """
     logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
     config.optionxform = str
@@ -72,26 +101,27 @@ def load_configuration_from_file() -> Config:
         if not files_read:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-        logger.info(f"Loaded configuration from {config_path}")
-        logger.debug(f"Available sections: {list(config.sections())}")
+        logger.info("Loaded configuration from %s", config_path)
+        logger.debug("Available sections: %s", list(config.sections()))
 
     except (configparser.Error, OSError) as e:
-        logger.error(f"Failed to read configuration file {config_path}: {e}")
+        logger.error("Failed to read configuration file %s: %s", config_path, e)
         raise
 
     try:
         target: str = config["COMMON"]["TARGET CURRENCY"]
-        logger.debug(f"Target currency: {target}")
+        logger.debug("Target currency: %s", target)
 
         rates: list[ConversionRate] = []
         for key in config["EXCHANGE RATES"]:
             base, calculated = key.split("/")
-            assert base == target
+            if base != target:
+                raise ValueError(f"Base currency mismatch: {base} != {target}")
             rate_value = Decimal(config["EXCHANGE RATES"][key])
             rates.append(ConversionRate(base=base, calculated=calculated, rate=rate_value))
-            logger.debug(f"Loaded exchange rate {key} = {rate_value}")
+            logger.debug("Loaded exchange rate %s = %s", key, rate_value)
 
-        logger.info(f"Loaded {len(rates)} exchange rates for base currency {target}")
+        logger.info("Loaded %d exchange rates for base currency %s", len(rates), target)
 
         # Load security settings
         security_config = _load_security_config(config, logger)
@@ -99,7 +129,7 @@ def load_configuration_from_file() -> Config:
         return Config(base=target, rates=rates, security=security_config)
 
     except (KeyError, ValueError, AssertionError) as e:
-        logger.error(f"Configuration parsing error: {e}")
+        logger.error("Configuration parsing error: %s", e)
         raise
 
 
@@ -131,19 +161,22 @@ def _load_security_config(config: configparser.ConfigParser, logger) -> Security
         )
 
         logger.info(
-            f"Loaded security configuration: max_file_size={max_file_size_mb}MB, "
-            f"max_ticker_length={max_ticker_length}, allowed_extensions={allowed_extensions}"
+            "Loaded security configuration: max_file_size=%sMB, max_ticker_length=%s, allowed_extensions=%s",
+            max_file_size_mb,
+            max_ticker_length,
+            allowed_extensions,
         )
 
         return security_config
 
     except (KeyError, ValueError) as e:
-        logger.warning(f"Failed to load security configuration, using defaults: {e}")
+        logger.warning("Failed to load security configuration, using defaults: %s", e)
         return DEFAULT_SECURITY_CONFIG
 
 
 def main():
-    create_config()
+    """Initialize the default configuration file."""
+    initialize_default_configuration_file()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-"""
-Shares Reporting Tool
+"""Shares Reporting Tool.
 
 A financial application that processes Interactive Brokers CSV reports
 to generate tax reporting data for Portugal.
@@ -8,7 +7,7 @@ This package provides tools for:
 - Parsing Interactive Brokers CSV files
 - Matching buy/sell transactions using FIFO within daily buckets
 - Calculating capital gains with currency conversion
-- Generating Excel reports with formulas
+- Generating Excel reports with formulas.
 """
 
 __version__ = "0.0.1"
