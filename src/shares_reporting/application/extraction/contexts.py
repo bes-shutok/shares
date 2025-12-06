@@ -114,7 +114,7 @@ class TradesContext(BaseSectionContext):
         self.require_trades_section = require_trades_section
         self.trades_headers = None
         self.trades_col_mapping = None
-        self.skipped_trades = 0
+        self.invalid_trades = 0  # Only count data quality issues (missing symbol/datetime)
 
     def process_header(self, row: list[str]) -> None:
         """Process Trades section header."""
@@ -161,12 +161,12 @@ class TradesContext(BaseSectionContext):
         if not self.can_process_row(row) or not self.trades_col_mapping:
             return
 
+        # Filter 1: Row length mismatch (corrupted data) - silently skip
         if len(row) < len(self.trades_headers):
-            self.skipped_trades += 1
             return
 
+        # Filter 2: Non-stock orders (options, forex, etc.) - silently skip
         if len(row) > MIN_HEADER_LENGTH and (row[2] != "Order" or row[3] != "Stocks"):
-            self.skipped_trades += 1
             return
 
         # Extract trade data as dictionary for deferred processing
@@ -197,12 +197,13 @@ class TradesContext(BaseSectionContext):
             "fee": fee_value,
         }
 
+        # Validation: Check for missing critical data (data quality issue)
         if (
             not trade_row["symbol"]
             or not trade_row["datetime"]
             or trade_row["datetime"].strip() == ""
         ):
-            self.skipped_trades += 1
+            self.invalid_trades += 1
             return
 
         self.raw_trade_data.append(trade_row)

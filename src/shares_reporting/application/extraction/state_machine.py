@@ -154,7 +154,7 @@ class IBCsvStateMachine:
 
         metadata = {
             "processed_trades": self.trades_context.processed_count,
-            "skipped_trades": self.trades_context.skipped_trades,
+            "invalid_trades": self.trades_context.invalid_trades,
             "processed_dividends": self.dividends_context.processed_count,
             "processed_withholding_taxes": self.withholding_tax_context.processed_count,
             "security_processed_count": self.financial_context.security_processed_count,
@@ -171,8 +171,11 @@ class IBCsvStateMachine:
             self.dividends_context.processed_count,
             self.withholding_tax_context.processed_count,
         )
-        if self.trades_context.skipped_trades > 0:
-            self.logger.warning("Skipped %s invalid trades", self.trades_context.skipped_trades)
+        if self.trades_context.invalid_trades > 0:
+            self.logger.warning(
+                "Skipped %s invalid trades (missing symbol or datetime)",
+                self.trades_context.invalid_trades,
+            )
 
         return IBCsvData(
             security_info=self.security_info,
