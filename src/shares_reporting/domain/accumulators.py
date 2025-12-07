@@ -1,4 +1,5 @@
 """Domain accumulators for building trade cycles and positions."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -174,9 +175,7 @@ class TradePartsWithinDay:
         """
         idx: int = self.__get_top_index()
         self.dates.pop(idx)
-        return QuantitatedTradeAction(
-            quantity=self.quantities.pop(idx), action=self.trades.pop(idx)
-        )
+        return QuantitatedTradeAction(quantity=self.quantities.pop(idx), action=self.trades.pop(idx))
 
     def get_top_count(self) -> Decimal:
         """Get the quantity of the earliest trade part."""

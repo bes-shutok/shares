@@ -1,4 +1,5 @@
 """Domain entities representing core business concepts."""
+
 from dataclasses import dataclass, field
 
 # Use datetime.UTC for Python 3.11+
@@ -35,11 +36,10 @@ class TradeAction:
             price: Price per unit.
             fee: Commission or fee.
         """
-        quantity = quantity.replace(",", "")
+        if isinstance(quantity, str):
+            quantity = quantity.replace(",", "")
         self.company = company
-        self.date_time = datetime.strptime(date_time, "%Y-%m-%d, %H:%M:%S").replace(
-            tzinfo=UTC
-        )
+        self.date_time = datetime.strptime(date_time, "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
         self.currency = currency
         if Decimal(quantity) < 0:
             self.trade_type = TradeType.SELL
@@ -244,9 +244,7 @@ class DividendIncomePerSecurity:
         if self.total_taxes < 0:
             raise DataValidationError(f"Total taxes cannot be negative: {self.total_taxes}")
         if self.total_taxes > self.gross_amount:
-            raise DataValidationError(
-                f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})"
-            )
+            raise DataValidationError(f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})")
         if not self.symbol:
             raise DataValidationError("Symbol cannot be empty")
         if not self.isin:

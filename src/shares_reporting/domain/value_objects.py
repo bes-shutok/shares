@@ -1,4 +1,5 @@
 """Value objects for the domain layer."""
+
 import calendar
 from datetime import datetime
 from enum import Enum
@@ -21,15 +22,11 @@ class TradeDate(NamedTuple):
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return (
-            "["
-            + str(self.day)
-            + " "
-            + calendar.month_name[self.month]
-            + ", "
-            + str(self.year)
-            + "]"
-        )
+        return "[" + str(self.day) + " " + calendar.month_name[self.month] + ", " + str(self.year) + "]"
+
+    def to_datetime(self) -> datetime:
+        """Convert TradeDate to datetime object with UTC timezone."""
+        return datetime(self.year, self.month, self.day, 0, 0, tzinfo=UTC)
 
 
 def parse_trade_date(date: datetime) -> TradeDate:
@@ -67,9 +64,7 @@ class Company(NamedTuple):
     country_of_issuance: str = "Unknown"
 
 
-def parse_company(
-    ticker: str, isin: str = "", country_of_issuance: str = "Unknown"
-) -> Company:
+def parse_company(ticker: str, isin: str = "", country_of_issuance: str = "Unknown") -> Company:
     """Parse Company value object with ticker and optional ISIN/country data."""
     if len(ticker) == 0:
         raise DataValidationError("Company is expected to be not empty, instead got empty string!")

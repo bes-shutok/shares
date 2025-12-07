@@ -25,6 +25,7 @@ The investment reporting tool is designed to provide a simple and efficient way 
 - **Currency Rates**: Update `config.ini` with all required currency exchange pairs.
   - E.g. you can use the exchange rates from the last day of the year from your national central bank or financial institution.
   - The config file also includes security validation settings (file size limits, allowed extensions, etc.)
+- **Missing Buy History**: If securities are sold without corresponding buy transactions in the IB export, the tool automatically creates placeholder buy transactions (date: 1000-01-01, price: 0) to allow capital gains calculation. These entries are highlighted in red in the Excel report for manual review.
 
 ## Installation & Usage
 

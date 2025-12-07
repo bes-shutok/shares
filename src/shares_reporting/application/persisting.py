@@ -1,4 +1,5 @@
 """Persistence layer containing logic for generating reports and saving data."""
+
 from __future__ import annotations
 
 import csv
@@ -6,6 +7,7 @@ import os
 from pathlib import Path
 
 import openpyxl
+from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ..domain.collections import (
@@ -20,6 +22,7 @@ from ..domain.constants import (
     EXCEL_NUMBER_FORMAT,
     EXCEL_START_COLUMN,
     EXCEL_START_ROW,
+    PLACEHOLDER_YEAR,
 )
 from ..domain.exceptions import ReportGenerationError
 from ..domain.value_objects import TradeType
@@ -27,9 +30,7 @@ from ..infrastructure.config import Config, ConversionRate, load_configuration_f
 from ..infrastructure.logging_config import create_module_logger
 
 
-def export_rollover_file(
-    leftover: str | os.PathLike, leftover_trades: TradeCyclePerCompany
-) -> None:
+def export_rollover_file(leftover: str | os.PathLike, leftover_trades: TradeCyclePerCompany) -> None:
     """Export unmatched securities rollover file for next year's FIFO calculations.
 
     This function creates a CSV file containing all trades that couldn't be matched
@@ -76,21 +77,17 @@ def export_rollover_file(
                 "Symbol": currency_company.company.ticker,
             }
 
-            logger.debug("Processing leftover trades for %s (%s)", row['Symbol'], row['Currency'])
+            logger.debug("Processing leftover trades for %s (%s)", row["Symbol"], row["Currency"])
 
             # we are not expecting any sold shares in the leftover file
             if trade_cycle.has_bought():
                 bought_trades = trade_cycle.get(TradeType.BUY)
-                logger.debug(
-                    "Writing %s leftover buy trades for %s", len(bought_trades), row['Symbol']
-                )
+                logger.debug("Writing %s leftover buy trades for %s", len(bought_trades), row["Symbol"])
 
                 for bought_trade in bought_trades:
                     row["Quantity"] = bought_trade.quantity
                     action = bought_trade.action
-                    row["Date/Time"] = (
-                        str(action.date_time.date()) + ", " + str(action.date_time.time())
-                    )
+                    row["Date/Time"] = str(action.date_time.date()) + ", " + str(action.date_time.time())
                     row["T. Price"] = action.price
                     row["Proceeds"] = action.price * bought_trade.quantity
                     row["Comm/Fee"] = action.fee
@@ -121,7 +118,8 @@ def generate_tax_report(  # noqa: PLR0915
     total_gain_lines = sum(len(lines) for lines in capital_gain_lines_per_company.values())
     logger.debug(
         "Processing %s capital gain lines across %s companies",
-        total_gain_lines, len(capital_gain_lines_per_company),
+        total_gain_lines,
+        len(capital_gain_lines_per_company),
     )
 
     first_header = [
@@ -174,14 +172,10 @@ def generate_tax_report(  # noqa: PLR0915
 
     try:
         config: Config = load_configuration_from_file()
-        exchange_rates: dict[str, str] = create_currency_table(
-            worksheet, last_column + 2, 1, config
-        )
+        exchange_rates: dict[str, str] = create_currency_table(worksheet, last_column + 2, 1, config)
         logger.debug("Created currency exchange table with %s rates", len(config.rates) + 1)
     except Exception as e:
-        raise ReportGenerationError(
-            f"Failed to read configuration for currency exchange: {e}"
-        ) from e
+        raise ReportGenerationError(f"Failed to read configuration for currency exchange: {e}") from e
 
     for i in range(len(first_header)):
         worksheet.cell(EXCEL_HEADER_ROW_1, i + 1, first_header[i])
@@ -257,6 +251,14 @@ def generate_tax_report(  # noqa: PLR0915
             expense_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_expense_amount())
             expense_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
+            # Highlight placeholder buy transactions in red
+            if line.get_buy_date().year == PLACEHOLDER_YEAR:
+                red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
+                # Apply red fill to entire row
+                for col_idx in range(start_column, idx + 1):
+                    cell = worksheet.cell(line_number, col_idx)
+                    cell.fill = red_fill
+
             line_number += 1
 
     logger.debug("Processed %s capital gain lines", processed_lines)
@@ -277,9 +279,7 @@ def generate_tax_report(  # noqa: PLR0915
 
     # Add CAPITAL INVESTMENT INCOME section if dividend data is provided
     if dividend_income_per_company:
-        logger.info(
-            "Adding CAPITAL INVESTMENT INCOME section with %s securities", len(dividend_income_per_company)
-        )
+        logger.info("Adding CAPITAL INVESTMENT INCOME section with %s securities", len(dividend_income_per_company))
 
         # Add empty row for spacing
         line_number += 1
@@ -325,22 +325,14 @@ def generate_tax_report(  # noqa: PLR0915
             gross_amount_cell = worksheet.cell(
                 line_number,
                 5,
-                "="
-                + exchange_rates[dividend_data.currency.currency]
-                + "*("
-                + str(dividend_data.gross_amount)
-                + ")",
+                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.gross_amount) + ")",
             )
             gross_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
             tax_amount_cell = worksheet.cell(
                 line_number,
                 6,
-                "="
-                + exchange_rates[dividend_data.currency.currency]
-                + "*("
-                + str(dividend_data.total_taxes)
-                + ")",
+                "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.total_taxes) + ")",
             )
             tax_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
@@ -363,8 +355,12 @@ def generate_tax_report(  # noqa: PLR0915
             net_amount_cell.number_format = EXCEL_NUMBER_FORMAT
 
             logger.debug(
-                f"Added dividend income row for {symbol}: {dividend_data.gross_amount} gross, "
-                f"{dividend_data.total_taxes} tax, {net_amount} net ({dividend_data.currency.currency})"
+                "Added dividend income row for %s: %s gross, %s tax, %s net (%s)",
+                symbol,
+                dividend_data.gross_amount,
+                dividend_data.total_taxes,
+                net_amount,
+                dividend_data.currency.currency,
             )
             line_number += 1
 
@@ -379,12 +375,8 @@ def generate_tax_report(  # noqa: PLR0915
     try:
         workbook.save(extract)
         workbook.close()
-        report_type = (
-            "capital gains and dividend income" if dividend_income_per_company else "capital gains"
-        )
-        logger.info(
-            "Successfully generated %s report with %s capital gain lines", report_type, processed_lines
-        )
+        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
+        logger.info("Successfully generated %s report with %s capital gain lines", report_type, processed_lines)
     except Exception as e:
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 
@@ -407,9 +399,7 @@ def safe_remove_file(path: str | os.PathLike) -> None:
 
 
 # https://openpyxl.readthedocs.io/en/latest/tutorial.html
-def create_currency_table(
-    worksheet: Worksheet, column_no: int, row_no: int, config: Config
-) -> dict[str, str]:
+def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, config: Config) -> dict[str, str]:
     """Create a currency configuration table in the excel worksheet.
 
     Args:

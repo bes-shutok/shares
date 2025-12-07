@@ -1,4 +1,5 @@
 """Context classes for processing different sections of the IB CSV export."""
+
 from __future__ import annotations
 
 from ...domain.exceptions import FileProcessingError
@@ -9,6 +10,7 @@ MIN_HEADER_LENGTH = 2
 MIN_FINANCIAL_INSTRUMENT_HEADER_LENGTH = 7
 MIN_FINANCIAL_INSTRUMENT_DATA_LENGTH = 7
 LOG_SAMPLE_SIZE = 5
+
 
 class BaseSectionContext:
     """Base class for CSV section processing contexts."""
@@ -64,9 +66,7 @@ class FinancialInstrumentContext(BaseSectionContext):
             self.headers_found = True
             self.logger.debug("Found Financial Instrument Information header")
         else:
-            raise FileProcessingError(
-                f"Invalid 'Financial Instrument Information' header format: {row}"
-            )
+            raise FileProcessingError(f"Invalid 'Financial Instrument Information' header format: {row}")
 
     MIN_SYMBOL_INDEX = 3
     MIN_ISIN_INDEX = 6
@@ -89,7 +89,10 @@ class FinancialInstrumentContext(BaseSectionContext):
                     self.logger.debug("Extracted security info for %s: %s (%s)", symbol, isin, country)
                 except Exception as e:
                     self.logger.warning(
-                        f"Failed to extract country for {symbol} with ISIN {isin}: {e}"
+                        "Failed to extract country for %s with ISIN %s: %s",
+                        symbol,
+                        isin,
+                        e,
                     )
                     self.security_info[symbol] = {"isin": isin, "country": "Unknown"}
                     self.processed_count += 1
@@ -145,9 +148,7 @@ class TradesContext(BaseSectionContext):
                 self.logger.debug("Column mapping: %s", self.trades_col_mapping)
             except ValueError as e:
                 if self.require_trades_section:
-                    raise FileProcessingError(
-                        f"Missing required column in Trades section: {e}"
-                    ) from e
+                    raise FileProcessingError(f"Missing required column in Trades section: {e}") from e
                 else:
                     # If trades section is not required, just skip it
                     self.logger.debug("Skipping Trades section due to missing columns: %s", e)
@@ -172,16 +173,10 @@ class TradesContext(BaseSectionContext):
         # Extract trade data as dictionary for deferred processing
         fee_value = ""
         if self.trades_col_mapping["fee"] is not None:
-            fee_value = (
-                row[self.trades_col_mapping["fee"]]
-                if len(row) > self.trades_col_mapping["fee"]
-                else ""
-            )
+            fee_value = row[self.trades_col_mapping["fee"]] if len(row) > self.trades_col_mapping["fee"] else ""
 
         trade_row = {
-            "symbol": row[self.trades_col_mapping["symbol"]]
-            if len(row) > self.trades_col_mapping["symbol"]
-            else "",
+            "symbol": row[self.trades_col_mapping["symbol"]] if len(row) > self.trades_col_mapping["symbol"] else "",
             "currency": row[self.trades_col_mapping["currency"]]
             if len(row) > self.trades_col_mapping["currency"]
             else "",
@@ -191,18 +186,12 @@ class TradesContext(BaseSectionContext):
             "quantity": row[self.trades_col_mapping["quantity"]]
             if len(row) > self.trades_col_mapping["quantity"]
             else "",
-            "price": row[self.trades_col_mapping["price"]]
-            if len(row) > self.trades_col_mapping["price"]
-            else "",
+            "price": row[self.trades_col_mapping["price"]] if len(row) > self.trades_col_mapping["price"] else "",
             "fee": fee_value,
         }
 
         # Validation: Check for missing critical data (data quality issue)
-        if (
-            not trade_row["symbol"]
-            or not trade_row["datetime"]
-            or trade_row["datetime"].strip() == ""
-        ):
+        if not trade_row["symbol"] or not trade_row["datetime"] or trade_row["datetime"].strip() == "":
             self.invalid_trades += 1
             return
 
@@ -211,8 +200,12 @@ class TradesContext(BaseSectionContext):
 
         if self.processed_count <= LOG_SAMPLE_SIZE or self.processed_count % 100 == 0:
             self.logger.debug(
-                f"Collected trade {self.processed_count}: {trade_row['symbol']} "
-                f"{trade_row['currency']} {trade_row['quantity']} @ {trade_row['price']}"
+                "Collected trade %s: %s %s %s @ %s",
+                self.processed_count,
+                trade_row["symbol"],
+                trade_row["currency"],
+                trade_row["quantity"],
+                trade_row["price"],
             )
 
     def validate_header(self, row: list[str]) -> bool:
@@ -266,9 +259,7 @@ class DividendsContext(BaseSectionContext):
             "currency": row[self.dividends_col_mapping["currency"]]
             if len(row) > self.dividends_col_mapping["currency"]
             else "",
-            "date": row[self.dividends_col_mapping["date"]]
-            if len(row) > self.dividends_col_mapping["date"]
-            else "",
+            "date": row[self.dividends_col_mapping["date"]] if len(row) > self.dividends_col_mapping["date"] else "",
             "description": row[self.dividends_col_mapping["description"]]
             if len(row) > self.dividends_col_mapping["description"]
             else "",
@@ -283,8 +274,11 @@ class DividendsContext(BaseSectionContext):
 
             if self.processed_count <= LOG_SAMPLE_SIZE:
                 self.logger.debug(
-                    f"Collected dividend {self.processed_count}: {dividend_row['description']} "
-                    f"{dividend_row['currency']} {dividend_row['amount']}"
+                    "Collected dividend %s: %s %s %s",
+                    self.processed_count,
+                    dividend_row["description"],
+                    dividend_row["currency"],
+                    dividend_row["amount"],
                 )
 
     def validate_header(self, row: list[str]) -> bool:
@@ -322,7 +316,8 @@ class WithholdingTaxContext(BaseSectionContext):
                 }
                 self.headers_found = True
                 self.logger.debug(
-                    f"Withholding Tax column mapping: {self.withholding_tax_col_mapping}"
+                    "Withholding Tax column mapping: %s",
+                    self.withholding_tax_col_mapping,
                 )
             except ValueError as e:
                 self.logger.debug("Skipping Withholding Tax section due to missing columns: %s", e)
@@ -357,8 +352,11 @@ class WithholdingTaxContext(BaseSectionContext):
 
             if self.processed_count <= LOG_SAMPLE_SIZE:
                 self.logger.debug(
-                    f"Collected withholding tax {self.processed_count}: {tax_row['description']} "
-                    f"{tax_row['currency']} {tax_row['amount']}"
+                    "Collected withholding tax %s: %s %s %s",
+                    self.processed_count,
+                    tax_row["description"],
+                    tax_row["currency"],
+                    tax_row["amount"],
                 )
 
     def validate_header(self, row: list[str]) -> bool:

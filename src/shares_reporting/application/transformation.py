@@ -1,5 +1,9 @@
 """Transformation layer for calculating capital gains from raw trade data."""
+
+from datetime import datetime
 from decimal import Decimal
+
+from shares_reporting.infrastructure.logging_config import create_module_logger
 
 from ..domain.accumulators import CapitalGainLineAccumulator, TradePartsWithinDay
 from ..domain.collections import (
@@ -10,8 +14,8 @@ from ..domain.collections import (
     SortedDateRanges,
     TradeCyclePerCompany,
 )
+from ..domain.constants import PLACEHOLDER_YEAR
 from ..domain.entities import (
-    CapitalGainLine,
     CurrencyCompany,
     QuantitatedTradeAction,
     TradeAction,
@@ -20,6 +24,59 @@ from ..domain.entities import (
 from ..domain.exceptions import DataValidationError
 from ..domain.value_objects import Company, Currency, TradeType, parse_trade_date
 from ..infrastructure.logging_config import create_module_logger
+
+
+def _create_placeholder_buys(
+    trade_cycle: TradeCycle,
+    company: Company,
+    currency: Currency,
+) -> None:
+    """Create placeholder buy transactions for sells without corresponding buys.
+
+    This function generates synthetic buy transactions dated 1000-01-01 with price=0
+    to allow FIFO matching for securities sold without buy history. This handles cases
+    where securities were purchased in previous years or the buy data is unavailable.
+
+    The placeholder approach:
+    - Date: 1000-01-01 00:00:00 (ensures FIFO ordering - earliest possible)
+    - Price: 0 (conservative - maximizes taxable capital gain)
+    - Quantity: Matches total quantity sold
+    - Fee: 0
+
+    Args:
+        trade_cycle: Trade cycle with sells but no buys
+        company: Company entity for the security
+        currency: Currency entity for the trades
+
+    Note:
+        Using price=0 means the entire sale proceeds will be treated as capital gain.
+        This is a conservative tax approach. Users should review and adjust these
+        entries if they have actual cost basis information.
+    """
+    logger = create_module_logger(__name__)
+
+    # Calculate total quantity sold
+    total_sold = sum(sold_trade.quantity for sold_trade in trade_cycle.sold)
+
+    # Create placeholder buy action
+    placeholder_date = "1000-01-01, 00:00:00"
+    placeholder_action = TradeAction(
+        company=company.ticker,
+        date_time=placeholder_date,
+        currency=currency.currency,
+        quantity=str(total_sold),
+        price=Decimal("0"),
+        fee=Decimal("0"),
+    )
+
+    # Add to trade cycle
+    trade_cycle.bought.append(QuantitatedTradeAction(quantity=total_sold, action=placeholder_action))
+
+    logger.debug(
+        "Created placeholder buy for %s: quantity=%s, date=1000-01-01, price=0",
+        company.ticker,
+        total_sold,
+    )
 
 
 def log_partitioned_trades(day_partitioned_trades: DayPartitionedTrades, label: str = "") -> None:
@@ -59,13 +116,9 @@ def calculate_company_gains(  # noqa: PLR0915
     sale_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.SELL)
     buy_actions: QuantitatedTradeActions = trade_cycle.get(TradeType.BUY)
     if not sale_actions:
-        raise DataValidationError(
-            "There are buys but no sell trades in the provided 'trade_actions' object!"
-        )
+        raise DataValidationError("There are buys but no sell trades in the provided 'trade_actions' object!")
     if not buy_actions:
-        raise DataValidationError(
-            "There are sells but no buy trades in the provided 'trade_actions' object!"
-        )
+        raise DataValidationError("There are sells but no buy trades in the provided 'trade_actions' object!")
 
     sales_daily_slices: DayPartitionedTrades = split_by_days(sale_actions, TradeType.SELL)
     logger.debug("sales_daily_slices:")
@@ -105,9 +158,7 @@ def calculate_company_gains(  # noqa: PLR0915
             logger.debug("capital_gain_line aggregation cycle (%s)", iteration_count)
             iteration_count += 1
 
-            allocate_to_gain_line(
-                sale_quantity_left, sale_trade_parts, capital_gain_line_accumulator
-            )
+            allocate_to_gain_line(sale_quantity_left, sale_trade_parts, capital_gain_line_accumulator)
             allocate_to_gain_line(buy_quantity_left, buy_trade_parts, capital_gain_line_accumulator)
             logger.debug(str(capital_gain_line_accumulator))
 
@@ -143,9 +194,7 @@ def calculate_company_gains(  # noqa: PLR0915
     return capital_gain_lines
 
 
-def redistribute_unmatched_trades(
-    buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay
-) -> None:
+def redistribute_unmatched_trades(buy_actions: QuantitatedTradeActions, trade_part: TradePartsWithinDay) -> None:
     """Redistribute unmatched trade quantities after FIFO matching process.
 
     This function handles the remaining trade quantities that couldn't be matched
@@ -225,9 +274,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
                 + str(trade_action)
             )
         trade_date = parse_trade_date(trade_action.date_time)
-        trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(
-            trade_date, TradePartsWithinDay()
-        )
+        trades_within_day: TradePartsWithinDay = day_partitioned_trades.get(trade_date, TradePartsWithinDay())
         logger.debug("pushing trade action %s", trade_action)
         trades_within_day.push_trade_part(quantity, trade_action)
         day_partitioned_trades[trade_date] = trades_within_day
@@ -283,12 +330,21 @@ def calculate_fifo_gains(
         currency = company_currency.currency
         company = company_currency.company
         trade_cycle.validate(currency, company)
-        if not trade_cycle.has_sold() or not trade_cycle.has_bought():
+
+        # Handle sells without buys: create placeholder buy transactions
+        if trade_cycle.has_sold() and not trade_cycle.has_bought():
+            _create_placeholder_buys(trade_cycle, company, currency)
+            module_logger = create_module_logger(__name__)
+            module_logger.warning(
+                "Created placeholder buy transactions for %s (sold without buy data)",
+                company.ticker,
+            )
+
+        # Handle buys without sells: add to leftover
+        if not trade_cycle.has_sold():
             leftover_trades[company_currency] = trade_cycle
             continue
-        capital_gain_lines: CapitalGainLines = calculate_company_gains(
-            trade_cycle, company, currency
-        )
+        capital_gain_lines: CapitalGainLines = calculate_company_gains(trade_cycle, company, currency)
         if not trade_cycle.is_empty():
             leftover_trades[company_currency] = trade_cycle
         capital_gains[CurrencyCompany(currency, company)] = capital_gain_lines

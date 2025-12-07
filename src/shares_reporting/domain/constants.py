@@ -33,6 +33,9 @@ EXCEL_COLUMN_OFFSET = 3
 # Excel cell formatting
 EXCEL_NUMBER_FORMAT = "0.00"
 
+# Placeholder buy transaction constant
+PLACEHOLDER_YEAR = 1000  # Year used for placeholder buy transactions
+
 # ISIN processing constants
 ISIN_DATA_COLUMN_INDEX = 6
 FINANCIAL_INSTRUMENT_MIN_COLUMNS = 7
