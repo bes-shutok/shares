@@ -1,0 +1,9 @@
+﻿Statement,Header,Field Name,Field Value,,,,,,,,,,,,,
+Statement,Data,BrokerName,,,,,,,,,,,,,,
+Statement,Data,BrokerAddress,,,,,,,,,,,,,,
+Statement,Data,Title,Activity Statement,,,,,,,,,,,,,
+Statement,Data,Period,"January 1, 2024 - December 31, 2024",,,,,,,,,,,,,
+Statement,Data,WhenGenerated,"2025-01-04, 13:01:58 EST",,,,,,,,,,,,,
+Account Information,Header,Field Name,Field Value,,,,,,,,,,,,,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code,,
+Trades,Data,Order,Stock,USD,MRNA,"2021-11-04, 10:57:20",2,286.06,572.12,0.34455725

@@ -67,7 +67,9 @@ Thumbs.db
 # Application specific
 resources/tmp*/
 resources/result/*
-/resources/source/*
+/resources/source/ib_export.csv
+/resources/source/shares-leftover.csv
+/resources/source/tmp/*
 /tests/resources/tmp.*
 
 # Claude
