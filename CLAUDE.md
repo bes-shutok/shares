@@ -29,6 +29,9 @@ poetry run python ./src/shares_reporting/main.py
 # Install Poetry (one-time setup)
 See https://python-poetry.org/docs/#installing-with-pipx
 
+# Configure Poetry to create virtual environment in-project
+poetry config virtualenvs.in-project true
+
 # Install all dependencies (production + development)
 poetry install
 
@@ -40,31 +43,6 @@ poetry shell
 
 # Exit virtual environment
 exit
-```
-
-### Testing
-```bash
-# Using Poetry (recommended)
-poetry run pytest                    # Run all tests
-poetry run pytest -k <keyword>       # Run tests matching keyword
-poetry run pytest -vvl              # Verbose output with all variables
-poetry run pytest --cov=.           # Run with coverage
-```
-
-### Code Quality and Linting
-```bash
-# Run Ruff linter (checks code quality)
-poetry run ruff check .                    # Check all files
-poetry run ruff check . --fix              # Auto-fix issues
-poetry run ruff check . --statistics       # Show issue statistics
-poetry run ruff check src/ tests/          # Check specific directories
-
-# Run Ruff formatter (formats code)
-poetry run ruff format .                   # Format all files
-poetry run ruff format --check .           # Check if formatting is needed
-
-# Combined workflow
-poetry run ruff check . --fix && poetry run ruff format .  # Fix and format
 ```
 
 ### Dependency Management
@@ -86,9 +64,6 @@ poetry outdated
 ```
 
 ## Architecture
-
-### Clean Architecture with Domain-Driven Design
-
 The project follows **professional layered architecture** with **Domain-Driven Design** principles:
 
 #### **Layered Architecture**
@@ -295,15 +270,7 @@ poetry run pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
 - **Descriptive Naming**: Clear test names that document behavior
 - **Debugging**: Use `breakpoint()` or `import pdb; pdb.set_trace()`
 
-## Development Environment
 
-- **Python 3.13+ required** (Modern Python features, `datetime.UTC` alias)
-- **Poetry for dependency management** (recommended approach)
-- **Professional package structure** with `src/` layout
-- **Clean Architecture** with Domain-Driven Design
-- **Type hints extensively used** throughout codebase
-- **pytest framework** with comprehensive unit and integration tests
-- **Modern tooling**: Ruff linter/formatter, coverage reporting, professional packaging
 
 ## Code Quality Standards
 

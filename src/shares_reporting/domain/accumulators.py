@@ -16,10 +16,10 @@ class CapitalGainLineAccumulator:
 
     company: Company
     currency: Currency
-    sell_date: TradeDate = None
+    sell_date: TradeDate | None = None
     sell_counts: list[Decimal] = field(default_factory=list)
     sell_trades: list[TradeAction] = field(default_factory=list)
-    buy_date: TradeDate = None
+    buy_date: TradeDate | None = None
     buy_counts: list[Decimal] = field(default_factory=list)
     buy_trades: list[TradeAction] = field(default_factory=list)
 
@@ -51,15 +51,13 @@ class CapitalGainLineAccumulator:
                 )
             self.sell_counts.append(count)
             self.sell_trades.append(ta)
-
         else:
             if self.buy_date is None:
                 self.buy_date = trade_date
             elif self.buy_date != trade_date:
                 raise DataValidationError(
-                    f"""Incompatible dates in capital gain line add function!
-                    Expected: [{self.buy_date}]
-                    Got:      [{trade_date}]"""
+                    f"Incompatible dates in capital gain line add function!"
+                    f" Expected: [{self.buy_date}] Got: [{trade_date}]"
                 )
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
@@ -80,8 +78,12 @@ class CapitalGainLineAccumulator:
             A new CapitalGainLine instance.
         """
         self.validate()
+        # Ensure dates are not None before passing to CapitalGainLine constructor
+        if self.sell_date is None or self.buy_date is None:
+            raise DataValidationError("Cannot finalize CapitalGainLine with missing dates")
+
         result = CapitalGainLine(
-            self.company,
+            self.company.ticker,
             self.currency,
             self.sell_date,
             self.sell_counts,
@@ -98,9 +100,9 @@ class CapitalGainLineAccumulator:
         self.buy_trades = []
         return result
 
-    def validate(self):
+    def validate(self) -> None:
         """Validate accumulator state before finalization."""
-        if self.sold_quantity() <= 0 or self.bought_quantity() <= 0:
+        if self.sold_quantity() <= DECIMAL_ZERO or self.bought_quantity() <= DECIMAL_ZERO:
             raise DataValidationError("Cannot finalize empty Accumulator object!")
         if self.sold_quantity() != self.bought_quantity():
             raise DataValidationError(
@@ -126,25 +128,26 @@ class CapitalGainLineAccumulator:
 class TradePartsWithinDay:
     """Accumulates trade parts occurring within a single day."""
 
-    company: Company = None
-    currency: Currency = None
-    trade_date: TradeDate = None
-    trade_type: TradeType = None
+    company: Company | None = None
+    currency: Currency | None = None
+    trade_date: TradeDate | None = None
+    trade_type: TradeType | None = None
     dates: list[datetime] = field(default_factory=list)
     quantities: list[Decimal] = field(default_factory=list)
     trades: list[TradeAction] = field(default_factory=list)
 
-    def push_trade_part(self, quantity: Decimal, ta: TradeAction):
+    def push_trade_part(self, quantity: Decimal, ta: TradeAction) -> None:
         """Add a trade part.
 
         Args:
             quantity: Quantity of the trade part.
             ta: TradeAction associated.
         """
-        if quantity <= 0:
+        if quantity <= DECIMAL_ZERO:
             raise DataValidationError("Quantity must be positive")
         if ta is None:
             raise DataValidationError("TradeAction cannot be None")
+
         if self.company is None:
             self.company = ta.company
             self.currency = ta.currency
@@ -162,9 +165,9 @@ class TradePartsWithinDay:
             self.trades.append(ta)
         else:
             raise DataValidationError(
-                f"Incompatible trade_type or date in DailyTradeLine! Expected "
-                f"[{self.trade_type} {self.quantity()} and {self.trade_date}] and got "
-                f"[{ta.trade_type} and {parse_trade_date(ta.date_time)}]"
+                f"Incompatible trade_type or date in DailyTradeLine! "
+                f"Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] "
+                f"and got [{ta.trade_type} and {parse_trade_date(ta.date_time)}]"
             )
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
@@ -173,26 +176,28 @@ class TradePartsWithinDay:
         Returns:
             The popped QuantitatedTradeAction.
         """
-        idx: int = self.__get_top_index()
+        idx: int = self._get_top_index()
         self.dates.pop(idx)
         return QuantitatedTradeAction(quantity=self.quantities.pop(idx), action=self.trades.pop(idx))
 
     def get_top_count(self) -> Decimal:
         """Get the quantity of the earliest trade part."""
-        idx: int = self.__get_top_index()
+        idx: int = self._get_top_index()
         return self.quantities[idx]
 
-    def __get_top_index(self) -> int:
-        return self.dates.index(self.__earliest_date())
+    def _get_top_index(self) -> int:
+        """Get the index of the earliest trade part."""
+        return self.dates.index(self._earliest_date())
 
-    def __earliest_date(self) -> datetime:
+    def _earliest_date(self) -> datetime:
+        """Get the earliest date from the list of dates."""
         t = self.dates.copy()
         t.sort()
         return t[0]
 
     def is_not_empty(self) -> bool:
         """Check if any trade parts exist."""
-        return self.quantity() > 0
+        return self.quantity() > DECIMAL_ZERO
 
     def quantity(self) -> Decimal:
         """Calculate total quantity."""

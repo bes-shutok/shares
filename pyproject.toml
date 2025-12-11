@@ -31,6 +31,7 @@ pycountry = "^24.6.1"
 pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
 ruff = "^0.14.5"
+types-openpyxl = "^3.1.5.20250919"
 
 [tool.poetry.scripts]
 shares-reporting = "shares_reporting.main:main"
@@ -140,8 +141,8 @@ select = [
 
 ignore = [
     # Star imports are allowed for type checking and package exports
-    "F405",
     "F403",
+    "F405",
     # Allow unused arguments when prefixed with underscore
     "ARG001",
     "ARG002",
@@ -207,4 +208,6 @@ known-third-party = ["pytest", "openpyxl", "pycountry"]
 
 "__init__.py" = [
     "F401",  # Allow unused imports in __init__.py files
+    "F403",  # Allow star imports in __init__.py files
+    "F405",  # Allow names that may be undefined from star imports in __init__.py files
 ]

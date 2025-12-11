@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+from ...domain.constants import (
+    ASSET_CATEGORY_COLUMN_INDEX,
+    CSV_DATA_MARKER,
+    CSV_HEADER_MARKER,
+    DATA_DISCRIMINATOR_COLUMN_INDEX,
+    FINANCIAL_INSTRUMENT_MIN_COLUMNS,
+    ISIN_DATA_COLUMN_INDEX,
+    SYMBOL_COLUMN_INDEX,
+    ZERO_QUANTITY,
+)
 from ...domain.exceptions import FileProcessingError
 from ...infrastructure.isin_country import isin_to_country
 from ...infrastructure.logging_config import create_module_logger
 
-MIN_HEADER_LENGTH = 2
+MIN_HEADER_LENGTH = DATA_DISCRIMINATOR_COLUMN_INDEX
 MIN_FINANCIAL_INSTRUMENT_HEADER_LENGTH = 7
-MIN_FINANCIAL_INSTRUMENT_DATA_LENGTH = 7
+FINANCIAL_INSTRUMENT_DATA_LENGTH = FINANCIAL_INSTRUMENT_MIN_COLUMNS
 LOG_SAMPLE_SIZE = 5
 
 
@@ -59,7 +69,7 @@ class FinancialInstrumentContext(BaseSectionContext):
         """Process Financial Instrument Information header."""
         if (
             len(row) >= MIN_FINANCIAL_INSTRUMENT_HEADER_LENGTH
-            and row[1] == "Header"
+            and row[1] == CSV_HEADER_MARKER
             and row[3] == "Symbol"
             and row[6] == "Security ID"
         ):
@@ -68,15 +78,19 @@ class FinancialInstrumentContext(BaseSectionContext):
         else:
             raise FileProcessingError(f"Invalid 'Financial Instrument Information' header format: {row}")
 
-    MIN_SYMBOL_INDEX = 3
-    MIN_ISIN_INDEX = 6
+    MIN_SYMBOL_INDEX = SYMBOL_COLUMN_INDEX
+    MIN_ISIN_INDEX = ISIN_DATA_COLUMN_INDEX
 
     def process_data_row(self, row: list[str]) -> None:
         """Process security info data row."""
         if not self.can_process_row(row):
             return
 
-        if len(row) >= MIN_FINANCIAL_INSTRUMENT_DATA_LENGTH and row[1] == "Data" and row[2] == "Stocks":
+        if (
+            len(row) >= FINANCIAL_INSTRUMENT_DATA_LENGTH
+            and row[1] == CSV_DATA_MARKER
+            and row[DATA_DISCRIMINATOR_COLUMN_INDEX] == "Stocks"
+        ):
             symbol = row[3] if len(row) > self.MIN_SYMBOL_INDEX else ""
             isin = row[6] if len(row) > self.MIN_ISIN_INDEX else ""
 
@@ -99,7 +113,11 @@ class FinancialInstrumentContext(BaseSectionContext):
 
     def validate_header(self, row: list[str]) -> bool:
         """Validate Financial Instrument Information header."""
-        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Financial Instrument Information" and row[1] == "Header"
+        return (
+            len(row) >= MIN_HEADER_LENGTH
+            and row[0] == "Financial Instrument Information"
+            and row[1] == CSV_HEADER_MARKER
+        )
 
 
 class TradesContext(BaseSectionContext):
@@ -117,11 +135,11 @@ class TradesContext(BaseSectionContext):
         self.require_trades_section = require_trades_section
         self.trades_headers = None
         self.trades_col_mapping = None
-        self.invalid_trades = 0  # Only count data quality issues (missing symbol/datetime)
+        self.invalid_trades = ZERO_QUANTITY  # Only count data quality issues (missing symbol/datetime)
 
     def process_header(self, row: list[str]) -> None:
         """Process Trades section header."""
-        if len(row) >= MIN_HEADER_LENGTH and row[1] == "Header":
+        if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.trades_headers = row
             self.logger.debug("Found Trades section header")
 
@@ -167,7 +185,9 @@ class TradesContext(BaseSectionContext):
             return
 
         # Filter 2: Non-stock orders (options, forex, etc.) - silently skip
-        if len(row) > MIN_HEADER_LENGTH and (row[2] != "Order" or row[3] != "Stocks"):
+        if len(row) > MIN_HEADER_LENGTH and (
+            row[DATA_DISCRIMINATOR_COLUMN_INDEX] != "Order" or row[ASSET_CATEGORY_COLUMN_INDEX] != "Stocks"
+        ):
             return
 
         # Extract trade data as dictionary for deferred processing
@@ -210,7 +230,7 @@ class TradesContext(BaseSectionContext):
 
     def validate_header(self, row: list[str]) -> bool:
         """Validate Trades header."""
-        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Trades" and row[1] == "Header"
+        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Trades" and row[1] == CSV_HEADER_MARKER
 
 
 class DividendsContext(BaseSectionContext):
@@ -229,7 +249,7 @@ class DividendsContext(BaseSectionContext):
 
     def process_header(self, row: list[str]) -> None:
         """Process Dividends section header."""
-        if len(row) >= MIN_HEADER_LENGTH and row[1] == "Header":
+        if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.dividends_headers = row
             self.logger.debug("Found Dividends section header")
 
@@ -283,7 +303,7 @@ class DividendsContext(BaseSectionContext):
 
     def validate_header(self, row: list[str]) -> bool:
         """Validate Dividends header."""
-        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Dividends" and row[1] == "Header"
+        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Dividends" and row[1] == CSV_HEADER_MARKER
 
 
 class WithholdingTaxContext(BaseSectionContext):
@@ -302,7 +322,7 @@ class WithholdingTaxContext(BaseSectionContext):
 
     def process_header(self, row: list[str]) -> None:
         """Process Withholding Tax section header."""
-        if len(row) >= MIN_HEADER_LENGTH and row[1] == "Header":
+        if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.withholding_tax_headers = row
             self.logger.debug("Found Withholding Tax section header")
 
@@ -361,4 +381,4 @@ class WithholdingTaxContext(BaseSectionContext):
 
     def validate_header(self, row: list[str]) -> bool:
         """Validate Withholding Tax header."""
-        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Withholding Tax" and row[1] == "Header"
+        return len(row) >= MIN_HEADER_LENGTH and row[0] == "Withholding Tax" and row[1] == CSV_HEADER_MARKER

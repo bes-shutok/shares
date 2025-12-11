@@ -1,5 +1,4 @@
-"""Tests for ISIN extraction from raw IB exports.
-"""
+"""Tests for ISIN extraction from raw IB exports."""
 
 import csv
 import tempfile

@@ -28,9 +28,7 @@ def test_parsing_raw_ib():
 
     # Find the BTU USD company
     currency = parse_currency("USD")
-    company = parse_company(
-        "BTU", "US7045491033", "United States"
-    )  # Raw IB includes ISIN and country
+    company = parse_company("BTU", "US7045491033", "United States")  # Raw IB includes ISIN and country
     currency_company = CurrencyCompany(currency, company)
     assert currency_company in actual_trades
 
@@ -72,9 +70,7 @@ def test_fifo_strategy_with_simple_raw_ib_data():
     # Use the correct calculate function signature
     leftover_trades: TradeCyclePerCompany = {}
     capital_gains = {}
-    transformation.calculate_fifo_gains(
-        actual_trades, leftover_trades, capital_gains
-    )
+    transformation.calculate_fifo_gains(actual_trades, leftover_trades, capital_gains)
 
     # With FIFO: First 10 shares matched to June 3 sale, remaining 5 to October 4 sale
     # Expected: 2 capital gain lines for BTU (same as simple.csv)
@@ -101,8 +97,9 @@ def test_fifo_strategy_with_simple_raw_ib_data():
 
     # Verify that the capital gains amounts match what we'd expect from simple.csv
     # This confirms raw IB parsing produces identical business results
-    assert first_cg.ticker.ticker == "BTU"
-    assert second_cg.ticker.ticker == "BTU"
+    assert first_cg.ticker == "BTU"
+    assert second_cg.ticker == "BTU"
+    assert second_cg.ticker == "BTU"
 
 
 def test_ib_multi_strategy_raw_data_structure():
@@ -112,12 +109,8 @@ def test_ib_multi_strategy_raw_data_structure():
 
     # Should have AAPL and TSLA companies with USD currency
     currency = parse_currency("USD")
-    aapl_company = parse_company(
-        "AAPL", "US0378331005", "United States"
-    )
-    tsla_company = parse_company(
-        "TSLA", "US88160R1014", "United States"
-    )
+    aapl_company = parse_company("AAPL", "US0378331005", "United States")
+    tsla_company = parse_company("TSLA", "US88160R1014", "United States")
 
     aapl_currency_company = CurrencyCompany(currency, aapl_company)
     tsla_currency_company = CurrencyCompany(currency, tsla_company)
@@ -165,9 +158,7 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
 
     # Get AAPL trades for strategy comparison
     currency = parse_currency("USD")
-    aapl_company = parse_company(
-        "AAPL", "US0378331005", "United States"
-    )
+    aapl_company = parse_company("AAPL", "US0378331005", "United States")
     aapl_currency_company = CurrencyCompany(currency, aapl_company)
     buys = actual_trades[aapl_currency_company].get(TradeType.BUY)
 
@@ -186,7 +177,6 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
 
     expected_fifo_prices = [120.50, 185.25, 95.75]
 
-
     assert chronological_prices == expected_fifo_prices
 
     # Document how different strategies would handle first sale of 40 shares:
@@ -199,14 +189,9 @@ def test_strategy_price_differences_for_future_reference_raw_ib():
     # LIFO: Take from last purchase (30 @ $95.75), then from middle purchase (10 @ $185.25)
     lifo_shares_from_last = min(40, prices_by_qty[2][0])  # 30 shares @ $95.75
     lifo_shares_remaining = 40 - lifo_shares_from_last  # 10 shares needed
-    lifo_cost = (lifo_shares_from_last * prices_by_qty[2][1]) + (
-        lifo_shares_remaining * prices_by_qty[1][1]
-    )
+    lifo_cost = (lifo_shares_from_last * prices_by_qty[2][1]) + (lifo_shares_remaining * prices_by_qty[1][1])
 
-    hifo_cost = (
-        min(40, max(prices_by_qty, key=lambda x: x[1])[0])
-        * max(prices_by_qty, key=lambda x: x[1])[1]
-    )
+    hifo_cost = min(40, max(prices_by_qty, key=lambda x: x[1])[0]) * max(prices_by_qty, key=lambda x: x[1])[1]
 
     # Verify all three strategies would produce different cost bases
     assert fifo_cost == 4820.0  # 40 * $120.50

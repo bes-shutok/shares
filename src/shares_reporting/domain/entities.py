@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import NamedTuple
 
+from .constants import DECIMAL_ZERO
 from .exceptions import DataValidationError
 from .value_objects import Company, Currency, TradeDate, TradeType
 
@@ -135,11 +136,11 @@ class CapitalGainLine:
 
     def sell_quantity(self) -> Decimal:
         """Calculate total quantity sold."""
-        return sum(self.sell_quantities, Decimal("0"))
+        return sum(self.sell_quantities, DECIMAL_ZERO)
 
     def buy_quantity(self) -> Decimal:
         """Calculate total quantity bought."""
-        return sum(self.buy_quantities, Decimal("0"))
+        return sum(self.buy_quantities, DECIMAL_ZERO)
 
     def validate(self):
         """Validate data consistency of the capital gain line.

@@ -26,18 +26,10 @@ from shares_reporting.domain.value_objects import (
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
 test_dict2 = ["202201", "202112", "202102"]
-date_time1 = datetime.strptime("2021-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
-    tzinfo=UTC
-)
-date_time2 = datetime.strptime("2022-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
-    tzinfo=UTC
-)
-date_time3 = datetime.strptime("2021-01-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
-    tzinfo=UTC
-)
-date_time4 = datetime.strptime("2021-12-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(
-    tzinfo=UTC
-)
+date_time1 = datetime.strptime("2021-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
+date_time2 = datetime.strptime("2022-05-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
+date_time3 = datetime.strptime("2021-01-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
+date_time4 = datetime.strptime("2021-12-18, 14:53:23", "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
 test_dict4 = [
     TradeDate(date_time1.year, date_time1.month, date_time1.day),
     TradeDate(date_time2.year, date_time2.month, date_time2.day),
@@ -104,10 +96,10 @@ def test_comparing_raw_ib():
     first_cg = cg_lines[0]
     assert first_cg.sell_quantity() == 10
     assert first_cg.buy_quantity() == 10
-    assert first_cg.ticker.ticker == "BTU"
+    assert first_cg.ticker == "BTU"
 
     # Second sale (October 4): 5 shares sold from remaining first purchase (5 @ $6.77)
     second_cg = cg_lines[1]
     assert second_cg.sell_quantity() == 5
     assert second_cg.buy_quantity() == 5
-    assert second_cg.ticker.ticker == "BTU"
+    assert second_cg.ticker == "BTU"

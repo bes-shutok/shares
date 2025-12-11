@@ -1,6 +1,5 @@
 """Transformation layer for calculating capital gains from raw trade data."""
 
-from datetime import datetime
 from decimal import Decimal
 
 from shares_reporting.infrastructure.logging_config import create_module_logger
@@ -14,8 +13,9 @@ from ..domain.collections import (
     SortedDateRanges,
     TradeCyclePerCompany,
 )
-from ..domain.constants import PLACEHOLDER_YEAR
+from ..domain.constants import DECIMAL_ZERO, PLACEHOLDER_YEAR, ZERO_QUANTITY
 from ..domain.entities import (
+    CapitalGainLine,
     CurrencyCompany,
     QuantitatedTradeAction,
     TradeAction,
@@ -23,7 +23,6 @@ from ..domain.entities import (
 )
 from ..domain.exceptions import DataValidationError
 from ..domain.value_objects import Company, Currency, TradeType, parse_trade_date
-from ..infrastructure.logging_config import create_module_logger
 
 
 def _create_placeholder_buys(
@@ -33,12 +32,12 @@ def _create_placeholder_buys(
 ) -> None:
     """Create placeholder buy transactions for sells without corresponding buys.
 
-    This function generates synthetic buy transactions dated 1000-01-01 with price=0
+    This function generates synthetic buy transactions with year=PLACEHOLDER_YEAR with price=0
     to allow FIFO matching for securities sold without buy history. This handles cases
     where securities were purchased in previous years or the buy data is unavailable.
 
     The placeholder approach:
-    - Date: 1000-01-01 00:00:00 (ensures FIFO ordering - earliest possible)
+    - Date: PLACEHOLDER_YEAR-01-01 00:00:00 (ensures FIFO ordering - earliest possible)
     - Price: 0 (conservative - maximizes taxable capital gain)
     - Quantity: Matches total quantity sold
     - Fee: 0
@@ -56,26 +55,27 @@ def _create_placeholder_buys(
     logger = create_module_logger(__name__)
 
     # Calculate total quantity sold
-    total_sold = sum(sold_trade.quantity for sold_trade in trade_cycle.sold)
+    total_sold = sum((sold_trade.quantity for sold_trade in trade_cycle.sold), DECIMAL_ZERO)
 
     # Create placeholder buy action
-    placeholder_date = "1000-01-01, 00:00:00"
+    placeholder_date = f"{PLACEHOLDER_YEAR}-01-01, 00:00:00"
     placeholder_action = TradeAction(
         company=company.ticker,
         date_time=placeholder_date,
         currency=currency.currency,
         quantity=str(total_sold),
-        price=Decimal("0"),
-        fee=Decimal("0"),
+        price=DECIMAL_ZERO,
+        fee=DECIMAL_ZERO,
     )
 
     # Add to trade cycle
     trade_cycle.bought.append(QuantitatedTradeAction(quantity=total_sold, action=placeholder_action))
 
     logger.debug(
-        "Created placeholder buy for %s: quantity=%s, date=1000-01-01, price=0",
+        "Created placeholder buy for %s: quantity=%s, date=%d-01-01, price=0",
         company.ticker,
         total_sold,
+        PLACEHOLDER_YEAR,
     )
 
 
@@ -148,12 +148,12 @@ def calculate_company_gains(  # noqa: PLR0915
 
         if buy_trade_parts.quantity() != sale_trade_parts.quantity():
             logger.debug(
-                f"Buy quantity [{buy_trade_parts.quantity()}] != sale quantity [{sale_trade_parts.quantity()}]"
+                "Buy quantity [%s] != sale quantity [%s]", buy_trade_parts.quantity(), sale_trade_parts.quantity()
             )
         target_quantity: Decimal = min(buy_trade_parts.quantity(), sale_trade_parts.quantity())
         sale_quantity_left = target_quantity
         buy_quantity_left = target_quantity
-        iteration_count = 0
+        iteration_count = ZERO_QUANTITY
         while sale_trade_parts.quantity() > 0 and buy_trade_parts.quantity() > 0:
             logger.debug("capital_gain_line aggregation cycle (%s)", iteration_count)
             iteration_count += 1
@@ -162,11 +162,11 @@ def calculate_company_gains(  # noqa: PLR0915
             allocate_to_gain_line(buy_quantity_left, buy_trade_parts, capital_gain_line_accumulator)
             logger.debug(str(capital_gain_line_accumulator))
 
-            if sale_trade_parts.quantity() == 0:
+            if sale_trade_parts.quantity() == DECIMAL_ZERO:
                 # remove empty trades
                 sales_daily_slices.pop(sale_date)
 
-            if buy_trade_parts.quantity() == 0:
+            if buy_trade_parts.quantity() == DECIMAL_ZERO:
                 # remove empty trades
                 buys_daily_slices.pop(buy_date)
 
@@ -207,11 +207,11 @@ def redistribute_unmatched_trades(buy_actions: QuantitatedTradeActions, trade_pa
     """
     total: Decimal = trade_part.quantity()
     for trade in trade_part.get_trades():
-        if total == 0:
+        if total == DECIMAL_ZERO:
             raise DataValidationError("Total quantity is 0!")
         if trade.quantity > total:
             buy_actions.append(QuantitatedTradeAction(total, trade))
-            total = Decimal(0)
+            total = DECIMAL_ZERO
         else:
             total -= trade.quantity
             buy_actions.append(QuantitatedTradeAction(trade.quantity, trade))
@@ -234,15 +234,15 @@ def allocate_to_gain_line(
         trade_parts: Available trades to allocate from (FIFO-ordered)
         capital_gain_line_accumulator: Accumulator to receive allocated trades
     """
-    while quantity_left > 0:
+    while quantity_left > DECIMAL_ZERO:
         part = trade_parts.pop_trade_part()
         quantity_left -= part.quantity
-        if quantity_left >= 0:
+        if quantity_left >= DECIMAL_ZERO:
             capital_gain_line_accumulator.add_trade(part.quantity, part.action)
         else:
             capital_gain_line_accumulator.add_trade(part.quantity + quantity_left, part.action)
             trade_parts.push_trade_part(-quantity_left, part.action)
-            quantity_left = 0
+            quantity_left = DECIMAL_ZERO
 
 
 def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> DayPartitionedTrades:

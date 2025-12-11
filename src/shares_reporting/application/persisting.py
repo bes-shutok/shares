@@ -23,6 +23,7 @@ from ..domain.constants import (
     EXCEL_START_COLUMN,
     EXCEL_START_ROW,
     PLACEHOLDER_YEAR,
+    ZERO_QUANTITY,
 )
 from ..domain.exceptions import ReportGenerationError
 from ..domain.value_objects import TradeType
@@ -45,7 +46,7 @@ def export_rollover_file(leftover: str | os.PathLike, leftover_trades: TradeCycl
     logger.info("Generating unmatched securities rollover file: %s", Path(leftover).name)
 
     safe_remove_file(leftover)
-    processed_companies = 0
+    processed_companies = ZERO_QUANTITY
 
     with Path(leftover).open("w", newline="") as right_obj:
         writer = csv.DictWriter(
@@ -85,21 +86,21 @@ def export_rollover_file(leftover: str | os.PathLike, leftover_trades: TradeCycl
                 logger.debug("Writing %s leftover buy trades for %s", len(bought_trades), row["Symbol"])
 
                 for bought_trade in bought_trades:
-                    row["Quantity"] = bought_trade.quantity
+                    row["Quantity"] = str(bought_trade.quantity)
                     action = bought_trade.action
                     row["Date/Time"] = str(action.date_time.date()) + ", " + str(action.date_time.time())
-                    row["T. Price"] = action.price
-                    row["Proceeds"] = action.price * bought_trade.quantity
-                    row["Comm/Fee"] = action.fee
+                    row["T. Price"] = str(action.price)
+                    row["Proceeds"] = str(action.price * bought_trade.quantity)
+                    row["Comm/Fee"] = str(action.fee)
                     writer.writerow(row)
 
     logger.info("Generated unmatched securities rollover file for %s companies", processed_companies)
 
 
-def generate_tax_report(  # noqa: PLR0915
+def generate_tax_report(  # noqa: PLR0912, PLR0915
     extract: str | os.PathLike,
     capital_gain_lines_per_company: CapitalGainLinesPerCompany,
-    dividend_income_per_company: DividendIncomePerCompany = None,
+    dividend_income_per_company: DividendIncomePerCompany | None = None,
 ) -> None:
     """Generate comprehensive Excel tax report with capital gains and dividend income.
 
@@ -183,7 +184,7 @@ def generate_tax_report(  # noqa: PLR0915
 
     start_column = EXCEL_START_COLUMN
     line_number = EXCEL_START_ROW
-    processed_lines = 0
+    processed_lines = ZERO_QUANTITY
 
     for currency_company, capital_gain_lines in capital_gain_lines_per_company.items():
         currency = currency_company.currency

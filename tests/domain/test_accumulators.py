@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from shares_reporting.domain.accumulators import CapitalGainLineAccumulator, TradePartsWithinDay
+from shares_reporting.domain.constants import DECIMAL_ZERO
 from shares_reporting.domain.entities import CapitalGainLine, QuantitatedTradeAction, TradeAction
 from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import TradeDate, TradeType, parse_company, parse_currency
@@ -163,7 +164,7 @@ class TestCapitalGainLineAccumulator:
         currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
-        assert accumulator.sold_quantity() == Decimal("0")
+        assert accumulator.sold_quantity() == DECIMAL_ZERO
 
     def test_bought_quantity_should_sum_buy_counts(self):
         """Test bought_quantity method sums buy counts."""
@@ -184,7 +185,7 @@ class TestCapitalGainLineAccumulator:
         currency = parse_currency("USD")
         accumulator = CapitalGainLineAccumulator(company, currency)
 
-        assert accumulator.bought_quantity() == Decimal("0")
+        assert accumulator.bought_quantity() == DECIMAL_ZERO
 
     def test_finalize_should_reset_all_fields_and_return_capital_gain_line(self):
         """Test finalize resets all fields and returns CapitalGainLine."""
@@ -204,7 +205,7 @@ class TestCapitalGainLineAccumulator:
 
         # Verify CapitalGainLine creation
         assert isinstance(capital_gain_line, CapitalGainLine)
-        assert capital_gain_line.ticker == company
+        assert capital_gain_line.ticker == company.ticker
         assert capital_gain_line.currency == currency
         assert capital_gain_line.sell_date == TradeDate(2024, 3, 28)
         assert capital_gain_line.sell_quantities == [Decimal("3")]
@@ -424,9 +425,7 @@ class TestTradePartsWithinDay:
         # Try to add incompatible trade (different day)
         trade2 = TradeAction(company, "2024-03-29, 14:30:45", currency, "8", "151.00", "1.51")
 
-        with pytest.raises(
-            DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"
-        ):
+        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_push_trade_part_incompatible_type_should_raise_error(self):
@@ -442,9 +441,7 @@ class TestTradePartsWithinDay:
         # Try to add SELL trade to BUY collection
         trade2 = TradeAction(company, "2024-03-28, 15:30:45", currency, "-5", "151.00", "1.51")
 
-        with pytest.raises(
-            DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"
-        ):
+        with pytest.raises(DataValidationError, match="Incompatible trade_type or date in DailyTradeLine! Expected"):
             trade_parts.push_trade_part(Decimal("3"), trade2)
 
     def test_pop_trade_part_should_remove_and_return_earliest_trade(self):
@@ -536,7 +533,7 @@ class TestTradePartsWithinDay:
         trade_parts.push_trade_part(Decimal("2"), trade3)  # 12:30
 
         # Should find index 1 (the 10:30 trade)
-        assert trade_parts._TradePartsWithinDay__get_top_index() == 1
+        assert trade_parts._get_top_index() == 1
 
     def test_earliest_date_should_return_sorted_earliest_date(self):
         """Test earliest_date returns the earliest date - this test accesses private method for testing purposes."""
@@ -551,7 +548,7 @@ class TestTradePartsWithinDay:
         trade_parts.push_trade_part(Decimal("5"), trade1)  # 14:30
         trade_parts.push_trade_part(Decimal("3"), trade2)  # 10:30
 
-        assert trade_parts._TradePartsWithinDay__earliest_date() == trade2.date_time
+        assert trade_parts._earliest_date() == trade2.date_time
 
     def test_is_not_empty_with_quantity_should_return_true(self):
         """Test is_not_empty with quantity returns True."""

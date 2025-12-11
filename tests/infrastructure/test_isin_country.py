@@ -1,5 +1,4 @@
-"""Tests for ISIN country resolution functionality.
-"""
+"""Tests for ISIN country resolution functionality."""
 
 from shares_reporting.infrastructure.isin_country import (
     is_valid_isin_format,

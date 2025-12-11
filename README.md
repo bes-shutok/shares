@@ -19,6 +19,32 @@ The investment reporting tool is designed to provide a simple and efficient way 
 
 ## Prerequisites
 
+## Development Environment
+
+### Virtual Environment Setup
+
+To ensure your editor's language server (e.g., ZED) can properly detect the project dependencies, configure Poetry to create the virtual environment in the project directory:
+
+```bash
+# Configure Poetry to create virtual environment in-project
+poetry config virtualenvs.in-project true
+
+# Install dependencies
+poetry install
+```
+
+This will create a `.venv` folder in your project root that editors can detect automatically.
+
+### Python Requirements
+
+- **Python 3.13+ required** (Modern Python features, `datetime.UTC` alias)
+- **Poetry for dependency management** (recommended approach)
+- **Professional package structure** with `src/` layout
+- **Clean Architecture** with Domain-Driven Design
+- **Type hints extensively used** throughout codebase
+- **pytest framework** with comprehensive unit and integration tests
+- **Modern tooling**: Ruff linter/formatter, coverage reporting, professional packaging
+
 ### **Source Files Configuration**
 - **Input Data**: Add your Interactive Brokers CSV export to the `/resources/source` folder. See `/resources/shares_example.csv` for an example of the file format.
   - *Note*: Future updates will support additional data sources (crypto exchanges, DeFi platforms, etc.)
@@ -39,6 +65,35 @@ poetry install
 # Run the application
 poetry run shares-reporting
 ```
+
+### Testing
+
+```bash
+# Using Poetry (recommended)
+poetry run pytest                    # Run all tests
+poetry run pytest -k <keyword>       # Run tests matching keyword
+poetry run pytest -vvl              # Verbose output with all variables
+poetry run pytest --cov=.           # Run with coverage
+```
+
+### Code Quality and Linting
+
+```bash
+# Run Ruff linter (checks code quality)
+poetry run ruff check .                    # Check all files
+poetry run ruff check . --fix              # Auto-fix issues
+poetry run ruff check . --statistics       # Show issue statistics
+poetry run ruff check src/ tests/          # Check specific directories
+
+# Run Ruff formatter (formats code)
+poetry run ruff format .                   # Format all files
+poetry run ruff format --check .           # Check if formatting is needed
+
+# Combined workflow
+poetry run ruff check . --fix && poetry run ruff format .  # Fix and format
+```
+
+
 
 ### **Report Features**
 The tool generates comprehensive Excel reports with:

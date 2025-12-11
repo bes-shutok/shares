@@ -40,6 +40,10 @@ PLACEHOLDER_YEAR = 1000  # Year used for placeholder buy transactions
 ISIN_DATA_COLUMN_INDEX = 6
 FINANCIAL_INSTRUMENT_MIN_COLUMNS = 7
 
+# CSV section markers
+CSV_HEADER_MARKER = "Header"
+CSV_DATA_MARKER = "Data"
+
 # Trade validation constants
 ZERO_QUANTITY = 0
 DECIMAL_ZERO = Decimal("0")

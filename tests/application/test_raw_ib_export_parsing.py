@@ -91,10 +91,13 @@ class TestParseRawIbExport:
 
                 # Find the CurrencyCompany key
                 currency = parse_currency("USD")
-                company = parse_company(
-                    "AAPL", "US0378331005", "United States"
-                )  # Enhanced with ISIN and country
+                company = parse_company("AAPL", "US0378331005", "United States")  # Enhanced with ISIN and country
                 currency_company = CurrencyCompany(currency, company)
+
+                # Debug the result
+                print(f"DEBUG: result = {result}")
+                print(f"DEBUG: len(result) = {len(result)}")
+                print(f"DEBUG: result.keys() = {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
                 assert currency_company in result
 
                 # Verify trades
@@ -217,9 +220,7 @@ class TestParseRawIbExport:
 
                 # Check sell trade
                 sell_trade = cycle.get(TradeType.SELL)[0]
-                assert sell_trade.quantity == Decimal(
-                    "2"
-                )  # Quantity is absolute value in QuantitatedTradeAction
+                assert sell_trade.quantity == Decimal("2")  # Quantity is absolute value in QuantitatedTradeAction
                 assert sell_trade.action.trade_type == TradeType.SELL
 
             finally:
@@ -620,9 +621,7 @@ class TestParseRawIbExport:
                 result = parse_ib_export(f.name)
 
                 currency = parse_currency("USD")
-                company = parse_company(
-                    "TEST", "", "Unknown"
-                )  # Should default to empty ISIN and Unknown country
+                company = parse_company("TEST", "", "Unknown")  # Should default to empty ISIN and Unknown country
                 currency_company = CurrencyCompany(currency, company)
                 assert currency_company in result
 

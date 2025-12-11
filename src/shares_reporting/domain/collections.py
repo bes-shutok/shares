@@ -1,4 +1,5 @@
 """Domain collection types and containers."""
+
 from typing import NamedTuple
 
 from .accumulators import TradePartsWithinDay
@@ -34,17 +35,13 @@ CurrencyToCoordinates = list[CurrencyToCoordinate]
 
 # Type aliases for dividend income collections
 DividendIncomePerSecurityList = list[DividendIncomePerSecurity]
-DividendIncomePerCompany = dict[
-    str, DividendIncomePerSecurity
-]  # symbol -> DividendIncomePerSecurity
+DividendIncomePerCompany = dict[str, DividendIncomePerSecurity]  # symbol -> DividendIncomePerSecurity
 
 
 class IBExportData:
     """Container for all data extracted from an Interactive Brokers export file."""
 
-    def __init__(
-        self, trade_cycles: TradeCyclePerCompany, dividend_income: DividendIncomePerCompany
-    ):
+    def __init__(self, trade_cycles: TradeCyclePerCompany, dividend_income: DividendIncomePerCompany):
         """Initialize the IBExportData container.
 
         Args:
@@ -56,8 +53,4 @@ class IBExportData:
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return (
-            f"IBExportData("
-            f"trade_cycles={len(self.trade_cycles)}, "
-            f"dividend_income={len(self.dividend_income)})"
-        )
+        return f"IBExportData(trade_cycles={len(self.trade_cycles)}, dividend_income={len(self.dividend_income)})"

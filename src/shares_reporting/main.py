@@ -105,27 +105,19 @@ def main(  # noqa: PLR0915
             export_rollover_file(leftover_path, leftover_trades)
             logger.info("Generated unmatched securities rollover file: %s", leftover_path)
         except Exception as e:
-            raise ReportGenerationError(
-                f"Failed to generate unmatched securities rollover file: {e}"
-            ) from e
+            raise ReportGenerationError(f"Failed to generate unmatched securities rollover file: {e}") from e
 
         # Generate comprehensive tax report
         try:
             generate_tax_report(extract_path, capital_gains, dividend_income_per_company)
-            report_type = (
-                "capital gains and dividend income"
-                if dividend_income_per_company
-                else "capital gains"
-            )
+            report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
             logger.info("Generated %s report: %s", report_type, extract_path)
         except Exception as e:
             raise ReportGenerationError(f"Failed to generate report: {e}") from e
 
         logger.info("Application completed successfully")
         logger.info("Output directory: %s", validated_output_dir.name)
-        report_type = (
-            "capital gains and dividend income" if dividend_income_per_company else "capital gains"
-        )
+        report_type = "capital gains and dividend income" if dividend_income_per_company else "capital gains"
         logger.info("Generated %s report: %s", report_type, extract_path.name)
         logger.info("Leftover shares report: %s", leftover_path.name)
         logger.info(

@@ -5,6 +5,7 @@ import pytest
 from shares_reporting.application.extraction import parse_dividend_income
 from shares_reporting.application.extraction.models import IBCsvData
 from shares_reporting.application.extraction.processing import _process_dividends
+from shares_reporting.domain.constants import DECIMAL_ZERO
 from shares_reporting.domain.entities import DividendIncomePerSecurity
 from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import parse_currency
@@ -36,7 +37,7 @@ class TestDividendExtraction:
         assert aapl_dividend.isin == "US0378331005"
         assert aapl_dividend.country == "United States"
         assert aapl_dividend.gross_amount == Decimal("48.00")
-        assert aapl_dividend.total_taxes == Decimal("0")
+        assert aapl_dividend.total_taxes == DECIMAL_ZERO
         assert aapl_dividend.currency == parse_currency("USD")
         assert aapl_dividend.get_net_amount() == Decimal("48.00")
 
@@ -45,7 +46,7 @@ class TestDividendExtraction:
         assert msft_dividend.isin == "US5949181045"
         assert msft_dividend.country == "United States"
         assert msft_dividend.gross_amount == Decimal("68.00")
-        assert msft_dividend.total_taxes == Decimal("0")
+        assert msft_dividend.total_taxes == DECIMAL_ZERO
 
     def test_parse_dividend_income_with_taxes(self, tmp_path):
         """Test extracting dividend income with tax amounts."""
@@ -205,7 +206,7 @@ class TestDividendExtraction:
             isin="US0378331005",
             country="US",
             gross_amount=Decimal("-10.00"),
-            total_taxes=Decimal("0"),
+            total_taxes=DECIMAL_ZERO,
             currency=parse_currency("USD"),
         )
         with pytest.raises(DataValidationError, match="Gross amount cannot be negative"):
@@ -229,7 +230,7 @@ class TestDividendExtraction:
             isin="US0378331005",
             country="US",
             gross_amount=Decimal("10.00"),
-            total_taxes=Decimal("0"),
+            total_taxes=DECIMAL_ZERO,
             currency=parse_currency("USD"),
         )
         with pytest.raises(DataValidationError, match="Symbol cannot be empty"):

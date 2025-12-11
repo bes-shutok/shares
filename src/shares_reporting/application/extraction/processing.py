@@ -1,4 +1,5 @@
 """Core processing logic for extracting data from IB CSV exports."""
+
 from __future__ import annotations
 
 import csv
@@ -12,6 +13,7 @@ from ...domain.collections import (
     QuantitatedTradeActions,
     TradeCyclePerCompany,
 )
+from ...domain.constants import DECIMAL_ZERO
 from ...domain.entities import (
     CurrencyCompany,
     DividendIncomePerSecurity,
@@ -103,9 +105,9 @@ def _process_trades(csv_data: IBCsvData) -> TradeCyclePerCompany:
 
             currency_company: CurrencyCompany = CurrencyCompany(currency=currency, company=company)
             if currency_company in trade_cycles_per_company:
-                trade_cycle: TradeCycle = trade_cycles_per_company[currency_company]
+                trade_cycle = trade_cycles_per_company[currency_company]
             else:
-                trade_cycle: TradeCycle = TradeCycle()
+                trade_cycle = TradeCycle()
                 trade_cycles_per_company[currency_company] = trade_cycle
 
             trade_action = TradeAction(company, datetime_val, currency, quantity, price, fee)
@@ -148,7 +150,7 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
 
     for div_row, is_explicitly_tax in all_rows:
         description = div_row["description"]
-        
+
         # Try to extract symbol from description if not present
         # Format usually: "SYMBOL - Description" or "SYMBOL(ISIN) - Description"
         symbol = div_row.get("symbol")
@@ -172,25 +174,23 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
             if not isin:
                 # Skip dividends/taxes for securities without ISIN (e.g. unknown symbols)
                 raise SecurityInfoExtractionError(f"Missing ISIN for symbol {symbol}")
-            
+
             # Simple aggregation key: symbol
             if symbol not in dividend_income_per_company:
                 dividend_income_per_company[symbol] = DividendIncomePerSecurity(
                     symbol=symbol,
                     isin=isin,
                     country=country,
-                    gross_amount=Decimal("0"),
-                    total_taxes=Decimal("0"),
+                    gross_amount=DECIMAL_ZERO,
+                    total_taxes=DECIMAL_ZERO,
                     currency=parse_currency(currency_str),
                 )
-            
+
             agg = dividend_income_per_company[symbol]
-            
+
             # Identify if this is a tax withholding
-            is_tax = is_explicitly_tax or (
-                "Withholding Tax" in description or "Tax" in description
-            )
-            
+            is_tax = is_explicitly_tax or ("Withholding Tax" in description or "Tax" in description)
+
             if is_tax:
                 # Taxes are usually negative in the report, we want positive magnitude for the record
                 agg.total_taxes += abs(Decimal(amount))
@@ -228,9 +228,7 @@ def parse_ib_export_all(file_path: str | Path) -> IBExportData:
     )
 
 
-def parse_ib_export(
-    file_path: str | Path, require_trades_section: bool = True
-) -> TradeCyclePerCompany:
+def parse_ib_export(file_path: str | Path, require_trades_section: bool = True) -> TradeCyclePerCompany:
     """Parse IB export and return trades (backward compatibility).
 
     Args:
@@ -246,7 +244,7 @@ def parse_ib_export(
 
 def parse_dividend_income(file_path: str | Path) -> DividendIncomePerCompany:
     """Parse IB export and return dividend income (backward compatibility).
-    
+
     Args:
         file_path: Path to the IB export CSV file.
 

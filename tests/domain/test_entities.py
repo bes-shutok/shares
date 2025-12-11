@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 
+from shares_reporting.domain.constants import DECIMAL_ZERO
 from shares_reporting.domain.entities import (
     CapitalGainLine,
     CurrencyCompany,
@@ -64,7 +65,7 @@ class TestTradeAction:
 
         trade = TradeAction(company, date_time, currency, quantity, price, fee)
 
-        assert trade.quantity == Decimal("0")
+        assert trade.quantity == DECIMAL_ZERO
         assert trade.trade_type == TradeType.BUY
 
     def test_trade_action_init_with_comma_in_quantity_should_remove_comma(self):
@@ -173,9 +174,7 @@ class TestCurrencyCompany:
         currency_company = CurrencyCompany(currency, company)
 
         with pytest.raises(AttributeError):
-            currency_company.currency = parse_currency(
-                "EUR"
-            )  # Should fail as NamedTuple is immutable
+            currency_company.currency = parse_currency("EUR")  # Should fail as NamedTuple is immutable
 
 
 class TestTradeCycle:

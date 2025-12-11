@@ -1,4 +1,5 @@
 """Configuration management for the shares reporting application."""
+
 from __future__ import annotations
 
 import configparser
@@ -35,13 +36,12 @@ class Config:
 
     base: str
     rates: list[ConversionRate]
-    security: SecurityConfig = None
+    security: SecurityConfig | None = None
 
     def __post_init__(self):
         """Initialize default security config if none provided."""
         if self.security is None:
             self.security = DEFAULT_SECURITY_CONFIG
-
 
 
 def load_configuration_from_file() -> Config:
@@ -55,7 +55,8 @@ def load_configuration_from_file() -> Config:
     """
     logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
-    config.optionxform = str
+    # Preserve case for option names
+    config.optionxform = str  # type: ignore[assignment]
 
     config_path = "config.ini"
     try:
@@ -134,6 +135,3 @@ def _load_security_config(config: configparser.ConfigParser, logger) -> Security
     except (KeyError, ValueError) as e:
         logger.warning("Failed to load security configuration, using defaults: %s", e)
         return DEFAULT_SECURITY_CONFIG
-
-
-

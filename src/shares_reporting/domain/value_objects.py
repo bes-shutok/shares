@@ -1,7 +1,7 @@
 """Value objects for the domain layer."""
 
 import calendar
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import NamedTuple
 
