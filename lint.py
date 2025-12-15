@@ -11,6 +11,7 @@ Configuration:
   - Single linter: Ruff (replaces flake8, black, isort)
   - Auto-formatting enabled
 """
+
 import subprocess
 import sys
 from pathlib import Path
@@ -28,17 +29,17 @@ def run_command(cmd: list[str]) -> int:
 def check() -> int:
     """Run Ruff checks only."""
     print("Running Ruff checks...")
-    cmd = ["poetry", "run", "ruff", "check", ".", "--statistics"]
+    cmd = ["uvx", "ruff", "check", ".", "--statistics"]
     return run_command(cmd)
 
 
 def fix() -> int:
     """Auto-fix issues and format code."""
     print("Auto-fixing Ruff issues...")
-    exit_code = run_command(["poetry", "run", "ruff", "check", ".", "--fix"])
+    exit_code = run_command(["uvx", "ruff", "check", ".", "--fix"])
 
     print("Formatting code...")
-    format_code = run_command(["poetry", "run", "ruff", "format", "."])
+    format_code = run_command(["uvx", "ruff", "format", "."])
 
     return max(exit_code, format_code)
 
@@ -46,7 +47,7 @@ def fix() -> int:
 def format_code() -> int:
     """Format code only."""
     print("Formatting code...")
-    return run_command(["poetry", "run", "ruff", "format", "."])
+    return run_command(["uvx", "ruff", "format", "."])
 
 
 def main() -> int:

@@ -10,15 +10,15 @@ Shares reporting tool is a financial application that processes Interactive Brok
 
 ### Running the Application
 ```bash
-# Using Poetry (recommended)
-poetry run shares-reporting
+# Using UV (recommended)
+uv run shares-reporting
 
-# Using Poetry shell
-poetry shell
+# Activate virtual environment
+source .venv/bin/activate
 shares-reporting
 
 # Direct execution (alternative)
-poetry run python ./src/shares_reporting/main.py
+uv run python ./src/shares_reporting/main.py
 
 # Ensure config.ini has all required currency exchange pairs
 # Update source files in /resources/source folder
@@ -26,42 +26,69 @@ poetry run python ./src/shares_reporting/main.py
 
 ### Environment Setup
 ```bash
-# Install Poetry (one-time setup)
-See https://python-poetry.org/docs/#installing-with-pipx
-
-# Configure Poetry to create virtual environment in-project
-poetry config virtualenvs.in-project true
+# Install UV (one-time setup)
+See https://docs.astral.sh/uv/getting-started/installation/
 
 # Install all dependencies (production + development)
-poetry install
+uv sync --extra dev
 
 # Install only production dependencies
-poetry install --only main
+uv sync
 
 # Activate virtual environment
-poetry shell
+source .venv/bin/activate
 
 # Exit virtual environment
 exit
 ```
 
+### Running Commands
+- Use `uv run` for the local application (`shares-reporting`) - the project is not published to PyPI
+- Use `uvx` for faster execution of installed tools (pytest, ruff) - tools installed in .venv via uv sync
+- Use `uv` for dependency management and setup commands
+
+### Development Workflow Commands
+```bash
+# Quick development cycle
+uvx pytest                     # Run tests (fast)
+uvx ruff check . --fix && uvx ruff format .  # Lint and format (fast)
+uv run shares-reporting       # Run the application
+
+# Dependency management
+uv add requests               # Add production dependency
+uv add --dev pytest-mock     # Add development dependency
+uv lock --upgrade            # Update dependencies
+
+# Testing variations
+uvx pytest -k "test_specific"    # Run specific tests
+uvx pytest --cov=src --cov-report=html  # Run with coverage report
+uvx pytest tests/domain/    # Run specific test modules
+```
+
 ### Dependency Management
 ```bash
 # Add new dependency
-poetry add <package_name>
+uv add <package_name>
 
 # Add development dependency
-poetry add --group dev <package_name>
+uv add --dev <package_name>
 
 # Update dependencies
-poetry update
+uv lock --upgrade
 
 # Show dependency tree
-poetry show --tree
+uv tree
 
 # Check for outdated dependencies
-poetry outdated
+uv pip list --outdated
 ```
+
+### Common Mistakes to Avoid
+- `uvx shares-reporting` - ❌ Won't work (project is not published to PyPI)
+- `uvx run shares-reporting` - ❌ Installs 'run' package, not what you want
+- `uv run shares-reporting` - ✅ Correct way to run the local application
+
+**Key point**: This project uses a local entry point defined in `pyproject.toml`, not a published PyPI package.
 
 ## Architecture
 The project follows **professional layered architecture** with **Domain-Driven Design** principles:
@@ -245,21 +272,21 @@ tests/
 #### **Testing Commands**
 ```bash
 # Run all tests
-poetry run pytest
+uvx pytest
 
 # Run tests by layer
-poetry run pytest tests/domain/           # Domain layer unit tests
-poetry run pytest tests/application/        # Application layer tests
-poetry run pytest tests/infrastructure/     # Infrastructure tests
+uvx pytest tests/domain/           # Domain layer unit tests
+uvx pytest tests/application/        # Application layer tests
+uvx pytest tests/infrastructure/     # Infrastructure tests
 
 # Run with coverage
-poetry run pytest --cov=src --cov-report=html
+uvx pytest --cov=src --cov-report=html
 
 # Run only unit tests (excluding integration)
-poetry run pytest tests/domain/ tests/application/ tests/infrastructure/
+uvx pytest tests/domain/ tests/application/ tests/infrastructure/
 
 # Run existing integration tests
-poetry run pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
+uvx pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
 ```
 
 #### **Testing Best Practices**

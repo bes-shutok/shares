@@ -26,19 +26,18 @@ The investment reporting tool is designed to provide a simple and efficient way 
 To ensure your editor's language server (e.g., ZED) can properly detect the project dependencies, configure Poetry to create the virtual environment in the project directory:
 
 ```bash
-# Configure Poetry to create virtual environment in-project
-poetry config virtualenvs.in-project true
-
 # Install dependencies
-poetry install
+uv sync --extra dev
 ```
 
 This will create a `.venv` folder in your project root that editors can detect automatically.
 
+
+
 ### Python Requirements
 
-- **Python 3.13+ required** (Modern Python features, `datetime.UTC` alias)
-- **Poetry for dependency management** (recommended approach)
+- **Python 3.14+ required** (Modern Python features, `datetime.UTC` alias)
+- **UV for dependency management** (recommended approach)
 - **Professional package structure** with `src/` layout
 - **Clean Architecture** with Domain-Driven Design
 - **Type hints extensively used** throughout codebase
@@ -55,42 +54,42 @@ This will create a `.venv` folder in your project root that editors can detect a
 
 ## Installation & Usage
 
-### **Using Poetry (Recommended)**
+### **Using UV (Recommended)**
 
 ```bash
 # Install dependencies
 cd shares-reporting
-poetry install
+uv sync --extra dev
 
 # Run the application
-poetry run shares-reporting
+uv run shares-reporting
 ```
 
 ### Testing
 
 ```bash
-# Using Poetry (recommended)
-poetry run pytest                    # Run all tests
-poetry run pytest -k <keyword>       # Run tests matching keyword
-poetry run pytest -vvl              # Verbose output with all variables
-poetry run pytest --cov=.           # Run with coverage
+# Using UV (recommended)
+uvx pytest                       # Run all tests
+uvx pytest -k <keyword>          # Run tests matching keyword
+uvx pytest -vvl                 # Verbose output with all variables
+uvx pytest --cov=.              # Run with coverage
 ```
 
 ### Code Quality and Linting
 
 ```bash
 # Run Ruff linter (checks code quality)
-poetry run ruff check .                    # Check all files
-poetry run ruff check . --fix              # Auto-fix issues
-poetry run ruff check . --statistics       # Show issue statistics
-poetry run ruff check src/ tests/          # Check specific directories
+uvx ruff check .                    # Check all files
+uvx ruff check . --fix              # Auto-fix issues
+uvx ruff check . --statistics       # Show issue statistics
+uvx ruff check src/ tests/          # Check specific directories
 
 # Run Ruff formatter (formats code)
-poetry run ruff format .                   # Format all files
-poetry run ruff format --check .           # Check if formatting is needed
+uvx ruff format .                   # Format all files
+uvx ruff format --check .           # Check if formatting is needed
 
 # Combined workflow
-poetry run ruff check . --fix && poetry run ruff format .  # Fix and format
+uvx ruff check . --fix && uvx ruff format .  # Fix and format
 ```
 
 

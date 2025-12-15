@@ -26,8 +26,9 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Poetry
-poetry.lock
+# UV
+.uv-cache/
+uv.lock
 
 # Virtual environments
 .venv
