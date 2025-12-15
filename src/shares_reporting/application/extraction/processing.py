@@ -152,11 +152,15 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
         description = div_row["description"]
 
         # Try to extract symbol from description if not present
-        # Format usually: "SYMBOL - Description" or "SYMBOL(ISIN) - Description"
+        # Format in IB CSV: "SYMBOL(ISIN) Description" or "SYMBOL Description"
+        # Examples:
+        #   "PARA(US92556H2067) Payment in Lieu of Dividend (Ordinary Dividend)"
+        #   "BTG (CA11777Q2099) Cash Dividend USD 0.04 (Ordinary Dividend)"
+        #   "NVDA(US67066G1040) Cash Dividend USD 0.04 per Share (Ordinary Dividend)"
         symbol = div_row.get("symbol")
         if not symbol:
-            # Regex to match SYMBOL at start, optional (ISIN), then " - "
-            match = re.match(r"^([A-Z0-9]+)(?:\([A-Z0-9]+\))?\s+-", description)
+            # Regex to match SYMBOL at start, optional space + (ISIN), then space
+            match = re.match(r"^([A-Z0-9]+)(?:\s*\([A-Z0-9]+\))?\s+", description)
             if match:
                 symbol = match.group(1)
             else:
