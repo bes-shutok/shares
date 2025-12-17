@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import configparser
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import NamedTuple
 
@@ -36,12 +37,7 @@ class Config:
 
     base: str
     rates: list[ConversionRate]
-    security: SecurityConfig | None = None
-
-    def __post_init__(self):
-        """Initialize default security config if none provided."""
-        if self.security is None:
-            self.security = DEFAULT_SECURITY_CONFIG
+    security: SecurityConfig = field(default_factory=lambda: DEFAULT_SECURITY_CONFIG)
 
 
 def load_configuration_from_file() -> Config:
@@ -56,7 +52,10 @@ def load_configuration_from_file() -> Config:
     logger = create_module_logger(__name__)
     config = configparser.ConfigParser()
     # Preserve case for option names
-    config.optionxform = str  # type: ignore[assignment]
+    # optionxform is a callable that transforms option names
+    # Setting it to str preserves case sensitivity
+    # Note: parameter name must be 'optionstr' to match ConfigParser's type annotation
+    config.optionxform = lambda optionstr: optionstr
 
     config_path = "config.ini"
     try:
@@ -96,7 +95,7 @@ def load_configuration_from_file() -> Config:
         raise
 
 
-def _load_security_config(config: configparser.ConfigParser, logger) -> SecurityConfig:
+def _load_security_config(config: configparser.ConfigParser, logger: logging.Logger) -> SecurityConfig:
     """Load security configuration from config file or use defaults."""
     try:
         security_section = config["SECURITY"]

@@ -115,8 +115,7 @@ def _process_trades(csv_data: IBCsvData) -> TradeCyclePerCompany:
             quantitated_trade_actions.append(QuantitatedTradeAction(trade_action.quantity, trade_action))
 
         except Exception as e:
-            logger.warning("Failed to process trade for %s: %s", symbol, e)
-            continue
+            raise FileProcessingError("Failed to process trade for symbol %s: %s", symbol, e) from e
 
     logger.info(
         "Processed %d trades for %d currency-company pairs",
@@ -176,8 +175,14 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
             country = symbol_info.get("country", "Unknown")
 
             if not isin:
-                # Skip dividends/taxes for securities without ISIN (e.g. unknown symbols)
-                raise SecurityInfoExtractionError(f"Missing ISIN for symbol {symbol}")
+                # Include missing ISIN entries with error indicators
+                logger.error(
+                    "Missing security information for symbol %s - including dividend data but requires manual review. "
+                    "Please add this security to your IB account or verify the symbol.",
+                    symbol,
+                )
+                isin = "MISSING_ISIN_REQUIRES_ATTENTION"
+                country = "UNKNOWN_COUNTRY"
 
             # Simple aggregation key: symbol
             if symbol not in dividend_income_per_company:
@@ -202,11 +207,15 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
                 # Gross income
                 agg.gross_amount += Decimal(amount)
 
-            agg.validate()
+            # Skip validation for entries with missing ISINs since they're already marked
+            if dividend_income_per_company[symbol].isin != "MISSING_ISIN_REQUIRES_ATTENTION":
+                agg.validate()
 
+        except SecurityInfoExtractionError as e:
+            # This should no longer happen with our new approach, but fail fast if it does
+            raise FileProcessingError("Security info error for symbol %s: %s", symbol, e) from e
         except Exception as e:
-            logger.warning("Failed to process dividend/tax for %s: %s", symbol, e)
-            continue
+            raise FileProcessingError("Failed to process dividend/tax for symbol %s: %s", symbol, e) from e
 
     logger.info(
         "Processed dividend data for %d securities",

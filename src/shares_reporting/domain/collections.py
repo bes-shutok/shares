@@ -1,6 +1,6 @@
 """Domain collection types and containers."""
 
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 from .accumulators import TradePartsWithinDay
 from .entities import (
@@ -45,12 +45,13 @@ class IBExportData:
         """Initialize the IBExportData container.
 
         Args:
-            trade_cycles: Extracted trade cycles grouped by company.
-            dividend_income: Extracted dividend income grouped by company.
+            trade_cycles: dict[CompanyCurrency, list[TradeCycle]]
+            dividend_income: dict[CompanyCurrency, list[DividendIncome]]
         """
         self.trade_cycles = trade_cycles
         self.dividend_income = dividend_income
 
+    @override
     def __repr__(self) -> str:
         """Return string representation."""
         return f"IBExportData(trade_cycles={len(self.trade_cycles)}, dividend_income={len(self.dividend_income)})"

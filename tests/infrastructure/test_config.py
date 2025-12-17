@@ -115,7 +115,8 @@ class TestConfigValidation:
         """Test base currency validation logic."""
         # Create a ConfigParser with valid config
         config = configparser.ConfigParser()
-        config.optionxform = str
+        # type: ignore[attr-defined] - ConfigParser.optionxform is assignable at runtime
+        config.optionxform = lambda optionstr: optionstr  # Parameter name matches ConfigParser's signature
 
         config["COMMON"] = {"TARGET CURRENCY": "EUR"}
         config["EXCHANGE RATES"] = {
@@ -143,7 +144,8 @@ class TestConfigValidation:
         """Test complete configuration construction from individual parts."""
         # Create a ConfigParser with valid config
         config = configparser.ConfigParser()
-        config.optionxform = str
+        # type: ignore[attr-defined] - ConfigParser.optionxform is assignable at runtime
+        config.optionxform = lambda optionstr: optionstr  # Parameter name matches ConfigParser's signature
 
         config["COMMON"] = {"TARGET CURRENCY": "EUR"}
         config["EXCHANGE RATES"] = {

@@ -6,8 +6,6 @@ when processing equivalent data in raw IB format.
 
 from pathlib import Path
 
-import test_data
-
 from shares_reporting.application import extraction, transformation
 from shares_reporting.domain.collections import TradeCyclePerCompany
 from shares_reporting.domain.entities import CurrencyCompany
@@ -16,6 +14,7 @@ from shares_reporting.domain.value_objects import (
     parse_company,
     parse_currency,
 )
+from tests import test_data
 
 
 def test_parsing_raw_ib():

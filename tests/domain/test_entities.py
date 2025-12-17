@@ -127,7 +127,7 @@ class TestTradeAction:
             "TradeAction(company=Company(ticker='AAPL', isin='', country_of_issuance='Unknown'), "
             "date_time=datetime.datetime(2024, 3, 28, 14, 30, 45, tzinfo=datetime.timezone.utc), "
             "currency=Currency(currency='USD'), quantity=Decimal('10'), "
-            "price=Decimal('150.25'), fee=Decimal('1.50'))"
+            "price=Decimal('150.25'), fee=Decimal('1.50'), trade_type=<TradeType.BUY: 1>)"
         )
         assert repr(trade) == expected
 
@@ -153,7 +153,7 @@ class TestQuantitatedTradeAction:
         quantitated = QuantitatedTradeAction(Decimal("5"), trade)
 
         with pytest.raises(AttributeError):
-            quantitated.quantity = Decimal("10")  # Should fail as NamedTuple is immutable
+            quantitated.quantity = Decimal("10")  # type: ignore - Should fail as NamedTuple is immutable
 
 
 class TestCurrencyCompany:
@@ -174,7 +174,7 @@ class TestCurrencyCompany:
         currency_company = CurrencyCompany(currency, company)
 
         with pytest.raises(AttributeError):
-            currency_company.currency = parse_currency("EUR")  # Should fail as NamedTuple is immutable
+            currency_company.currency = parse_currency("EUR")  # type: ignore - Should fail as NamedTuple is immutable
 
 
 class TestTradeCycle:

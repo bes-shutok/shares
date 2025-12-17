@@ -23,9 +23,16 @@ class TradeAction:
     quantity: Decimal
     price: Decimal
     fee: Decimal
+    trade_type: TradeType
 
     def __init__(  # noqa: PLR0913
-        self, company, date_time, currency, quantity: str, price, fee
+        self,
+        company: Company,
+        date_time: str,
+        currency: Currency,
+        quantity: str,
+        price: str,
+        fee: str,
     ):
         """Initialize the TradeAction.
 
@@ -37,8 +44,7 @@ class TradeAction:
             price: Price per unit.
             fee: Commission or fee.
         """
-        if isinstance(quantity, str):
-            quantity = quantity.replace(",", "")
+        quantity = quantity.replace(",", "")
         self.company = company
         self.date_time = datetime.strptime(date_time, "%Y-%m-%d, %H:%M:%S").replace(tzinfo=UTC)
         self.currency = currency

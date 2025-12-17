@@ -262,9 +262,16 @@ tests/
 │   ├── test_extraction.py     # CSV parsing edge cases
 │   ├── test_dividend_extraction.py # Dividend income extraction and processing
 │   ├── test_isin_extraction.py # ISIN mapping and financial instrument processing
-│   └── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
+│   ├── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
+│   ├── test_placeholder_buys.py # Placeholder buy logic for capital gains
+│   ├── test_missing_isin_behavior.py # Missing ISIN handling behavior
+│   ├── test_dividend_missing_isin.py # Dividend processing with missing ISIN
+│   ├── test_dividend_edge_cases.py # Dividend edge cases and validation
+│   ├── test_dividend_integration.py # Dividend processing integration tests
+│   └── test_dividend_persisting.py # Dividend Excel report generation
 ├── infrastructure/             # Infrastructure layer tests
-│   └── test_config.py         # Configuration management
+│   ├── test_config.py         # Configuration management
+│   └── test_isin_country.py   # ISIN to country resolution
 ├── test_shares_raw_ib.py             # Integration tests (existing)
 └── test_reporting_raw_ib.py          # End-to-end tests (existing)
 ```
@@ -296,6 +303,46 @@ uvx pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
 - **Test Coverage**: High coverage of business logic and validation
 - **Descriptive Naming**: Clear test names that document behavior
 - **Debugging**: Use `breakpoint()` or `import pdb; pdb.set_trace()`
+
+### Development Best Practices
+
+#### Incremental Development with Testing
+**Test-driven approach for complex changes**:
+1. **Write failing tests first** to understand expected behavior
+2. **Implement changes** with comprehensive test coverage
+3. **Run the full test suite** to ensure no regressions
+4. **Review and clean up** low-value tests after functionality works
+
+#### API Design Consistency
+**Maintain consistent patterns across similar functions**:
+```python
+# ✅ GOOD - Consistent parameter patterns across context methods
+def process_header(self, row: list[str], row_number: int) -> None:
+def process_data_row(self, row: list[str], row_number: int) -> None:
+
+# ✅ GOOD - Consistent error message patterns
+raise FileProcessingError("Row %d: Invalid %s format", row_number, section_name)
+```
+
+#### Code Review Checklist
+**Before considering code complete, verify**:
+- [ ] All required parameters are truly required (no misleading defaults)
+- [ ] Error messages include sufficient context (row numbers, problematic data)
+- [ ] Exception chaining preserves original error information  
+- [ ] Logging uses parameterized format consistently
+- [ ] Fail fast logic is applied appropriately (missing vs invalid data)
+- [ ] Tests provide real value and test meaningful edge cases
+- [ ] API usage is correct (high-level vs low-level functions)
+- [ ] No pytest fixture imports (tmp_path, capsys, caplog, monkeypatch, request)
+- [ ] No unused imports (fix Ruff F401 errors unless proven false positive)
+- [ ] Path imports only when actually needed (not for injected fixtures)
+
+#### Documentation Maintenance
+**Keep documentation current with code changes**:
+- Update CLAUDE.md when new patterns emerge
+- Include examples of both good and bad practices
+- Document decision rationale for architectural choices
+- Maintain clear separation between testing vs script guidelines
 
 
 
@@ -360,6 +407,285 @@ its responsibilities, and key modules or functionality.
 - **Datetime**: Use `datetime.UTC` instead of `timezone.utc` (Python 3.11+)
 - **Path handling**: Use `pathlib.Path` instead of `os.path`
 - **Logging**: Use lazy formatting (`logger.info("Message: %s", value)` not f-strings)
+- **Error Messages**: Use f-strings for exception messages (`raise ValueError(f"Invalid value: {value}")`)
+
+#### Method Parameter Design Principles
+**Required vs Optional Parameters**: 
+- **Required**: Use when data is essential for correct operation (e.g., `row_number` for error context)
+- **Optional**: Use only when a sensible default exists and doesn't compromise functionality
+- **Avoid defaults of 0** for identifiers/indices that need real values
+
+```python
+# ✅ GOOD - Required parameter for essential data
+def process_data_row(self, row: list[str], row_number: int) -> None:
+
+# ❌ AVOID - Default value for essential context
+def process_data_row(self, row: list[str], row_number: int = 0) -> None:
+```
+
+#### Testing Principles
+
+**Test Location and Structure**:
+- **Tests**: Use `tests/` directory with pytest naming conventions (`test_*.py`)
+- **Scripts**: Use for one-time utilities or demonstrations, not automated testing
+- **Structure**: Mirror package structure (`tests/domain/`, `tests/application/`, etc.)
+
+#### Pytest Fixtures and Import Guidelines
+
+**Critical Rule**: Do not import pytest fixtures - they are injected automatically by name.
+
+**Common Pytest Fixtures (No Import Required)**:
+```python
+# ✅ GOOD - Use directly without imports
+def test_something(tmp_path):
+    # tmp_path is injected automatically
+    test_file = tmp_path / "test.txt"
+    
+def test_logging(caplog):
+    # caplog is injected automatically  
+    assert "expected message" in caplog.text
+
+def test_output(capsys):
+    # capsys is injected automatically
+    captured = capsys.readouterr()
+```
+
+**Available Fixtures Without Import**:
+- `tmp_path` - Filesystem operations (pathlib.Path)
+- `capsys` - Capture stdout/stderr
+- `caplog` - Capture logging output
+- `monkeypatch` - Patch environment/attributes
+- `request` - Test context and metadata
+
+**Path Import Rules**:
+```python
+# ✅ GOOD - Use tmp_path directly, no Path import needed
+def test_with_file(tmp_path):
+    file_path = tmp_path / "test.csv"
+    file_path.write_text("content")
+
+# ✅ GOOD - Import Path only for type annotations
+from pathlib import Path
+def process_file(file_path: Path) -> None:
+    pass
+
+def test_function(tmp_path):  # No import needed
+    process_file(tmp_path / "test.txt")
+
+# ❌ AVOID - Unnecessary Path import
+from pathlib import Path
+def test_with_file(tmp_path):
+    file_path = Path(tmp_path) / "test.txt"  # tmp_path is already Path
+```
+
+**Import Cleanliness Rules**:
+- **Remove unused imports**: If Ruff reports F401, delete the import unless justified
+- **Assume Ruff is correct**: Fix the code, not the linter, unless proven false positive
+- **Only import when used**:
+  - ✅ When instantiating: `Path("some/path")`
+  - ✅ When used in type annotations: `def func(file_path: Path) -> None`
+  - ❌ When using injected fixtures: `def test(tmp_path):` (no import needed)
+
+**Prefer Built-in Fixtures Over Manual Setup**:
+```python
+# ✅ GOOD - Use pytest's built-in tmp_path
+def test_file_operations(tmp_path):
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+# ❌ AVOID - Manual tempfile handling
+import tempfile
+def test_file_operations():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # More complex and error-prone
+```
+
+**Test Value Assessment**:
+Ask these questions for every test:
+1. **Does it test meaningful business logic** that could break in production?
+2. **Does it test real edge cases** from actual data/usage?
+3. **Is it testing something not already covered** by other tests?
+4. **Would a failure provide actionable information** for debugging?
+
+**Low-Value Test Patterns to Avoid**:
+- Testing zero amounts (if positives work, zeros work too)
+- Testing basic string parsing that should work anyway
+- Testing simple symbol matching (AAPL/MSFT basics)
+- Testing very small decimal amounts without business meaning
+- Testing trivial cases that would be caught by other tests
+
+**High-Value Test Patterns to Include**:
+- Complex IB CSV description formats
+- Missing data scenarios with error indicators  
+- Tax calculation and matching logic
+- Integration flows between components
+- Error handling and validation paths
+- Performance with realistic datasets
+- Real edge cases from actual exports
+
+**API Usage in Tests**:
+- **Use appropriate functions**: Don't use high-level APIs when you need raw data access
+- **Understand function return types**: Check if functions return processed or raw data
+- **Test at the right level**: Unit test individual functions, integration test complete flows
+
+#### Preferred Logging and Error Message Format
+
+**Logging Messages**: Use parameterized format for logging to improve maintainability, debugging, and performance:
+
+```python
+# ✅ GOOD - Parameterized format for logging
+logger.debug("Row %d: Created placeholder buy for %s: quantity=%s, date=%d-01-01, price=0", 
+              row_number, company.ticker, total_sold, PLACEHOLDER_YEAR)
+
+logger.error("Row %d: Invalid dividend amount for %s: expected positive, got %s", 
+             row_number, symbol, amount)
+
+# ❌ AVOID - Inline interpolation in logging
+logger.debug(f"Created buy for {company} with quantity {qty}")
+```
+
+**Exception Messages**: Use f-strings for exception messages since Python exceptions don't support parameterized formatting:
+
+```python
+# ✅ GOOD - f-strings for exceptions
+raise ValueError(f"Row {row}: Invalid header format: {header}")
+raise DataValidationError(f"Taxes ({self.total_taxes}) cannot exceed gross amount ({self.gross_amount})")
+
+# ❌ AVOID - Parameterized format in exceptions (won't work as expected)
+try:
+    raise ValueError("Invalid value: %s", value)  # This won't format correctly
+except TypeError:
+    # The above will fail because ValueError expects a single string argument
+    pass
+```
+
+**Benefits of Parameterized Format**:
+- **Easier debugging**: Consistent format makes log parsing easier
+- **Better maintainability**: Changes to message structure don't require string updates
+- **Consistent error reporting**: Row numbers and context are standardized
+- **Performance**: Slightly better performance than f-strings
+- **Internationalization ready**: Easier to translate messages later
+
+### Data Handling Principles
+
+#### Missing Data: Process with Error Indicators
+**Rule**: When data is missing but can be added manually later, process with clear error indicators.
+
+**Examples of Missing Data**:
+- Missing ISIN for a known symbol
+- Missing country information
+- Missing security details that can be manually researched
+
+**Required Actions**:
+1. **Always log an ERROR** (not just warning) with actionable guidance
+2. **Include the data in output** with clear error indicators 
+3. **Make problems visible** to users (Excel highlighting, warning messages)
+4. **Preserve financial amounts** - never lose monetary data due to missing supplementary info
+5. **Use clear identifiers** like "MISSING_ISIN_REQUIRES_ATTENTION" in output
+
+**Code Pattern**:
+```python
+# ✅ GOOD - Process missing ISIN with error indicators
+if not isin:
+    logger.error("Missing security information for symbol %s - including dividend data but requires manual review. Please add this security to your IB account or verify the symbol.", symbol)
+    isin = "MISSING_ISIN_REQUIRES_ATTENTION"
+    country = "UNKNOWN_COUNTRY"
+    # Continue processing with marked data
+```
+
+#### Invalid Data: Fail Fast
+**Rule**: When data is invalid, corrupted, or incorrectly formatted, stop processing immediately with detailed error information.
+
+**Examples of Invalid Data**:
+- Invalid CSV file format or structure
+- Invalid monetary amounts (non-numeric values)
+- Invalid date formats
+- Missing required columns in CSV sections
+- Corrupted data that cannot be reasonably processed
+- Invalid row formats that break processing logic
+
+**Required Actions**:
+1. **Stop processing immediately** - do not continue with invalid data
+2. **Provide detailed error information** including row numbers and specific issues
+3. **Use proper exception chaining** to preserve stack traces
+4. **Include contextual information** (symbol, row number, expected format)
+
+**Code Pattern**:
+```python
+# ✅ GOOD - Fail fast on invalid data
+try:
+    amount = Decimal(amount_str)
+except ValueError as e:
+    raise FileProcessingError("Row %d: Invalid monetary amount '%s' for symbol %s - expected decimal number", row_number, amount_str, symbol) from e
+
+# ✅ GOOD - Fail fast on structural issues
+if len(row) < MIN_REQUIRED_COLUMNS:
+    raise FileProcessingError("Row %d: Invalid row format - expected at least %d columns, got %d: %s", row_number, MIN_REQUIRED_COLUMNS, len(row), row)
+```
+
+#### Key Principles
+- **Never silently skip expected data** - either mark it clearly or fail fast
+- **Preserve financial integrity** - monetary amounts should never be lost due to processing issues
+- **Clear user communication** - errors must be visible and actionable
+- **Distinguish missing vs invalid** - missing data can be processed with warnings, invalid data requires immediate failure
+
+### Error Handling Patterns
+
+#### Contextual Error Information
+**Always provide sufficient context for debugging**:
+```python
+# ✅ GOOD - Include row number, symbol, and specific issue
+raise FileProcessingError(
+    "Row %d: Invalid monetary amount '%s' for symbol %s - expected decimal number", 
+    row_number, amount_str, symbol
+) from e
+
+# ✅ GOOD - Include column index and expected format in context
+raise FileProcessingError(
+    "Row %d: Invalid Trades header format - expected columns at indices %s", 
+    row_number, EXPECTED_COLUMN_INDICES
+)
+```
+
+#### Exception Chaining
+**Always use proper exception chaining** to preserve original context:
+```python
+# ✅ GOOD - Preserve original exception context
+try:
+    result = risky_operation()
+except ValueError as e:
+    raise FileProcessingError("Processing failed for %s", item) from e
+
+# ❌ AVOID - Losing original exception information
+try:
+    result = risky_operation() 
+except ValueError:
+    raise FileProcessingError("Processing failed")
+```
+
+#### Fail Fast Decision Tree
+**Use this mental model for error handling**:
+
+1. **Is the data invalid/corrupted?** → **Fail immediately** with detailed context
+2. **Is required data missing but can be provided later?** → **Process with error indicators**
+3. **Is this a validation issue in business logic?** → **Fail with business rule explanation**
+4. **Is this an infrastructure issue (file not found, permissions)?** → **Fail with user-actionable guidance**
+
+#### Error Message Consistency
+**Follow consistent patterns across the codebase**:
+- Start with row number/location when available
+- Include the problematic data in quotes
+- Explain what was expected
+- Provide actionable guidance if possible
+- Use parameterized format for consistent formatting
+
+**Example Implementation**:
+- Use error indicators like `"MISSING_ISIN_REQUIRES_ATTENTION"` instead of skipping entries
+- Highlight problematic cells in Excel with red backgrounds and warning symbols (⚠️)
+- Add explanatory comments to help users understand and fix the issue
+- Log clear ERROR messages that explain the problem and suggest solutions
+
+**Rationale**: Financial data has tax and legal implications. Silent data loss can result in incorrect tax filings, regulatory compliance issues, and financial losses for users.
 
 ### Complexity Management
 - Functions with high complexity (`PLR0912`, `PLR0915`) should be refactored when possible

@@ -3,7 +3,7 @@
 import calendar
 from datetime import UTC, datetime
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 from .constants import CURRENCY_CODE_LENGTH
 from .exceptions import DataValidationError
@@ -20,6 +20,7 @@ class TradeDate(NamedTuple):
         """Get the full name of the month."""
         return calendar.month_name[self.month]
 
+    @override
     def __repr__(self) -> str:
         """Return string representation."""
         return "[" + str(self.day) + " " + calendar.month_name[self.month] + ", " + str(self.year) + "]"

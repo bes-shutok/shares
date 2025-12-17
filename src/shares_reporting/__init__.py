@@ -25,12 +25,12 @@ from .infrastructure.config import *
 __all__ = [
     # Value Objects
     "TradeDate",
-    "get_trade_date",
+    "parse_trade_date",
     "TradeType",
     "Currency",
-    "get_currency",
+    "parse_currency",
     "Company",
-    "get_company",
+    "parse_company",
     # Entities
     "TradeAction",
     "QuantitatedTradeAction",
@@ -54,11 +54,12 @@ __all__ = [
     "DividendIncomePerSecurityList",
     "DividendIncomePerCompany",
     # Functions from each module
-    "parse_data",
-    "calculate",
-    "persist_results",
-    "persist_leftover",
-    "read_config",
-    "create_config",
-    "extract_dividend_income",
+    "parse_ib_export_all",
+    "parse_ib_export",
+    "parse_dividend_income",
+    "calculate_fifo_gains",
+    "export_rollover_file",
+    "generate_tax_report",
+    "load_configuration_from_file",
+    "Config",
 ]

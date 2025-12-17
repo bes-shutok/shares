@@ -6,7 +6,7 @@ Provides secure validation functions for file operations and user input.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..domain.constants import CURRENCY_FORMAT_PATTERN, TICKER_FORMAT_PATTERN
@@ -33,8 +33,8 @@ class SecurityConfig:
     max_quantity_value: int = 10_000_000_000  # 10 billion shares
     max_price_value: int = 1_000_000_000  # 1 billion currency units
     max_filename_length: int = 255
-    allowed_extensions: list[str] = None
-    blocked_patterns: list[str] = None
+    allowed_extensions: list[str] = field(default_factory=lambda: [".csv", ".txt"])
+    blocked_patterns: list[str] = field(default_factory=lambda: [])
 
     def __post_init__(self):
         """Initialize default allowed extensions if none provided."""
@@ -74,12 +74,10 @@ def sanitize_file_path(
 
         # Validate filename length
         if len(path_obj.name) > config.max_filename_length:
-            raise ValidationError(
-                f"Filename too long (max {config.max_filename_length} characters): {path_obj.name}"
-            )
+            raise ValidationError(f"Filename too long (max {config.max_filename_length} characters): {path_obj.name}")
 
         # Check file extension
-        if path_obj.suffix.lower() not in config.allowed_extensions:
+        if config.allowed_extensions and path_obj.suffix.lower() not in config.allowed_extensions:
             raise ValidationError(
                 f"File extension not allowed: {path_obj.suffix}. Allowed: {config.allowed_extensions}"
             )
@@ -89,10 +87,11 @@ def sanitize_file_path(
 
         # Check for dangerous patterns using configurable patterns
         path_str = str(file_path)
-        for pattern in config.blocked_patterns:
-            if re.search(pattern, path_str, re.IGNORECASE):
-                logger.warning("Blocked dangerous path pattern: %s in %s", pattern, file_path)
-                raise SecurityError(f"Potentially dangerous path detected: {file_path}")
+        if config.blocked_patterns:
+            for pattern in config.blocked_patterns:
+                if re.search(pattern, path_str, re.IGNORECASE):
+                    logger.warning("Blocked dangerous path pattern: %s in %s", pattern, file_path)
+                    raise SecurityError(f"Potentially dangerous path detected: {file_path}")
 
         # If allowed directories are specified, ensure path is within them
         if allowed_directories:
@@ -119,9 +118,7 @@ def sanitize_file_path(
         raise ValidationError(f"Invalid file path {file_path}: {str(e)}") from e
 
 
-def validate_csv_file(
-    file_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
-) -> Path:
+def validate_csv_file(file_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> Path:
     """Validate that a file is a valid CSV file for processing.
 
     Args:
@@ -170,9 +167,7 @@ def validate_csv_file(
     return safe_path
 
 
-def sanitize_directory_path(
-    directory_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG
-) -> Path:
+def sanitize_directory_path(directory_path: str | Path, config: SecurityConfig = DEFAULT_SECURITY_CONFIG) -> Path:
     """Sanitize and validate directory paths to prevent directory traversal attacks.
 
     Args:
@@ -197,10 +192,11 @@ def sanitize_directory_path(
 
         # Check for dangerous patterns using configurable patterns
         path_str = str(directory_path)
-        for pattern in config.blocked_patterns:
-            if re.search(pattern, path_str, re.IGNORECASE):
-                logger.warning("Blocked dangerous path pattern: %s in %s", pattern, directory_path)
-                raise SecurityError(f"Potentially dangerous path detected: {directory_path}")
+        if config.blocked_patterns:
+            for pattern in config.blocked_patterns:
+                if re.search(pattern, path_str, re.IGNORECASE):
+                    logger.warning("Blocked dangerous path pattern: %s in %s", pattern, directory_path)
+                    raise SecurityError(f"Potentially dangerous path detected: {directory_path}")
 
         return abs_path
 
@@ -259,9 +255,7 @@ def validate_company_ticker(ticker: str, config: SecurityConfig = DEFAULT_SECURI
         raise ValidationError(f"Invalid ticker format: '{ticker}'")
 
     if len(clean_ticker) > config.max_ticker_length:
-        raise ValidationError(
-            f"Ticker too long (max {config.max_ticker_length} characters): '{ticker}'"
-        )
+        raise ValidationError(f"Ticker too long (max {config.max_ticker_length} characters): '{ticker}'")
 
     return clean_ticker
 

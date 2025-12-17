@@ -29,8 +29,8 @@ class TestPlaceholderBuys:
             date_time=trade_date,
             currency=currency,
             quantity="-" + quantity,
-            price=Decimal("150.00"),
-            fee=Decimal("1.00"),
+            price="150.00",
+            fee="1.00",
         )
 
         trade_cycle_per_company = {
@@ -71,8 +71,8 @@ class TestPlaceholderBuys:
             date_time="2023-06-15, 10:30:00",
             currency=currency,
             quantity="50",
-            price=Decimal("120.00"),
-            fee=Decimal("1.00"),
+            price="120.00",
+            fee="1.00",
         )
 
         trade_cycle_per_company = {
@@ -103,8 +103,8 @@ class TestPlaceholderBuys:
             date_time="2023-05-01, 10:00:00",
             currency=currency,
             quantity="10",
-            price=Decimal("300.00"),
-            fee=Decimal("1.00"),
+            price="300.00",
+            fee="1.00",
         )
 
         sell_action = TradeAction(
@@ -112,8 +112,8 @@ class TestPlaceholderBuys:
             date_time="2023-06-15, 10:30:00",
             currency=currency,
             quantity="-10",
-            price=Decimal("320.00"),
-            fee=Decimal("1.00"),
+            price="320.00",
+            fee="1.00",
         )
 
         trade_cycle_per_company = {

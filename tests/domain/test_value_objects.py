@@ -105,7 +105,7 @@ class TestCurrency:
         """Test that Currency is immutable (NamedTuple)."""
         currency = Currency("USD")
         with pytest.raises(AttributeError):
-            currency.currency = "EUR"  # Should fail as NamedTuple is immutable
+            currency.currency = "EUR"  # type: ignore - Should fail as NamedTuple is immutable
 
 
 class TestGetCurrency:
@@ -187,11 +187,11 @@ class TestCompany:
         """Test that Company is immutable (NamedTuple)."""
         company = Company("AAPL", "US0378331005", "United States")
         with pytest.raises(AttributeError):
-            company.ticker = "GOOGL"  # Should fail as NamedTuple is immutable
+            company.ticker = "GOOGL"  # type: ignore - Should fail as NamedTuple is immutable
         with pytest.raises(AttributeError):
-            company.isin = "US02079K3059"  # Should fail as NamedTuple is immutable
+            company.isin = "US02079K3059"  # type: ignore - Should fail as NamedTuple is immutable
         with pytest.raises(AttributeError):
-            company.country_of_issuance = "Canada"  # Should fail as NamedTuple is immutable
+            company.country_of_issuance = "Canada"  # type: ignore - Should fail as NamedTuple is immutable
 
 
 class TestGetCompany:

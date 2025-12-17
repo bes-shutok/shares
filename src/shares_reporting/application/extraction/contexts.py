@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, override
+
 from ...domain.constants import (
     ASSET_CATEGORY_COLUMN_INDEX,
     CSV_DATA_MARKER,
@@ -16,6 +18,9 @@ from ...domain.exceptions import FileProcessingError
 from ...infrastructure.isin_country import isin_to_country
 from ...infrastructure.logging_config import create_module_logger
 
+if TYPE_CHECKING:
+    from logging import Logger
+
 MIN_HEADER_LENGTH = DATA_DISCRIMINATOR_COLUMN_INDEX
 MIN_FINANCIAL_INSTRUMENT_HEADER_LENGTH = 7
 FINANCIAL_INSTRUMENT_DATA_LENGTH = FINANCIAL_INSTRUMENT_MIN_COLUMNS
@@ -25,25 +30,29 @@ LOG_SAMPLE_SIZE = 5
 class BaseSectionContext:
     """Base class for CSV section processing contexts."""
 
+    logger: Logger
+    headers_found: bool
+    processed_count: int
+
     def __init__(self):
         """Initialize the base section context."""
         self.logger = create_module_logger(self.__class__.__name__)
         self.headers_found = False
         self.processed_count = 0
 
-    def process_header(self, row: list[str]) -> None:
+    def process_header(self, _row: list[str], _row_number: int) -> None:
         """Process section header row."""
         raise NotImplementedError("Subclasses must implement process_header")
 
-    def process_data_row(self, row: list[str]) -> None:
+    def process_data_row(self, _row: list[str], _row_number: int) -> None:
         """Process section data row."""
         raise NotImplementedError("Subclasses must implement process_data_row")
 
-    def validate_header(self, row: list[str]) -> bool:
+    def validate_header(self, _row: list[str]) -> bool:
         """Validate if this row is a valid header for this section."""
         return True
 
-    def can_process_row(self, row: list[str]) -> bool:
+    def can_process_row(self, _row: list[str]) -> bool:
         """Check if this context can process the given row."""
         return self.headers_found
 
@@ -55,6 +64,11 @@ class BaseSectionContext:
 class FinancialInstrumentContext(BaseSectionContext):
     """Context for processing Financial Instrument Information section."""
 
+    security_info: dict[str, dict[str, str]]
+    security_processed_count: int
+    processed_count: int
+    headers_found: bool
+
     def __init__(self, security_info: dict[str, dict[str, str]]):
         """Initialize the Financial Instrument context.
 
@@ -64,8 +78,10 @@ class FinancialInstrumentContext(BaseSectionContext):
         super().__init__()
         self.security_info = security_info
         self.security_processed_count = 0
+        self.processed_count = 0
 
-    def process_header(self, row: list[str]) -> None:
+    @override
+    def process_header(self, row: list[str], row_number: int) -> None:
         """Process Financial Instrument Information header."""
         if (
             len(row) >= MIN_FINANCIAL_INSTRUMENT_HEADER_LENGTH
@@ -76,12 +92,15 @@ class FinancialInstrumentContext(BaseSectionContext):
             self.headers_found = True
             self.logger.debug("Found Financial Instrument Information header")
         else:
-            raise FileProcessingError(f"Invalid 'Financial Instrument Information' header format: {row}")
+            raise FileProcessingError(
+                "Row %d: Invalid 'Financial Instrument Information' header format: %s", row_number, row
+            )
 
-    MIN_SYMBOL_INDEX = SYMBOL_COLUMN_INDEX
-    MIN_ISIN_INDEX = ISIN_DATA_COLUMN_INDEX
+    MIN_SYMBOL_INDEX: int = SYMBOL_COLUMN_INDEX
+    MIN_ISIN_INDEX: int = ISIN_DATA_COLUMN_INDEX
 
-    def process_data_row(self, row: list[str]) -> None:
+    @override
+    def process_data_row(self, row: list[str], row_number: int) -> None:
         """Process security info data row."""
         if not self.can_process_row(row):
             return
@@ -103,7 +122,8 @@ class FinancialInstrumentContext(BaseSectionContext):
                     self.logger.debug("Extracted security info for %s: %s (%s)", symbol, isin, country)
                 except Exception as e:
                     self.logger.warning(
-                        "Failed to extract country for %s with ISIN %s: %s",
+                        "Row %d: Failed to extract country for %s with ISIN %s: %s",
+                        row_number,
                         symbol,
                         isin,
                         e,
@@ -111,6 +131,7 @@ class FinancialInstrumentContext(BaseSectionContext):
                     self.security_info[symbol] = {"isin": isin, "country": "Unknown"}
                     self.processed_count += 1
 
+    @override
     def validate_header(self, row: list[str]) -> bool:
         """Validate Financial Instrument Information header."""
         return (
@@ -122,6 +143,14 @@ class FinancialInstrumentContext(BaseSectionContext):
 
 class TradesContext(BaseSectionContext):
     """Context for processing Trades section."""
+
+    raw_trade_data: list[dict[str, str]]
+    require_trades_section: bool
+    trades_headers: list[str] | None
+    trades_col_mapping: dict[str, int | None] | None
+    invalid_trades: int
+    processed_count: int
+    headers_found: bool
 
     def __init__(self, raw_trade_data: list[dict[str, str]], require_trades_section: bool = True):
         """Initialize the Trades context.
@@ -136,8 +165,10 @@ class TradesContext(BaseSectionContext):
         self.trades_headers = None
         self.trades_col_mapping = None
         self.invalid_trades = ZERO_QUANTITY  # Only count data quality issues (missing symbol/datetime)
+        self.processed_count = 0
 
-    def process_header(self, row: list[str]) -> None:
+    @override
+    def process_header(self, row: list[str], row_number: int) -> None:
         """Process Trades section header."""
         if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.trades_headers = row
@@ -146,7 +177,7 @@ class TradesContext(BaseSectionContext):
             # Create column mapping
             try:
                 # Handle different fee column names
-                fee_column = None
+                fee_column: int | None = None
                 if "Comm/Fee" in self.trades_headers:
                     fee_column = self.trades_headers.index("Comm/Fee")
                 elif "Comm in EUR" in self.trades_headers:
@@ -166,25 +197,37 @@ class TradesContext(BaseSectionContext):
                 self.logger.debug("Column mapping: %s", self.trades_col_mapping)
             except ValueError as e:
                 if self.require_trades_section:
-                    raise FileProcessingError(f"Missing required column in Trades section: {e}") from e
+                    raise FileProcessingError(
+                        "Row %d: Missing required column in Trades section: %s", row_number, e
+                    ) from e
                 else:
                     # If trades section is not required, just skip it
-                    self.logger.debug("Skipping Trades section due to missing columns: %s", e)
+                    self.logger.debug("Row %d: Skipping Trades section due to missing columns: %s", row_number, e)
                     self.trades_headers = None
                     self.trades_col_mapping = None
         else:
-            raise FileProcessingError("Invalid Trades header format")
+            raise FileProcessingError("Row %d: Invalid Trades header format", row_number)
 
-    def process_data_row(self, row: list[str]) -> None:
+    @override
+    def process_data_row(self, row: list[str], row_number: int) -> None:
         """Process trade data row."""
-        if not self.can_process_row(row) or not self.trades_col_mapping:
+        if not self.can_process_row(row) or not self.trades_col_mapping or not self.trades_headers:
             return
 
-        # Filter 1: Row length mismatch (corrupted data) - silently skip
+        # Validate row format - fail fast on invalid data with full context
         if len(row) < len(self.trades_headers):
-            return
+            error_msg = (
+                f"Invalid trade data format detected at CSV row {row_number}!\n"
+                f"Expected {len(self.trades_headers)} columns but found {len(row)}.\n"
+                f"Header: {self.trades_headers}\n"
+                f"Actual data: {row}\n"
+                f"This indicates corrupted or incomplete IB export data. "
+                f"Please verify your IB export file integrity."
+            )
+            self.logger.error(error_msg)
+            raise FileProcessingError(error_msg)
 
-        # Filter 2: Non-stock orders (options, forex, etc.) - silently skip
+        # Filter 2: Non-stock orders (options, forex, etc.) - filter out asset types
         if len(row) > MIN_HEADER_LENGTH and (
             row[DATA_DISCRIMINATOR_COLUMN_INDEX] != "Order" or row[ASSET_CATEGORY_COLUMN_INDEX] != "Stocks"
         ):
@@ -192,21 +235,34 @@ class TradesContext(BaseSectionContext):
 
         # Extract trade data as dictionary for deferred processing
         fee_value = ""
-        if self.trades_col_mapping["fee"] is not None:
-            fee_value = row[self.trades_col_mapping["fee"]] if len(row) > self.trades_col_mapping["fee"] else ""
+        fee_idx = self.trades_col_mapping["fee"]
+        if fee_idx is not None and len(row) > fee_idx:
+            fee_value = row[fee_idx]
 
-        trade_row = {
-            "symbol": row[self.trades_col_mapping["symbol"]] if len(row) > self.trades_col_mapping["symbol"] else "",
-            "currency": row[self.trades_col_mapping["currency"]]
-            if len(row) > self.trades_col_mapping["currency"]
-            else "",
-            "datetime": row[self.trades_col_mapping["datetime"]]
-            if len(row) > self.trades_col_mapping["datetime"]
-            else "",
-            "quantity": row[self.trades_col_mapping["quantity"]]
-            if len(row) > self.trades_col_mapping["quantity"]
-            else "",
-            "price": row[self.trades_col_mapping["price"]] if len(row) > self.trades_col_mapping["price"] else "",
+        # Extract indices safely, ensuring they are not None
+        symbol_idx = self.trades_col_mapping["symbol"]
+        currency_idx = self.trades_col_mapping["currency"]
+        datetime_idx = self.trades_col_mapping["datetime"]
+        quantity_idx = self.trades_col_mapping["quantity"]
+        price_idx = self.trades_col_mapping["price"]
+
+        # These should never be None for required columns
+        if (
+            symbol_idx is None
+            or currency_idx is None
+            or datetime_idx is None
+            or quantity_idx is None
+            or price_idx is None
+        ):
+            self.logger.error("Row %d: Missing required column index in trades mapping", row_number)
+            return
+
+        trade_row: dict[str, str] = {
+            "symbol": row[symbol_idx] if len(row) > symbol_idx else "",
+            "currency": row[currency_idx] if len(row) > currency_idx else "",
+            "datetime": row[datetime_idx] if len(row) > datetime_idx else "",
+            "quantity": row[quantity_idx] if len(row) > quantity_idx else "",
+            "price": row[price_idx] if len(row) > price_idx else "",
             "fee": fee_value,
         }
 
@@ -228,6 +284,7 @@ class TradesContext(BaseSectionContext):
                 trade_row["price"],
             )
 
+    @override
     def validate_header(self, row: list[str]) -> bool:
         """Validate Trades header."""
         return len(row) >= MIN_HEADER_LENGTH and row[0] == "Trades" and row[1] == CSV_HEADER_MARKER
@@ -235,6 +292,12 @@ class TradesContext(BaseSectionContext):
 
 class DividendsContext(BaseSectionContext):
     """Context for processing Dividends section."""
+
+    raw_dividend_data: list[dict[str, str]]
+    dividends_headers: list[str] | None
+    dividends_col_mapping: dict[str, int] | None
+    headers_found: bool
+    processed_count: int
 
     def __init__(self, raw_dividend_data: list[dict[str, str]]):
         """Initialize the Dividends context.
@@ -247,7 +310,8 @@ class DividendsContext(BaseSectionContext):
         self.dividends_headers = None
         self.dividends_col_mapping = None
 
-    def process_header(self, row: list[str]) -> None:
+    @override
+    def process_header(self, row: list[str], row_number: int) -> None:
         """Process Dividends section header."""
         if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.dividends_headers = row
@@ -264,28 +328,28 @@ class DividendsContext(BaseSectionContext):
                 self.headers_found = True
                 self.logger.debug("Dividend column mapping: %s", self.dividends_col_mapping)
             except ValueError as e:
-                self.logger.debug("Skipping Dividends section due to missing columns: %s", e)
+                self.logger.debug("Row %d: Skipping Dividends section due to missing columns: %s", row_number, e)
                 self.dividends_headers = None
                 self.dividends_col_mapping = None
         else:
-            raise FileProcessingError("Invalid Dividends header format")
+            raise FileProcessingError("Row %d: Invalid Dividends header format", row_number)
 
-    def process_data_row(self, row: list[str]) -> None:
+    @override
+    def process_data_row(self, row: list[str], row_number: int) -> None:
         """Process dividend data row."""
         if not self.can_process_row(row) or not self.dividends_col_mapping:
             return
 
-        dividend_row = {
-            "currency": row[self.dividends_col_mapping["currency"]]
-            if len(row) > self.dividends_col_mapping["currency"]
-            else "",
-            "date": row[self.dividends_col_mapping["date"]] if len(row) > self.dividends_col_mapping["date"] else "",
-            "description": row[self.dividends_col_mapping["description"]]
-            if len(row) > self.dividends_col_mapping["description"]
-            else "",
-            "amount": row[self.dividends_col_mapping["amount"]]
-            if len(row) > self.dividends_col_mapping["amount"]
-            else "",
+        currency_idx = self.dividends_col_mapping["currency"]
+        date_idx = self.dividends_col_mapping["date"]
+        description_idx = self.dividends_col_mapping["description"]
+        amount_idx = self.dividends_col_mapping["amount"]
+
+        dividend_row: dict[str, str] = {
+            "currency": row[currency_idx] if len(row) > currency_idx else "",
+            "date": row[date_idx] if len(row) > date_idx else "",
+            "description": row[description_idx] if len(row) > description_idx else "",
+            "amount": row[amount_idx] if len(row) > amount_idx else "",
         }
 
         if dividend_row["description"] and dividend_row["amount"]:
@@ -294,13 +358,15 @@ class DividendsContext(BaseSectionContext):
 
             if self.processed_count <= LOG_SAMPLE_SIZE:
                 self.logger.debug(
-                    "Collected dividend %s: %s %s %s",
+                    "Row %d: Collected dividend %s: %s %s %s",
+                    row_number,
                     self.processed_count,
                     dividend_row["description"],
                     dividend_row["currency"],
                     dividend_row["amount"],
                 )
 
+    @override
     def validate_header(self, row: list[str]) -> bool:
         """Validate Dividends header."""
         return len(row) >= MIN_HEADER_LENGTH and row[0] == "Dividends" and row[1] == CSV_HEADER_MARKER
@@ -308,6 +374,12 @@ class DividendsContext(BaseSectionContext):
 
 class WithholdingTaxContext(BaseSectionContext):
     """Context for processing Withholding Tax section."""
+
+    raw_withholding_tax_data: list[dict[str, str]]
+    withholding_tax_headers: list[str] | None
+    withholding_tax_col_mapping: dict[str, int] | None
+    headers_found: bool
+    processed_count: int
 
     def __init__(self, raw_withholding_tax_data: list[dict[str, str]]):
         """Initialize the Withholding Tax context.
@@ -320,7 +392,8 @@ class WithholdingTaxContext(BaseSectionContext):
         self.withholding_tax_headers = None
         self.withholding_tax_col_mapping = None
 
-    def process_header(self, row: list[str]) -> None:
+    @override
+    def process_header(self, row: list[str], row_number: int) -> None:
         """Process Withholding Tax section header."""
         if len(row) >= MIN_HEADER_LENGTH and row[1] == CSV_HEADER_MARKER:
             self.withholding_tax_headers = row
@@ -340,30 +413,28 @@ class WithholdingTaxContext(BaseSectionContext):
                     self.withholding_tax_col_mapping,
                 )
             except ValueError as e:
-                self.logger.debug("Skipping Withholding Tax section due to missing columns: %s", e)
+                self.logger.debug("Row %d: Skipping Withholding Tax section due to missing columns: %s", row_number, e)
                 self.withholding_tax_headers = None
                 self.withholding_tax_col_mapping = None
         else:
-            raise FileProcessingError("Invalid Withholding Tax header format")
+            raise FileProcessingError("Row %d: Invalid Withholding Tax header format", row_number)
 
-    def process_data_row(self, row: list[str]) -> None:
+    @override
+    def process_data_row(self, row: list[str], row_number: int) -> None:
         """Process withholding tax data row."""
         if not self.can_process_row(row) or not self.withholding_tax_col_mapping:
             return
 
-        tax_row = {
-            "currency": row[self.withholding_tax_col_mapping["currency"]]
-            if len(row) > self.withholding_tax_col_mapping["currency"]
-            else "",
-            "date": row[self.withholding_tax_col_mapping["date"]]
-            if len(row) > self.withholding_tax_col_mapping["date"]
-            else "",
-            "description": row[self.withholding_tax_col_mapping["description"]]
-            if len(row) > self.withholding_tax_col_mapping["description"]
-            else "",
-            "amount": row[self.withholding_tax_col_mapping["amount"]]
-            if len(row) > self.withholding_tax_col_mapping["amount"]
-            else "",
+        currency_idx = self.withholding_tax_col_mapping["currency"]
+        date_idx = self.withholding_tax_col_mapping["date"]
+        description_idx = self.withholding_tax_col_mapping["description"]
+        amount_idx = self.withholding_tax_col_mapping["amount"]
+
+        tax_row: dict[str, str] = {
+            "currency": row[currency_idx] if len(row) > currency_idx else "",
+            "date": row[date_idx] if len(row) > date_idx else "",
+            "description": row[description_idx] if len(row) > description_idx else "",
+            "amount": row[amount_idx] if len(row) > amount_idx else "",
         }
 
         if tax_row["description"] and tax_row["amount"]:
@@ -372,13 +443,15 @@ class WithholdingTaxContext(BaseSectionContext):
 
             if self.processed_count <= LOG_SAMPLE_SIZE:
                 self.logger.debug(
-                    "Collected withholding tax %s: %s %s %s",
+                    "Row %d: Collected withholding tax %s: %s %s %s",
+                    row_number,
                     self.processed_count,
                     tax_row["description"],
                     tax_row["currency"],
                     tax_row["amount"],
                 )
 
+    @override
     def validate_header(self, row: list[str]) -> bool:
         """Validate Withholding Tax header."""
         return len(row) >= MIN_HEADER_LENGTH and row[0] == "Withholding Tax" and row[1] == CSV_HEADER_MARKER

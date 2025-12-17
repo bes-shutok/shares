@@ -47,14 +47,14 @@ class TestTypeAliases:
         currency = parse_currency("USD")
 
         line = CapitalGainLine(
-            ticker=company,
-            currency=currency,
-            sell_date=[TradeDate(2024, 3, 28)],
-            sell_quantities=[Decimal("5")],
-            sell_trades=[],
-            buy_date=[TradeDate(2023, 1, 15)],
-            buy_quantities=[Decimal("5")],
-            buy_trades=[],
+            company.ticker,
+            currency,
+            TradeDate(2024, 3, 28),
+            [Decimal("5")],
+            [],
+            TradeDate(2023, 1, 15),
+            [Decimal("5")],
+            [],
         )
 
         lines: CapitalGainLines = [line]
@@ -65,16 +65,16 @@ class TestTypeAliases:
 
     def test_sorted_date_ranges_type_alias(self):
         """Test SortedDateRanges type alias works as list."""
-        # SortedDateRanges is an alias for List[Tuple[str, TradeDate]]
+        # SortedDateRanges is an alias for List[TradeDate]
         date1 = TradeDate(2024, 3, 28)
         date2 = TradeDate(2023, 1, 15)
 
-        ranges: SortedDateRanges = [("2024-03", date1), ("2023-01", date2)]
+        ranges: SortedDateRanges = [date1, date2]
 
         assert isinstance(ranges, list)
         assert len(ranges) == 2
-        assert ranges[0] == ("2024-03", date1)
-        assert ranges[1] == ("2023-01", date2)
+        assert ranges[0] == date1
+        assert ranges[1] == date2
 
     def test_trade_cycle_per_company_type_alias(self):
         """Test TradeCyclePerCompany type alias works as dictionary."""
@@ -104,14 +104,14 @@ class TestTypeAliases:
         currency_company = CurrencyCompany(currency, company)
 
         line = CapitalGainLine(
-            ticker=company,
-            currency=currency,
-            sell_date=[TradeDate(2024, 3, 28)],
-            sell_quantities=[Decimal("5")],
-            sell_trades=[],
-            buy_date=[TradeDate(2023, 1, 15)],
-            buy_quantities=[Decimal("5")],
-            buy_trades=[],
+            company.ticker,
+            currency,
+            TradeDate(2024, 3, 28),
+            [Decimal("5")],
+            [],
+            TradeDate(2023, 1, 15),
+            [Decimal("5")],
+            [],
         )
 
         lines: CapitalGainLinesPerCompany = {currency_company: [line]}
@@ -159,26 +159,31 @@ class TestTypeAliases:
         assert len(partitioned[TradeType.SELL]) == 0
 
     def test_currency_to_coordinate_type_alias(self):
-        """Test CurrencyToCoordinate type alias works as dictionary."""
-        # CurrencyToCoordinate is an alias for Dict[str, int]
-        coordinates: CurrencyToCoordinate = {"USD": 1, "EUR": 2, "GBP": 3}
+        """Test CurrencyToCoordinate type alias works as NamedTuple."""
+        # CurrencyToCoordinate is a NamedTuple with currency and coordinate
+        from shares_reporting.domain.value_objects import parse_currency
 
-        assert isinstance(coordinates, dict)
-        assert len(coordinates) == 3
-        assert coordinates["USD"] == 1
-        assert coordinates["EUR"] == 2
-        assert coordinates["GBP"] == 3
+        coord = CurrencyToCoordinate(parse_currency("USD"), "A1")
+
+        assert isinstance(coord, CurrencyToCoordinate)
+        assert coord.currency == parse_currency("USD")
+        assert coord.coordinate == "A1"
 
     def test_currency_to_coordinates_type_alias(self):
-        """Test CurrencyToCoordinates type alias works as list of tuples."""
-        # CurrencyToCoordinates is an alias for List[Tuple[str, int]]
-        coordinates: CurrencyToCoordinates = [("USD", 1), ("EUR", 2), ("GBP", 3)]
+        """Test CurrencyToCoordinates type alias works as list."""
+        # CurrencyToCoordinates is an alias for List[CurrencyToCoordinate]
+        from shares_reporting.domain.value_objects import parse_currency
+
+        coord1 = CurrencyToCoordinate(parse_currency("USD"), "A1")
+        coord2 = CurrencyToCoordinate(parse_currency("EUR"), "B1")
+        coord3 = CurrencyToCoordinate(parse_currency("GBP"), "C1")
+        coordinates: CurrencyToCoordinates = [coord1, coord2, coord3]
 
         assert isinstance(coordinates, list)
         assert len(coordinates) == 3
-        assert coordinates[0] == ("USD", 1)
-        assert coordinates[1] == ("EUR", 2)
-        assert coordinates[2] == ("GBP", 3)
+        assert coordinates[0] == coord1
+        assert coordinates[1] == coord2
+        assert coordinates[2] == coord3
 
 
 class TestCollectionBehavior:
@@ -203,21 +208,21 @@ class TestCollectionBehavior:
 
         # Create capital gain line and add to collection
         line = CapitalGainLine(
-            ticker=company,
-            currency=currency,
-            sell_date=[TradeDate(2024, 3, 28)],
-            sell_quantities=[Decimal("5")],
-            sell_trades=[],
-            buy_date=[TradeDate(2023, 1, 15)],
-            buy_quantities=[Decimal("5")],
-            buy_trades=[],
+            company.ticker,
+            currency,
+            TradeDate(2024, 3, 28),
+            [Decimal("5")],
+            [],
+            TradeDate(2023, 1, 15),
+            [Decimal("5")],
+            [],
         )
         lines_per_company[currency_company].append(line)
 
         # Verify nested structure
         assert cycles[currency_company].has_bought() is True
         assert len(lines_per_company[currency_company]) == 1
-        assert lines_per_company[currency_company][0].ticker == company
+        assert lines_per_company[currency_company][0].ticker == company.ticker
 
     def test_day_partitioned_trades_with_multiple_days(self):
         """Test DayPartitionedTrades with multiple days."""
@@ -245,16 +250,16 @@ class TestCollectionBehavior:
         date3 = TradeDate(2023, 12, 10)
 
         # Create unsorted list
-        unsorted = [("2024-03", date2), ("2024-01", date1), ("2023-12", date3)]
+        unsorted = [date2, date1, date3]
 
         # Sort by TradeDate
-        sorted_ranges: SortedDateRanges = sorted(unsorted, key=lambda x: x[1])
+        sorted_ranges: SortedDateRanges = sorted(unsorted)
 
         assert len(sorted_ranges) == 3
         # Should be in chronological order: 2023-12, 2024-01, 2024-03
-        assert sorted_ranges[0][1] == date3  # 2023-12-10
-        assert sorted_ranges[1][1] == date1  # 2024-01-15
-        assert sorted_ranges[2][1] == date2  # 2024-03-28
+        assert sorted_ranges[0] == date3  # 2023-12-10
+        assert sorted_ranges[1] == date1  # 2024-01-15
+        assert sorted_ranges[2] == date2  # 2024-03-28
 
     def test_collection_immutability_preservation(self):
         """Test that collections preserve immutability of domain objects."""
@@ -267,7 +272,7 @@ class TestCollectionBehavior:
 
         # The QuantitatedTradeAction should still be immutable
         with pytest.raises(AttributeError):
-            trades[0].quantity = Decimal("10")  # Should fail as QuantitatedTradeAction is immutable
+            trades[0].quantity = Decimal("10")  # type: ignore - Should fail as QuantitatedTradeAction is immutable
 
     def test_collection_type_checking(self):
         """Test that collections maintain correct types."""

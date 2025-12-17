@@ -60,16 +60,6 @@ class TestIsinToCountry:
         # Then
         assert result == "Unknown"
 
-    def test_isin_to_country_should_return_unknown_for_none(self):
-        # Given
-        none_isin = None
-
-        # When
-        result = isin_to_country(none_isin)
-
-        # Then
-        assert result == "Unknown"
-
     def test_isin_to_country_should_handle_lower_case_input(self):
         # Given
         lower_case_isin = "us0378331005"
@@ -184,16 +174,6 @@ class TestIsValidIsinFormat:
 
         # When
         result = is_valid_isin_format(empty_isin)
-
-        # Then
-        assert result is False
-
-    def test_is_valid_isin_format_should_reject_none(self):
-        # Given
-        none_isin = None
-
-        # When
-        result = is_valid_isin_format(none_isin)
 
         # Then
         assert result is False

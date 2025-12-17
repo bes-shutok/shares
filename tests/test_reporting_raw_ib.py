@@ -7,8 +7,6 @@ when processing equivalent data.
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from test_data import sell_action1
-
 from shares_reporting.application.extraction import parse_ib_export
 from shares_reporting.application.transformation import calculate_fifo_gains, split_by_days
 from shares_reporting.domain.collections import (
@@ -23,6 +21,7 @@ from shares_reporting.domain.value_objects import (
     parse_company,
     parse_currency,
 )
+from tests.test_data import sell_action1
 
 test_dict1 = {("2022", "01"), ("2021", "12"), ("2021", "02")}
 test_dict2 = ["202201", "202112", "202102"]

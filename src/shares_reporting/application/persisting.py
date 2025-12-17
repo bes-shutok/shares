@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import csv
-import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import openpyxl
-from openpyxl.styles import PatternFill
+from openpyxl.comments import Comment
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
+
+if TYPE_CHECKING:
+    from os import PathLike
 
 from ..domain.collections import (
     CapitalGainLinesPerCompany,
@@ -31,7 +36,7 @@ from ..infrastructure.config import Config, ConversionRate, load_configuration_f
 from ..infrastructure.logging_config import create_module_logger
 
 
-def export_rollover_file(leftover: str | os.PathLike, leftover_trades: TradeCyclePerCompany) -> None:
+def export_rollover_file(leftover: str | PathLike[str], leftover_trades: TradeCyclePerCompany) -> None:
     """Export unmatched securities rollover file for next year's FIFO calculations.
 
     This function creates a CSV file containing all trades that couldn't be matched
@@ -98,7 +103,7 @@ def export_rollover_file(leftover: str | os.PathLike, leftover_trades: TradeCycl
 
 
 def generate_tax_report(  # noqa: PLR0912, PLR0915
-    extract: str | os.PathLike,
+    extract: str | PathLike[str],
     capital_gain_lines_per_company: CapitalGainLinesPerCompany,
     dividend_income_per_company: DividendIncomePerCompany | None = None,
 ) -> None:
@@ -169,6 +174,8 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
     last_column: int = max(len(first_header), len(second_header))
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
+    if worksheet is None:
+        raise ReportGenerationError("Failed to create worksheet in workbook")
     worksheet.title = "Reporting"
 
     try:
@@ -179,8 +186,8 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
         raise ReportGenerationError(f"Failed to read configuration for currency exchange: {e}") from e
 
     for i in range(len(first_header)):
-        worksheet.cell(EXCEL_HEADER_ROW_1, i + 1, first_header[i])
-        worksheet.cell(EXCEL_HEADER_ROW_2, i + 1, second_header[i])
+        _ = worksheet.cell(EXCEL_HEADER_ROW_1, i + 1, first_header[i])
+        _ = worksheet.cell(EXCEL_HEADER_ROW_2, i + 1, second_header[i])
 
     start_column = EXCEL_START_COLUMN
     line_number = EXCEL_START_ROW
@@ -198,13 +205,13 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
             idx = start_column
 
             # SALE information
-            worksheet.cell(line_number, start_column, line.get_sell_date().day)
+            _ = worksheet.cell(line_number, start_column, line.get_sell_date().day)
             idx += 1
-            worksheet.cell(line_number, idx, line.get_sell_date().get_month_name())
+            _ = worksheet.cell(line_number, idx, line.get_sell_date().get_month_name())
             idx += 1
-            worksheet.cell(line_number, idx, line.get_sell_date().year)
+            _ = worksheet.cell(line_number, idx, line.get_sell_date().year)
             idx += 1
-            worksheet.cell(
+            _ = worksheet.cell(
                 line_number,
                 idx,
                 "=" + exchange_rates[currency.currency] + "*(" + line.get_sell_amount() + ")",
@@ -212,13 +219,13 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
 
             # PURCHASE information
             idx += 1
-            worksheet.cell(line_number, idx, line.get_buy_date().day)
+            _ = worksheet.cell(line_number, idx, line.get_buy_date().day)
             idx += 1
-            worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
+            _ = worksheet.cell(line_number, idx, line.get_buy_date().get_month_name())
             idx += 1
-            worksheet.cell(line_number, idx, line.get_buy_date().year)
+            _ = worksheet.cell(line_number, idx, line.get_buy_date().year)
             idx += 1
-            worksheet.cell(
+            _ = worksheet.cell(
                 line_number,
                 idx,
                 "=" + exchange_rates[currency.currency] + "*(" + line.get_buy_amount() + ")",
@@ -233,24 +240,24 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
                 idx,
                 "=" + exchange_rates[currency.currency] + "*(" + line.get_expense_amount() + ")",
             )
-            expense_cell.number_format = EXCEL_NUMBER_FORMAT
+            expense_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
             idx += 2
 
             # Symbol and Currency
-            worksheet.cell(line_number, idx, company.ticker)
+            _ = worksheet.cell(line_number, idx, company.ticker)
             idx += 1
-            worksheet.cell(line_number, idx, currency.currency)
+            _ = worksheet.cell(line_number, idx, currency.currency)
             idx += 1
 
             # Amounts section
             sell_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_sell_amount())
-            sell_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+            sell_amount_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
             idx += 1
             buy_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_buy_amount())
-            buy_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+            buy_amount_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
             idx += 1
             expense_amount_cell = worksheet.cell(line_number, idx, "=" + line.get_expense_amount())
-            expense_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+            expense_amount_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
 
             # Highlight placeholder buy transactions in red
             if line.get_buy_date().year == PLACEHOLDER_YEAR:
@@ -258,7 +265,7 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
                 # Apply red fill to entire row
                 for col_idx in range(start_column, idx + 1):
                     cell = worksheet.cell(line_number, col_idx)
-                    cell.fill = red_fill
+                    cell.fill = red_fill  # type: ignore[assignment]
 
             line_number += 1
 
@@ -271,10 +278,10 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
         company = currency_company.company
         for _ in capital_gain_lines:
             # Column 2 is "Country of Source" (according to first_header array)
-            worksheet.cell(line_number, 2, company.country_of_issuance)
+            _ = worksheet.cell(line_number, 2, company.country_of_issuance)
 
             # Populate WITHOLDING TAX Country (Column 11 according to first_header array)
-            worksheet.cell(line_number, 11, company.country_of_issuance)
+            _ = worksheet.cell(line_number, 11, company.country_of_issuance)
 
             line_number += 1
 
@@ -287,7 +294,7 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
 
         # Section title "5. CAPITAL INVESTMENT INCOME:"
         section_title_cell = worksheet.cell(line_number, 1, "5. CAPITAL INVESTMENT INCOME:")
-        section_title_cell.font = openpyxl.styles.Font(bold=True)
+        section_title_cell.font = Font(bold=True)  # type: ignore[assignment]
         line_number += 1
 
         # Empty row
@@ -311,16 +318,32 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
         ]
 
         for i, header in enumerate(dividend_headers):
-            worksheet.cell(line_number, i + 1, header)
+            _ = worksheet.cell(line_number, i + 1, header)
 
         line_number += 1
 
         # Dividend income data rows
         for symbol, dividend_data in dividend_income_per_company.items():
-            worksheet.cell(line_number, 1, "")  # Beneficiary column
-            worksheet.cell(line_number, 2, "Dividends")  # Type of capital income
-            worksheet.cell(line_number, 3, dividend_data.country)  # Country of source
-            worksheet.cell(line_number, 4, dividend_data.isin)  # ISIN
+            _ = worksheet.cell(line_number, 1, "")  # Beneficiary column
+            _ = worksheet.cell(line_number, 2, "Dividends")  # Type of capital income
+
+            # Handle missing security information with error highlighting
+            if dividend_data.isin == "MISSING_ISIN_REQUIRES_ATTENTION":
+                # Highlight missing ISIN entries with red background
+                country_cell = worksheet.cell(line_number, 3, "⚠️ MISSING DATA")
+                country_cell.fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")  # type: ignore[assignment]
+
+                isin_cell = worksheet.cell(line_number, 4, f"⚠️ {symbol}")
+                isin_cell.fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")  # type: ignore[assignment]
+
+                # Add comment explaining the issue
+                isin_cell.comment = Comment(  # type: ignore[assignment]
+                    f"Security information missing for {symbol}. Please verify this symbol in your IB account.",
+                    "Shares Reporting",
+                )
+            else:
+                _ = worksheet.cell(line_number, 3, dividend_data.country)  # Country of source
+                _ = worksheet.cell(line_number, 4, dividend_data.isin)  # ISIN
 
             # Convert amounts using exchange rates and add Excel formulas
             gross_amount_cell = worksheet.cell(
@@ -328,20 +351,20 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
                 5,
                 "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.gross_amount) + ")",
             )
-            gross_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+            gross_amount_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
 
             tax_amount_cell = worksheet.cell(
                 line_number,
                 6,
                 "=" + exchange_rates[dividend_data.currency.currency] + "*(" + str(dividend_data.total_taxes) + ")",
             )
-            tax_amount_cell.number_format = EXCEL_NUMBER_FORMAT
+            tax_amount_cell.number_format = EXCEL_NUMBER_FORMAT  # type: ignore[assignment]
 
-            worksheet.cell(line_number, 7, "")  # Withholding tax in Portugal (empty for now)
+            _ = worksheet.cell(line_number, 7, "")  # Withholding tax in Portugal (empty for now)
 
             # Symbol and Currency columns (new columns)
-            worksheet.cell(line_number, 9, symbol)  # Symbol column
-            worksheet.cell(line_number, 10, dividend_data.currency.currency)  # Currency column
+            _ = worksheet.cell(line_number, 9, symbol)  # Symbol column
+            _ = worksheet.cell(line_number, 10, dividend_data.currency.currency)  # Currency column
 
             # Original amounts in original currency (new columns)
             original_gross_cell = worksheet.cell(line_number, 11, str(dividend_data.gross_amount))
@@ -369,7 +392,16 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
     logger.debug("Auto-adjusting column widths")
     for column_cells in worksheet.columns:
         length = max(len(str(cell.value)) for cell in column_cells)
-        worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
+        first_cell = column_cells[0]
+        # Use cell column property to get column index
+        try:
+            column_idx = first_cell.column
+            if column_idx is not None:
+                column_letter = get_column_letter(column_idx)
+                worksheet.column_dimensions[column_letter].width = length + 2
+        except (AttributeError, TypeError):
+            # Skip if we can't determine column letter
+            pass
 
     safe_remove_file(extract)
 
@@ -382,7 +414,7 @@ def generate_tax_report(  # noqa: PLR0912, PLR0915
         raise ReportGenerationError(f"Failed to save Excel report: {e}") from e
 
 
-def safe_remove_file(path: str | os.PathLike) -> None:
+def safe_remove_file(path: str | PathLike[str]) -> None:
     """Safely remove a file if it exists, logging any errors.
 
     Args:
@@ -418,20 +450,20 @@ def create_currency_table(worksheet: Worksheet, column_no: int, row_no: int, con
 
     logger.debug("Creating currency table starting at column %s, row %s", column_no, row_no)
 
-    worksheet.cell(row_no, column_no, "Currency exchange rate")
+    _ = worksheet.cell(row_no, column_no, "Currency exchange rate")
     row_no += 1
     for i in range(len(currency_header)):
-        worksheet.cell(row_no, column_no, currency_header[i])
+        _ = worksheet.cell(row_no, column_no, currency_header[i])
 
     coordinates: dict[str, str] = {}
     for j in range(len(rates)):
-        worksheet.cell(row_no + j, column_no, rates[j].base + "/" + rates[j].calculated)
+        _ = worksheet.cell(row_no + j, column_no, rates[j].base + "/" + rates[j].calculated)
         cell = worksheet.cell(row_no + j, column_no + 1, str(rates[j].rate))
         coordinates[rates[j].calculated] = cell.coordinate
         logger.debug("Added currency rate %s/%s = %s", rates[j].base, rates[j].calculated, rates[j].rate)
 
     # Add base currency rate (1:1)
-    worksheet.cell(row_no + len(rates), column_no, config.base + "/" + config.base)
+    _ = worksheet.cell(row_no + len(rates), column_no, config.base + "/" + config.base)
     cell = worksheet.cell(row_no + len(rates), column_no + 1, "1")
     coordinates[config.base] = cell.coordinate
     logger.debug("Added base currency %s/%s = 1", config.base, config.base)

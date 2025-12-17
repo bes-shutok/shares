@@ -1,8 +1,13 @@
 """State machine orchestration for Interactive Brokers CSV parsing."""
 
+from typing import TYPE_CHECKING
+
 from ...domain.constants import CSV_DATA_MARKER, CSV_HEADER_MARKER, DATA_DISCRIMINATOR_COLUMN_INDEX
 from ...domain.exceptions import FileProcessingError
 from ...infrastructure.logging_config import create_module_logger
+
+if TYPE_CHECKING:
+    from logging import Logger
 from .contexts import (
     DividendsContext,
     FinancialInstrumentContext,
@@ -15,8 +20,12 @@ from .models import IBCsvData, IBCsvSection
 class IBCsvStateMachine:
     """State machine for processing IB CSV files."""
 
-    MAX_SAMPLE_SIZE = 2
-    MIN_ROW_LENGTH = DATA_DISCRIMINATOR_COLUMN_INDEX
+    MAX_SAMPLE_SIZE: int = 2
+    MIN_ROW_LENGTH: int = DATA_DISCRIMINATOR_COLUMN_INDEX
+    logger: Logger
+    current_section: IBCsvSection
+    require_trades_section: bool
+    current_row_number: int
 
     def __init__(self, require_trades_section: bool = True):
         """Initialize the CSV state machine.
@@ -27,6 +36,7 @@ class IBCsvStateMachine:
         self.logger = create_module_logger(__name__)
         self.current_section = IBCsvSection.UNKNOWN
         self.require_trades_section = require_trades_section
+        self.current_row_number = 0
 
         # Initialize data containers
         self.security_info: dict[str, dict[str, str]] = {}
@@ -35,16 +45,17 @@ class IBCsvStateMachine:
         self.raw_withholding_tax_data: list[dict[str, str]] = []
 
         # Initialize contexts
-        self.financial_context = FinancialInstrumentContext(self.security_info)
-        self.trades_context = TradesContext(self.raw_trade_data, require_trades_section)
-        self.dividends_context = DividendsContext(self.raw_dividend_data)
-        self.withholding_tax_context = WithholdingTaxContext(self.raw_withholding_tax_data)
+        self.financial_context: FinancialInstrumentContext = FinancialInstrumentContext(self.security_info)
+        self.trades_context: TradesContext = TradesContext(self.raw_trade_data, require_trades_section)
+        self.dividends_context: DividendsContext = DividendsContext(self.raw_dividend_data)
+        self.withholding_tax_context: WithholdingTaxContext = WithholdingTaxContext(self.raw_withholding_tax_data)
 
         # Tracking
-        self.found_financial_instrument_header = False
+        self.found_financial_instrument_header: bool = False
 
     def process_row(self, row: list[str]) -> None:
         """Process a single CSV row using the state machine."""
+        self.current_row_number += 1
         if len(row) < self.MIN_ROW_LENGTH:
             return
 
@@ -94,7 +105,7 @@ class IBCsvStateMachine:
         self.current_section = IBCsvSection.FINANCIAL_INSTRUMENT
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_HEADER_MARKER:
             try:
-                self.financial_context.process_header(row)
+                self.financial_context.process_header(row, self.current_row_number)
                 self.found_financial_instrument_header = True
             except Exception as e:
                 self.logger.warning("Failed to process financial instrument header: %s, row: %s", e, row)
@@ -104,21 +115,21 @@ class IBCsvStateMachine:
         """Transition to Trades section."""
         self.current_section = IBCsvSection.TRADES
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_HEADER_MARKER:
-            self.trades_context.process_header(row)
+            self.trades_context.process_header(row, self.current_row_number)
 
     def _transition_to_dividends(self, row: list[str]) -> None:
         """Transition to Dividends section."""
         self.current_section = IBCsvSection.DIVIDENDS
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_HEADER_MARKER:
-            self.dividends_context.process_header(row)
+            self.dividends_context.process_header(row, self.current_row_number)
 
     def _transition_to_withholding_tax(self, row: list[str]) -> None:
         """Transition to Withholding Tax section."""
         self.current_section = IBCsvSection.WITHHOLDING_TAX
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_HEADER_MARKER:
-            self.withholding_tax_context.process_header(row)
+            self.withholding_tax_context.process_header(row, self.current_row_number)
 
-    def _transition_to_other(self, row: list[str]) -> None:
+    def _transition_to_other(self, _row: list[str]) -> None:
         """Transition to ignored/other section."""
         self.current_section = IBCsvSection.OTHER
         # We don't need to process headers or data for ignored sections
@@ -126,22 +137,22 @@ class IBCsvStateMachine:
     def _process_financial_instrument_row(self, row: list[str]) -> None:
         """Process row in Financial Instrument section."""
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_DATA_MARKER:
-            self.financial_context.process_data_row(row)
+            self.financial_context.process_data_row(row, self.current_row_number)
 
     def _process_trades_row(self, row: list[str]) -> None:
         """Process row in Trades section."""
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_DATA_MARKER:
-            self.trades_context.process_data_row(row)
+            self.trades_context.process_data_row(row, self.current_row_number)
 
     def _process_dividends_row(self, row: list[str]) -> None:
         """Process row in Dividends section."""
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_DATA_MARKER:
-            self.dividends_context.process_data_row(row)
+            self.dividends_context.process_data_row(row, self.current_row_number)
 
     def _process_withholding_tax_row(self, row: list[str]) -> None:
         """Process row in Withholding Tax section."""
         if len(row) >= self.MIN_ROW_LENGTH and row[1] == CSV_DATA_MARKER:
-            self.withholding_tax_context.process_data_row(row)
+            self.withholding_tax_context.process_data_row(row, self.current_row_number)
 
     def finalize(self) -> IBCsvData:
         """Finalize processing and return collected data."""

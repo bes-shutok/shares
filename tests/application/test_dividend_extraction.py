@@ -125,8 +125,8 @@ class TestDividendExtraction:
         aapl_dividend = dividend_income["AAPL"]
         assert aapl_dividend.gross_amount == Decimal("96.00")  # 4 * 24.00
 
-    def test_parse_dividend_income_ignores_entries_without_security_info(self, tmp_path):
-        """Test that dividend entries without corresponding security info are ignored."""
+    def test_parse_dividend_income_includes_entries_without_security_info(self, tmp_path):
+        """Test that dividend entries without corresponding security info are included with error indicators."""
         csv_content = (
             "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
             "Financial Instrument Information,Data,Stocks,AAPL,Apple Inc.,123456,US0378331005,1\n"
@@ -141,9 +141,19 @@ class TestDividendExtraction:
 
         dividend_income = parse_dividend_income(csv_file)
 
-        assert len(dividend_income) == 1
+        # Should process BOTH entries - never skip data!
+        assert len(dividend_income) == 2
         assert "AAPL" in dividend_income
-        assert "UNKNOWN" not in dividend_income
+        assert "UNKNOWN" in dividend_income
+
+        # AAPL should have proper data
+        assert dividend_income["AAPL"].isin == "US0378331005"
+        assert dividend_income["AAPL"].gross_amount == Decimal("24.00")
+
+        # UNKNOWN should have error indicators
+        assert dividend_income["UNKNOWN"].isin == "MISSING_ISIN_REQUIRES_ATTENTION"
+        assert dividend_income["UNKNOWN"].country == "UNKNOWN_COUNTRY"
+        assert dividend_income["UNKNOWN"].gross_amount == Decimal("10.00")
 
     def test_process_dividends_directly(self):
         """Test _process_dividends function directly."""

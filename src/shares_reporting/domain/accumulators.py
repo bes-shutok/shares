@@ -56,8 +56,8 @@ class CapitalGainLineAccumulator:
                 self.buy_date = trade_date
             elif self.buy_date != trade_date:
                 raise DataValidationError(
-                    f"Incompatible dates in capital gain line add function!"
-                    f" Expected: [{self.buy_date}] Got: [{trade_date}]"
+                    f"Incompatible dates in capital gain line add function! Expected: [{self.buy_date}] "
+                    f"Got: [{trade_date}]"
                 )
             self.buy_counts.append(count)
             self.buy_trades.append(ta)
@@ -145,8 +145,6 @@ class TradePartsWithinDay:
         """
         if quantity <= DECIMAL_ZERO:
             raise DataValidationError("Quantity must be positive")
-        if ta is None:
-            raise DataValidationError("TradeAction cannot be None")
 
         if self.company is None:
             self.company = ta.company
@@ -165,9 +163,8 @@ class TradePartsWithinDay:
             self.trades.append(ta)
         else:
             raise DataValidationError(
-                f"Incompatible trade_type or date in DailyTradeLine! "
-                f"Expected [{self.trade_type} {self.quantity()} and {self.trade_date}] "
-                f"and got [{ta.trade_type} and {parse_trade_date(ta.date_time)}]"
+                f"Incompatible trade_type or date in DailyTradeLine! Expected [{self.trade_type} {self.quantity()} "
+                f"and {self.trade_date}] and got [{ta.trade_type} and {parse_trade_date(ta.date_time)}]"
             )
 
     def pop_trade_part(self) -> QuantitatedTradeAction:
@@ -177,7 +174,7 @@ class TradePartsWithinDay:
             The popped QuantitatedTradeAction.
         """
         idx: int = self._get_top_index()
-        self.dates.pop(idx)
+        _ = self.dates.pop(idx)
         return QuantitatedTradeAction(quantity=self.quantities.pop(idx), action=self.trades.pop(idx))
 
     def get_top_count(self) -> Decimal:

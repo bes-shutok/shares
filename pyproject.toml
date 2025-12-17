@@ -8,7 +8,7 @@ license = {text = "MIT"}
 requires-python = ">=3.14"
 dependencies = [
     "openpyxl>=3.1.5",
-    "pycountry>=24.6.1"
+    "pycountry>=24.6.1",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -201,6 +201,7 @@ known-third-party = ["pytest", "openpyxl", "pycountry"]
     "ARG001",  # Allow unused arguments in tests
     "ARG002",  # Allow unused arguments in tests
     "PT001",  # Allow pytest fixture names without underscore prefix
+    "PT017",  # Allow assertions based on exception messages in tests
     "PT023",  # Allow @pytest.fixture without parentheses
     "PLR2004",  # Allow magic values in tests
     "D",        # Allow missing docstrings in tests
@@ -215,8 +216,9 @@ known-third-party = ["pytest", "openpyxl", "pycountry"]
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.36.1",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.5",
-    "types-openpyxl>=3.1.5.20250919"
+    "types-openpyxl>=3.1.5.20250919",
 ]

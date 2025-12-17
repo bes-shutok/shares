@@ -60,12 +60,12 @@ def _create_placeholder_buys(
     # Create placeholder buy action
     placeholder_date = f"{PLACEHOLDER_YEAR}-01-01, 00:00:00"
     placeholder_action = TradeAction(
-        company=company.ticker,
-        date_time=placeholder_date,
-        currency=currency.currency,
-        quantity=str(total_sold),
-        price=DECIMAL_ZERO,
-        fee=DECIMAL_ZERO,
+        company,
+        placeholder_date,
+        currency,
+        str(total_sold),
+        "0",
+        "0",
     )
 
     # Add to trade cycle
@@ -164,11 +164,11 @@ def calculate_company_gains(  # noqa: PLR0915
 
             if sale_trade_parts.quantity() == DECIMAL_ZERO:
                 # remove empty trades
-                sales_daily_slices.pop(sale_date)
+                _ = sales_daily_slices.pop(sale_date)
 
             if buy_trade_parts.quantity() == DECIMAL_ZERO:
                 # remove empty trades
-                buys_daily_slices.pop(buy_date)
+                _ = buys_daily_slices.pop(buy_date)
 
         capital_gain_line: CapitalGainLine = capital_gain_line_accumulator.finalize()
         capital_gain_lines.append(capital_gain_line)
@@ -264,7 +264,7 @@ def split_by_days(actions: QuantitatedTradeActions, trade_type: TradeType) -> Da
     for quantitated_trade_action in actions:
         quantity: Decimal = quantitated_trade_action.quantity
         trade_action: TradeAction = quantitated_trade_action.action
-        if trade_action.trade_type is not None and trade_action.trade_type != trade_type:
+        if trade_action.trade_type != trade_type:
             raise DataValidationError(
                 "Incompatible trade types! Got "
                 + trade_type.name
@@ -329,7 +329,7 @@ def calculate_fifo_gains(
     for company_currency, trade_cycle in trade_cycle_per_company.items():
         currency = company_currency.currency
         company = company_currency.company
-        trade_cycle.validate(currency, company)
+        _ = trade_cycle.validate(currency, company)
 
         # Handle sells without buys: create placeholder buy transactions
         if trade_cycle.has_sold() and not trade_cycle.has_bought():
