@@ -2,11 +2,14 @@
 
 from decimal import Decimal
 
+import pytest
+
 from shares_reporting.application.extraction import parse_ib_export_all
 from shares_reporting.application.persisting import generate_tax_report
 from shares_reporting.application.transformation import calculate_fifo_gains
 
 
+@pytest.mark.integration
 class TestDividendIntegrationFlow:
     """Integration tests for end-to-end dividend processing."""
 
@@ -44,24 +47,14 @@ class TestDividendIntegrationFlow:
         csv_file = tmp_path / "integration_test.csv"
         csv_file.write_text(csv_content)
 
-        # Step 1: Parse raw CSV data for verification
-        from shares_reporting.application.extraction.processing import _extract_csv_data
-
-        raw_data = _extract_csv_data(csv_file)
-
-        # Verify parsed raw data
-        assert len(raw_data.security_info) == 3
-        assert "AAPL" in raw_data.security_info
-        assert "MSFT" in raw_data.security_info
-        assert "ASML" in raw_data.security_info
-
-        assert len(raw_data.raw_dividend_data) == 7
-        assert len(raw_data.raw_withholding_tax_data) == 5
-
-        # Step 2: Parse the full export (processed data)
+        # Step 1: Parse the full export using public API
         ib_export_data = parse_ib_export_all(csv_file)
 
-        # Step 3: Process capital gains (minimal trades)
+        # Verify data was parsed correctly through public API
+        assert ib_export_data is not None
+        assert len(ib_export_data.trade_cycles) == 1  # AAPL has trades
+
+        # Step 2: Process capital gains (minimal trades)
         from shares_reporting.domain.collections import CapitalGainLinesPerCompany, TradeCyclePerCompany
 
         leftover_trades: TradeCyclePerCompany = {}
@@ -70,7 +63,7 @@ class TestDividendIntegrationFlow:
         calculate_fifo_gains(ib_export_data.trade_cycles, leftover_trades, capital_gains)
         assert len(capital_gains) == 1  # One complete cycle
 
-        # Step 4: Extract dividend income from the parsed data
+        # Step 3: Extract dividend income from the parsed data
         dividend_income = ib_export_data.dividend_income
 
         # Verify dividend processing

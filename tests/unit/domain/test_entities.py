@@ -20,6 +20,7 @@ from shares_reporting.domain.value_objects import (
 )
 
 
+@pytest.mark.unit
 class TestTradeAction:
     def test_trade_action_creation_with_positive_quantity_should_set_buy_type(self):
         """Test that TradeAction with positive quantity sets BUY type."""
@@ -132,6 +133,7 @@ class TestTradeAction:
         assert repr(trade) == expected
 
 
+@pytest.mark.unit
 class TestQuantitatedTradeAction:
     def test_quantitated_trade_action_creation(self):
         """Test QuantitatedTradeAction creation."""
@@ -156,6 +158,7 @@ class TestQuantitatedTradeAction:
             quantitated.quantity = Decimal("10")  # type: ignore - Should fail as NamedTuple is immutable
 
 
+@pytest.mark.unit
 class TestCurrencyCompany:
     def test_currency_company_creation(self):
         """Test CurrencyCompany creation."""
@@ -177,6 +180,7 @@ class TestCurrencyCompany:
             currency_company.currency = parse_currency("EUR")  # type: ignore - Should fail as NamedTuple is immutable
 
 
+@pytest.mark.unit
 class TestTradeCycle:
     def test_trade_cycle_creation(self):
         """Test TradeCycle creation."""
@@ -363,6 +367,7 @@ class TestTradeCycle:
         assert cycle.is_empty() is False
 
 
+@pytest.mark.unit
 class TestCapitalGainLine:
     def test_capital_gain_line_creation(self):
         """Test CapitalGainLine creation."""

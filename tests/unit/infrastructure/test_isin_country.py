@@ -1,5 +1,7 @@
 """Tests for ISIN country resolution functionality."""
 
+import pytest
+
 from shares_reporting.infrastructure.isin_country import (
     is_valid_isin_format,
     isin_to_country,
@@ -7,6 +9,7 @@ from shares_reporting.infrastructure.isin_country import (
 )
 
 
+@pytest.mark.unit
 class TestIsinToCountry:
     """Test ISIN to country conversion."""
 
@@ -71,6 +74,7 @@ class TestIsinToCountry:
         assert result == "United States"
 
 
+@pytest.mark.unit
 class TestIsinToCountryCode:
     """Test ISIN to country code conversion."""
 
@@ -115,6 +119,7 @@ class TestIsinToCountryCode:
         assert result == "Unknown"
 
 
+@pytest.mark.unit
 class TestIsValidIsinFormat:
     """Test ISIN format validation."""
 

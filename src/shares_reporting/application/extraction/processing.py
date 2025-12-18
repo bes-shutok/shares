@@ -177,8 +177,9 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
             if not isin:
                 # Include missing ISIN entries with error indicators
                 logger.error(
-                    "Missing security information for symbol %s - including dividend data but requires manual review. "
-                    "Please add this security to your IB account or verify the symbol.",
+                    "Missing security information for symbol %s - including dividend data but "
+                    "requires manual review. Please add this security to your IB account or verify "
+                    "the symbol.",
                     symbol,
                 )
                 isin = "MISSING_ISIN_REQUIRES_ATTENTION"

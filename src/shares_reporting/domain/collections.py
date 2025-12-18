@@ -41,6 +41,9 @@ DividendIncomePerCompany = dict[str, DividendIncomePerSecurity]  # symbol -> Div
 class IBExportData:
     """Container for all data extracted from an Interactive Brokers export file."""
 
+    trade_cycles: TradeCyclePerCompany
+    dividend_income: DividendIncomePerCompany
+
     def __init__(self, trade_cycles: TradeCyclePerCompany, dividend_income: DividendIncomePerCompany):
         """Initialize the IBExportData container.
 

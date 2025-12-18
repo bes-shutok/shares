@@ -10,11 +10,14 @@ import tempfile
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from shares_reporting.application.extraction import parse_ib_export
 from shares_reporting.domain.entities import CurrencyCompany
 from shares_reporting.domain.value_objects import TradeType, parse_company, parse_currency
 
 
+@pytest.mark.unit
 class TestParseRawIbExport:
     """Test parse_ib_export with various scenarios mirroring parse_data tests."""
 

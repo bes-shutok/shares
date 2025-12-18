@@ -10,6 +10,7 @@ from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import TradeDate, TradeType, parse_company, parse_currency
 
 
+@pytest.mark.unit
 class TestCapitalGainLineAccumulator:
     def test_capital_gain_line_accumulator_creation(self):
         """Test CapitalGainLineAccumulator creation with valid parameters."""
@@ -321,6 +322,7 @@ class TestCapitalGainLineAccumulator:
             accumulator.add_trade(Decimal("3"), buy_trade2)
 
 
+@pytest.mark.unit
 class TestTradePartsWithinDay:
     def test_trade_parts_within_day_creation_with_parameters(self):
         """Test TradePartsWithinDay creation with all parameters."""

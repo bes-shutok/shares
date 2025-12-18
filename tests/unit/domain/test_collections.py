@@ -23,6 +23,7 @@ from shares_reporting.domain.entities import (
 from shares_reporting.domain.value_objects import TradeDate, TradeType, parse_company, parse_currency
 
 
+@pytest.mark.unit
 class TestTypeAliases:
     """Test that type aliases work correctly and maintain expected behavior."""
 
@@ -186,6 +187,7 @@ class TestTypeAliases:
         assert coordinates[2] == coord3
 
 
+@pytest.mark.unit
 class TestCollectionBehavior:
     """Test that collections behave correctly with domain objects."""
 

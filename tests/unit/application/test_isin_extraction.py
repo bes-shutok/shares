@@ -11,6 +11,7 @@ from shares_reporting.application.extraction.processing import _extract_csv_data
 from shares_reporting.domain.exceptions import FileProcessingError
 
 
+@pytest.mark.unit
 class TestExtractIsinMapping:
     """Test ISIN mapping extraction from raw IB exports."""
 
@@ -192,6 +193,7 @@ class TestExtractIsinMapping:
             Path(temp_path).unlink()
 
 
+@pytest.mark.unit
 class TestParseRawIbExport:
     """Test raw IB export parsing."""
 

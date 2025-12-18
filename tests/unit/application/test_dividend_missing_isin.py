@@ -3,11 +3,14 @@
 import logging
 from decimal import Decimal
 
+import pytest
+
 from shares_reporting.application.extraction import parse_dividend_income
 from shares_reporting.application.extraction.models import IBCsvData
 from shares_reporting.application.extraction.processing import _process_dividends
 
 
+@pytest.mark.unit
 class TestDividendMissingIsinScenarios:
     """Test dividend processing when ISIN matching fails."""
 

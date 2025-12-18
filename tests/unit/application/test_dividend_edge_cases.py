@@ -12,6 +12,7 @@ from shares_reporting.domain.exceptions import DataValidationError
 from shares_reporting.domain.value_objects import parse_currency
 
 
+@pytest.mark.unit
 class TestDividendExtractionEdgeCases:
     """Test edge cases in dividend extraction."""
 
@@ -109,6 +110,7 @@ class TestDividendExtractionEdgeCases:
         assert aapl_dividend.get_net_amount() == Decimal("64.80")
 
 
+@pytest.mark.unit
 class TestDividendProcessingErrorScenarios:
     """Test error scenarios in dividend processing."""
 

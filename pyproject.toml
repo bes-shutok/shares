@@ -53,7 +53,9 @@ addopts = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests"
+    "unit: mark test as a unit test",
+    "integration: mark test as an integration test",
+    "e2e: mark test as an end-to-end test"
 ]
 
 [tool.coverage.run]

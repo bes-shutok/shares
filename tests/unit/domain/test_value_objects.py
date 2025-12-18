@@ -14,6 +14,7 @@ from shares_reporting.domain.value_objects import (
 )
 
 
+@pytest.mark.unit
 class TestTradeDate:
     def test_trade_date_creation(self):
         """Test that TradeDate can be created with valid parameters."""
@@ -54,6 +55,7 @@ class TestTradeDate:
             assert repr(trade_date) == expected
 
 
+@pytest.mark.unit
 class TestGetTradeDate:
     def test_get_trade_date_with_datetime_should_create_trade_date(self):
         """Test that get_trade_date creates TradeDate from datetime."""
@@ -77,6 +79,7 @@ class TestGetTradeDate:
             assert result == expected
 
 
+@pytest.mark.unit
 class TestTradeType:
     def test_trade_type_enum_values(self):
         """Test that TradeType enum has correct values."""
@@ -95,6 +98,7 @@ class TestTradeType:
         assert str(TradeType.SELL) == "TradeType.SELL"
 
 
+@pytest.mark.unit
 class TestCurrency:
     def test_currency_creation(self):
         """Test that Currency can be created with valid currency code."""
@@ -108,6 +112,7 @@ class TestCurrency:
             currency.currency = "EUR"  # type: ignore - Should fail as NamedTuple is immutable
 
 
+@pytest.mark.unit
 class TestGetCurrency:
     def test_get_currency_with_valid_three_letter_code_should_return_uppercase(self):
         """Test get_currency with valid 3-letter codes."""
@@ -161,6 +166,7 @@ class TestGetCurrency:
             parse_currency("USDD")
 
 
+@pytest.mark.unit
 class TestCompany:
     def test_company_creation(self):
         """Test that Company can be created with valid ticker."""
@@ -194,6 +200,7 @@ class TestCompany:
             company.country_of_issuance = "Canada"  # type: ignore - Should fail as NamedTuple is immutable
 
 
+@pytest.mark.unit
 class TestGetCompany:
     def test_get_company_with_valid_ticker_should_return_company(self):
         """Test get_company with valid ticker."""

@@ -14,6 +14,7 @@ from shares_reporting.infrastructure.config import (
 from shares_reporting.infrastructure.validation import SecurityConfig
 
 
+@pytest.mark.unit
 class TestConfig:
     """Test configuration data structure."""
 
@@ -42,6 +43,7 @@ class TestConfig:
         assert config.security.max_file_size_mb == 50
 
 
+@pytest.mark.unit
 class TestConversionRate:
     """Test conversion rate named tuple."""
 
@@ -53,6 +55,7 @@ class TestConversionRate:
         assert rate.rate == Decimal("1.2")
 
 
+@pytest.mark.unit
 class TestLoadSecurityConfig:
     """Test loading security configuration section."""
 
@@ -108,6 +111,7 @@ class TestLoadSecurityConfig:
         assert ".csv" in security_config.allowed_extensions
 
 
+@pytest.mark.unit
 class TestConfigValidation:
     """Test configuration validation logic."""
 

@@ -208,32 +208,17 @@ The application generates professional Excel reports with:
 ## Testing Strategy
 
 ### Comprehensive Test Suite Overview
-The project follows **professional testing best practices** with **high unit test coverage**:
+The project follows **professional testing best practices** with a **3-tier test architecture** and comprehensive coverage:
 
 ### Test Structure
 ```
 tests/
-├── domain/                     # Domain layer unit tests
-│   ├── test_value_objects.py   # Value objects and validation
-│   ├── test_collections.py    # Type aliases and collections
-│   ├── test_accumulators.py   # Business accumulators
-│   └── test_entities.py       # Core entities
-├── application/                # Application layer tests
-│   ├── test_extraction.py     # CSV parsing edge cases
-│   ├── test_dividend_extraction.py # Dividend income extraction and processing
-│   ├── test_isin_extraction.py # ISIN mapping and financial instrument processing
-│   ├── test_raw_ib_export_parsing.py # Interactive Brokers CSV parsing
-│   ├── test_placeholder_buys.py # Placeholder buy logic for capital gains
-│   ├── test_missing_isin_behavior.py # Missing ISIN handling behavior
-│   ├── test_dividend_missing_isin.py # Dividend processing with missing ISIN
-│   ├── test_dividend_edge_cases.py # Dividend edge cases and validation
-│   ├── test_dividend_integration.py # Dividend processing integration tests
-│   └── test_dividend_persisting.py # Dividend Excel report generation
-├── infrastructure/             # Infrastructure layer tests
-│   ├── test_config.py         # Configuration management
-│   └── test_isin_country.py   # ISIN to country resolution
-├── test_shares_raw_ib.py             # Integration tests (existing)
-└── test_reporting_raw_ib.py          # End-to-end tests (existing)
+├── unit/          # 156 unit tests - Fast component tests
+│   ├── domain/    # Domain layer unit tests
+│   ├── infrastructure/  # Infrastructure layer unit tests
+│   └── application/ # Application layer unit tests
+├── integration/   # 48 integration tests - Component interaction tests
+└── end_to_end/    # 6 e2e tests - Full workflow tests
 ```
 
 ### Testing Commands
@@ -241,23 +226,29 @@ tests/
 # Run all tests
 uvx pytest
 
-# Run tests by layer
-uvx pytest tests/domain/           # Domain layer unit tests
-uvx pytest tests/application/        # Application layer tests
-uvx pytest tests/infrastructure/     # Infrastructure tests
+# Run tests by tier using markers
+uvx pytest -m unit         # Unit tests only (fast)
+uvx pytest -m integration  # Integration tests only
+uvx pytest -m e2e          # End-to-end tests only
+
+# Run tests by directory
+uvx pytest tests/unit/             # All unit tests
+uvx pytest tests/unit/domain/      # Domain layer tests
+uvx pytest tests/unit/infrastructure/  # Infrastructure tests
+uvx pytest tests/unit/application/     # Application layer tests
+uvx pytest tests/integration/      # Integration tests
+uvx pytest tests/end_to_end/       # End-to-end tests
 
 # Run with coverage
 uvx pytest --cov=src --cov-report=html
 
-# Run only unit tests (excluding integration)
-uvx pytest tests/domain/ tests/application/ tests/infrastructure/
+# Run specific test patterns
+uvx pytest -k "test_specific"     # Run tests matching pattern
+uvx pytest tests/unit/domain/test_value_objects.py  # Specific test file
 
-# Run existing integration tests
-uvx pytest tests/test_shares_raw_ib.py tests/test_reporting_raw_ib.py
-
-# Run specific tests
-uvx pytest -k "test_specific"    # Run specific tests
-uvx pytest tests/domain/    # Run specific test modules
+# Development workflow
+uvx pytest -m unit -x            # Run unit tests, stop on first failure
+uvx pytest -m unit --tb=short    # Short traceback for faster debugging
 ```
 
 ### Testing Guidelines
@@ -615,21 +606,13 @@ shares-reporting/
 │           ├── logging_config.py # Logging configuration
 │           └── validation.py    # Input validation
 ├── tests/                  # Test suite
-│   ├── domain/             # Domain layer unit tests
-│   │   ├── test_value_objects.py
-│   │   ├── test_collections.py
-│   │   ├── test_accumulators.py
-│   │   └── test_entities.py
-│   ├── application/        # Application layer tests
-│   │   ├── test_extraction.py
-│   │   ├── test_dividend_extraction.py
-│   │   ├── test_isin_extraction.py
-│   │   └── test_raw_ib_export_parsing.py
-│   ├── infrastructure/     # Infrastructure layer tests
-│   │   └── test_config.py
-│   ├── test_shares_raw_ib.py       # Integration tests (existing)
-│   ├── test_reporting_raw_ib.py    # End-to-end tests (existing)
-│   └── test_data.py         # Test fixtures (existing)
+│   ├── unit/               # Unit tests (156 tests)
+│   │   ├── domain/         # Domain layer unit tests
+│   │   ├── infrastructure/ # Infrastructure layer unit tests
+│   │   └── application/    # Application layer unit tests
+│   ├── integration/        # Integration tests (48 tests)
+│   ├── end_to_end/         # End-to-end tests (6 tests)
+│   └── conftest.py         # Pytest configuration and fixtures
 ├── resources/              # Data directories
 │   ├── source/             # Input CSV files
 │   └── result/             # Generated reports
@@ -643,82 +626,107 @@ shares-reporting/
 
 ### Common Issues and Prevention Strategies
 
-Based on recent fixes, here are recurring patterns and rules to prevent similar mistakes:
+Based on recurring patterns in code fixes, here are rules to prevent similar mistakes:
 
-#### 1. Code Duplication
+#### 1. Code Quality and Duplication
 - **Issue**: Duplicate test methods or functions with identical names
 - **Prevention**: Always check for duplicates before adding new code
 - **Command**: `grep -n "def method_name" . -r` to search for existing methods
 
-#### 2. Type Annotations and Decorators
-- **Issue**: Missing `@override` decorators for overridden methods
-- **Issue**: Missing type annotations for class attributes (when class is not `@final`)
-- **Rule**: Always add `@override` to methods overriding base class methods
-- **Rule**: Annotate all class attributes with types unless class is marked `@final`
-
-#### 3. Unused Parameters
-- **Issue**: Parameters not used in method implementations
-- **Rule**: Prefix unused parameters with underscore (`_param`) or use `_` for completely unused
-- **Tool**: Ruff will catch these - pay attention to linting warnings
-
-#### 4. String Handling
-- **Issue**: Implicit f-string concatenation across multiple lines
-- **Rule**: Keep f-strings on single lines or use explicit string concatenation
-- **Example**: 
+#### 2. Type Safety and Annotations
+- **Missing decorators**: Always add `@override` to methods overriding base class methods
+- **Class attributes**: Annotate all class attributes with types unless class is marked `@final`
+- **Method parameters**: Prefix unused parameters with underscore (`_param`) or use `_` for completely unused
+- **Pattern**:
   ```python
-  # Bad
-  f"Part 1 {var1} "
-  f"Part 2 {var2}"
-  
-  # Good
-  f"Part 1 {var1} Part 2 {var2}"
-  # or
-  (f"Part 1 {var1} " 
-   f"Part 2 {var2}")
+  class MyClass:
+      attr1: Type1  # Required if class not @final
+      
+      @override
+      def method_name(self, _param: UnusedType):  # Unused parameter
+          pass
   ```
 
-#### 5. Line Length
-- **Issue**: Lines exceeding 120 character limit
-- **Rule**: Break long lines appropriately, especially for error messages
-- **Prevention**: Configure editor to show line length ruler at column 120
+#### 3. String and Code Formatting
+- **Implicit concatenation**: Keep f-strings on single lines or use explicit concatenation
+- **Line length**: Break long lines appropriately, especially for error messages
+- **Example**:
+  ```python
+  # Good
+  error_message = (
+      f"Error in row {row_number}: "
+      f"Expected format X, got Y"
+  )
+  
+  # Avoid
+  error_message = f"Error in row {row_number}: " f"Expected format X, got Y"
+  ```
 
-#### 6. Lambda Parameter Naming
-- **Issue**: Parameter names not matching expected signatures
-- **Rule**: Use parameter names that match the interface you're implementing
+#### 4. Function and Method Design
+- **Parameter naming**: Use parameter names that match the interface you're implementing
 - **Example**: `lambda optionstr: optionstr` not `lambda option: option` for ConfigParser
+- **Required vs Optional**: Use required parameters for essential data, optional only with meaningful defaults
 
-#### 7. Dependencies
-- **Issue**: Required packages not installed (e.g., pycountry)
-- **Rule**: Check imports against dependencies and install missing packages
+#### 5. Dependencies and Imports
+- **Missing packages**: Check imports against dependencies and install missing packages
+- **Import organization**: Import from correct modules, check `__all__` exports for public API
+- **Private imports**: Avoid importing `_private` functions in tests unless necessary
 - **Prevention**: Run tests early to catch missing imports
+
+#### 6. Testing Best Practices
+- **Test structure**: Use 3-tier structure
+  - Unit tests (`tests/unit/`): Fast, isolated tests, can use internal functions
+  - Integration tests (`tests/integration/`): Component interactions, use only public APIs
+  - E2E tests (`tests/end_to_end/`): Full workflows, use only public APIs
+- **Pytest markers**: Use `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`
+- **Test organization**: Structure tests in separate directories with clear purposes
+
+#### 7. Refactoring and Maintenance
+- **Incremental changes**: Make small, incremental changes
+- **Test frequently**: Run tests after each change, fix issues immediately
+- **Version control**: Use version control to track progress
+- **Script cleanup**: Remove temporary scripts after use
+- **Pattern**: 
+  1. Make change
+  2. Run tests
+  3. Fix if broken
+  4. Repeat
+
+#### 8. Error Handling and Logging
+- **Contextual errors**: Always include sufficient context (row numbers, problematic data)
+- **Exception chaining**: Use proper exception chaining to preserve original context
+- **Logging format**: Use parameterized format for logging, f-strings for exceptions
+- **Pattern**:
+  ```python
+  # Logging
+  logger.error("Row %d: Invalid amount %s for symbol %s", row_number, amount, symbol)
+  
+  # Exceptions
+  raise ValueError(f"Invalid value: {value}") from original_error
+  ```
 
 ### Pre-Commit Checklist
 
-Always run these commands before committing:
+Enhanced checklist based on recent fixes:
 
-1. **Tests**: `uv run pytest`
-2. **Linting**: `uv run ruff check . && uv run ruff format . --check`
+1. **Tests**: `uv run pytest -x` (stop on first failure)
+2. **Linting**: `uv run ruff check . --fix` (auto-fix where possible)
 3. **Type checking**: `uv run basedpyright src/ tests/`
-4. **Duplicate check**: Search for any new function/test names to ensure no duplicates
+4. **Line length check**: `uv run ruff check . --select=E501`
 5. **Import verification**: Ensure all imports have corresponding dependencies
+6. **Clean up**: Remove any temporary files or scripts
+7. **Documentation**: Update relevant documentation if API changes were made
 
-### Code Quality Habits
-
-1. **Consistency**: Follow existing patterns in the codebase
-2. **Type Safety**: Use explicit type annotations
-3. **Clean Code**: Remove unused code and imports
-4. **Documentation**: Add clear docstrings for complex logic
-5. **Testing**: Write meaningful tests that cover edge cases
-
-### Quick Reference
+### Quality Assurance Commands
 
 ```bash
-# Common commands for quality assurance
-uv run pytest                    # Run tests
-uv run ruff check .             # Linting
-uv run ruff format .             # Format code
-uv run basedpyright src/ tests/  # Type checking
-uv add <package>                 # Add dependency
-```
+# Check for specific issue types
+uv run ruff check . --select=E501  # Line length
+uv run ruff check . --select=F401  # Unused imports
+uv run ruff check . --select=PL  # Pylint rules
 
-Remember: Catch issues early by running these commands frequently during development, not just before committing.
+# Run tests by marker during development
+uv run pytest -m unit       # Fast feedback during development
+uv run pytest -m integration  # Before committing
+uv run pytest -m e2e         # Before release
+```

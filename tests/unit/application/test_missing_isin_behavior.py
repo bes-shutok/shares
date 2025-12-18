@@ -10,6 +10,7 @@ from shares_reporting.application.extraction.processing import _extract_csv_data
 from shares_reporting.application.persisting import generate_tax_report
 
 
+@pytest.mark.unit
 class TestMissingISINBehavior:
     """Test that missing ISIN entries are included with error indicators rather than skipped."""
 

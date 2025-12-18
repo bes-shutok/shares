@@ -6,6 +6,8 @@ when processing equivalent data in raw IB format.
 
 from pathlib import Path
 
+import pytest
+
 from shares_reporting.application import extraction, transformation
 from shares_reporting.domain.collections import TradeCyclePerCompany
 from shares_reporting.domain.entities import CurrencyCompany
@@ -17,6 +19,7 @@ from shares_reporting.domain.value_objects import (
 from tests import test_data
 
 
+@pytest.mark.e2e
 def test_parsing_raw_ib():
     """Test that raw IB parsing produces same results as simple.csv parsing"""
     source_file = Path("tests", "resources", "ib_simple_raw.csv")
@@ -61,6 +64,7 @@ def test_parsing_raw_ib():
     assert sell_trades[1].action.fee == test_data.sell_action2.fee
 
 
+@pytest.mark.e2e
 def test_fifo_strategy_with_simple_raw_ib_data():
     """Test FIFO strategy with raw IB data - ensures raw IB parsing works with FIFO logic"""
     source_file = Path("tests", "resources", "ib_simple_raw.csv")
@@ -101,6 +105,7 @@ def test_fifo_strategy_with_simple_raw_ib_data():
     assert second_cg.ticker == "BTU"
 
 
+@pytest.mark.e2e
 def test_ib_multi_strategy_raw_data_structure():
     """Test that our raw IB multi-strategy test data has the right structure for strategy testing"""
     source_file = Path("tests", "resources", "ib_multi_strategy_raw.csv")
@@ -144,6 +149,7 @@ def test_ib_multi_strategy_raw_data_structure():
     assert total_tsla_bought == total_tsla_sold  # Complete settlement case
 
 
+@pytest.mark.e2e
 def test_strategy_price_differences_for_future_reference_raw_ib():
     """Test that documents how different strategies would produce different results using raw IB data.
 

@@ -7,14 +7,15 @@ when processing equivalent data.
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import pytest
+
 from shares_reporting.application.extraction import parse_ib_export
 from shares_reporting.application.transformation import calculate_fifo_gains, split_by_days
 from shares_reporting.domain.collections import (
     CapitalGainLinesPerCompany,
-    QuantitatedTradeAction,
     TradeCyclePerCompany,
 )
-from shares_reporting.domain.entities import CurrencyCompany
+from shares_reporting.domain.entities import CurrencyCompany, QuantitatedTradeAction
 from shares_reporting.domain.value_objects import (
     TradeDate,
     TradeType,
@@ -37,6 +38,7 @@ test_dict4 = [
 ]
 
 
+@pytest.mark.e2e
 def test_sorting():
     sorted_by_day = sorted(test_dict4, key=lambda date: date.day)
     assert sorted_by_day[0].day == 18
@@ -50,6 +52,7 @@ def test_sorting():
     assert sorted_by_month[2].get_month_name() == "May"
 
 
+@pytest.mark.e2e
 def test_partitioning_by_days():
     """Test that split_by_days correctly groups trades by day"""
     # Create QuantitatedTradeActions for testing
@@ -66,6 +69,7 @@ def test_partitioning_by_days():
     assert days[actual_day].get_top_count() == 10  # get_top_count returns first trade quantity
 
 
+@pytest.mark.e2e
 def test_comparing_raw_ib():
     """Test that raw IB parsing produces valid capital gains data structure"""
     from pathlib import Path
