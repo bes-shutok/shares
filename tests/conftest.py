@@ -6,21 +6,15 @@ from pathlib import Path
 import pytest
 
 
-def pytest_configure(config):
+def pytest_configure(config) -> None:
     """Configure custom pytest markers."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "e2e: mark test as an end-to-end test"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "e2e: mark test as an end-to-end test")
 
 
 @pytest.fixture
-def sample_csv_content():
+def sample_csv_content() -> str:
     """Provide a sample IB-style CSV content for testing."""
     return (
         "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
@@ -41,7 +35,7 @@ def sample_csv_content():
 
 
 @pytest.fixture
-def sample_csv_file(tmp_path, sample_csv_content):
+def sample_csv_file(tmp_path: Path, sample_csv_content: str) -> Path:
     """Create a temporary CSV file with sample content."""
     csv_file = tmp_path / "test_ib_export.csv"
     csv_file.write_text(sample_csv_content)
@@ -49,7 +43,7 @@ def sample_csv_file(tmp_path, sample_csv_content):
 
 
 @pytest.fixture
-def malformed_csv_content():
+def malformed_csv_content() -> str:
     """Provide a malformed CSV content for error testing."""
     return (
         "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
@@ -63,7 +57,7 @@ def malformed_csv_content():
 
 
 @pytest.fixture
-def csv_with_missing_isin():
+def csv_with_missing_isin() -> str:
     """CSV content with missing ISIN for testing error handling."""
     return (
         "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
@@ -80,7 +74,7 @@ def csv_with_missing_isin():
 
 
 @pytest.fixture
-def multi_currency_csv_content():
+def multi_currency_csv_content() -> str:
     """CSV content with multiple currencies for testing currency conversion."""
     return (
         "Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Multiplier\n"
@@ -107,11 +101,12 @@ def create_csv_file(tmp_path: Path, content: str) -> Path:
     return csv_file
 
 
-def assert_excel_file_exists_and_valid(report_path: Path):
+def assert_excel_file_exists_and_valid(report_path: Path) -> None:
     """Helper to verify Excel file was created and is valid."""
     assert report_path.exists(), f"Excel report not created at {report_path}"
 
     import openpyxl
+
     workbook = openpyxl.load_workbook(report_path)
     assert workbook.active is not None, "Workbook should have an active worksheet"
     workbook.close()

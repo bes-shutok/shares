@@ -11,6 +11,7 @@ from .processing import (
     parse_dividend_income,
     parse_ib_export,
     parse_ib_export_all,
+    parse_leftover_and_export_data,
 )
 
-__all__ = ["parse_dividend_income", "parse_ib_export", "parse_ib_export_all"]
+__all__ = ["parse_dividend_income", "parse_ib_export", "parse_ib_export_all", "parse_leftover_and_export_data"]

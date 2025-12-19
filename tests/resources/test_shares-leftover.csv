@@ -1,0 +1,5 @@
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code,
+Trades,Data,Order,Stocks,USD,TESTA,"2023-12-15, 10:30:00",5,140.00,,700.00,0.80,,,,,
+Trades,Data,Order,Stocks,USD,TESTB,"2023-11-20, 14:45:00",3,180.00,,540.00,1.00,,,,,
+Trades,Data,Order,Stocks,USD,TESTC,"2023-10-05, 09:30:00",8,70.00,,560.00,1.00,,,,,
+Trades,Data,Order,Stocks,USD,TESTD,"2023-09-10, 11:00:00",15,120.00,,1800.00,2.00,,,,,

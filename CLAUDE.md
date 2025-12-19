@@ -128,10 +128,10 @@ The system processes data through a sophisticated tax-compliant pipeline:
 The `extraction` package uses a **State Machine** pattern to parse complex Interactive Brokers CSV files:
 
 **Components:**
-- **`IBCsvStateMachine`**: Orchestrates the parsing process, transitioning between file sections.
+- **`IBCsvStateMachine`**: Orchestrates the parsing process, transitioning between file sections. Supports optional Financial Instrument section validation for different file types.
 - **Contexts** (`contexts.py`): Specialized handlers for each CSV section:
   - `FinancialInstrumentContext`: Extracts security info (ISIN, Country).
-  - `TradesContext`: Parses trade executions.
+  - `TradesContext`: Parses trade executions. Trades section is always required for real CSV files.
   - `DividendsContext`: Extracts dividend records.
   - `WithholdingTaxContext`: Parses tax records.
 - **Models** (`models.py`): Data structures for raw extracted data (`IBCsvData`, `IBCsvSection`).
@@ -141,6 +141,10 @@ The `extraction` package uses a **State Machine** pattern to parse complex Inter
 2. Detects section headers (e.g., "Financial Instrument Information", "Trades").
 3. Delegates row processing to the active `BaseSectionContext` subclass.
 4. Aggregates results into `IBCsvData` for downstream processing.
+
+**Configuration:**
+- **Export files**: Require both Trades and Financial Instrument sections (default behavior)
+- **Leftover files**: Require Trades section but Financial Instrument section is optional (for processing legacy trade data without security info)
 
 #### FIFO Algorithm Deep Dive
 
@@ -204,6 +208,27 @@ The application generates professional Excel reports with:
 **Input**: Interactive Brokers CSV reports placed in `/resources/source/`
 **Processing**: Domain-driven transformation pipeline with currency conversion and ISIN mapping
 **Output**: Comprehensive Excel reports with capital gains, dividend income, and currency conversion tables in `/resources/result/` + unmatched securities rollover file for next year's calculations
+
+### Automatic Leftover Integration
+
+The system automatically integrates data from previous tax cycles:
+
+**Feature Overview:**
+- **Automatic Detection**: If `shares-leftover.csv` exists in the same directory as an export file, it's automatically integrated
+- **Data Enrichment**: Leftover trades are enriched with security information (ISIN, country) from the current export file
+- **FIFO Preservation**: Leftover trades (older) are placed before current year trades to maintain proper chronological ordering
+- **Backward Compatibility**: If no leftover file exists, processes normally without any changes
+
+**Integration Process:**
+1. **Security Info Extraction**: Extracts security mapping from current export file
+2. **Trade Combination**: Merges leftover trades + current export trades
+3. **Processing**: Runs unified trade processing with complete security context
+4. **Reporting**: Generates comprehensive capital gains calculations across all time periods
+
+**File Formats:**
+- **Export file** (`ib_export.csv`): Contains complete data with all sections
+- **Leftover file** (`shares-leftover.csv`): Contains unmatched trades from previous cycle with extended columns (Basis, Realized P/L)
+- **Output rollover**: Updated each year with new unmatched trades for next cycle
 
 ## Testing Strategy
 
@@ -678,7 +703,7 @@ Based on recurring patterns in code fixes, here are rules to prevent similar mis
   - Unit tests (`tests/unit/`): Fast, isolated tests, can use internal functions
   - Integration tests (`tests/integration/`): Component interactions, use only public APIs
   - E2E tests (`tests/end_to_end/`): Full workflows, use only public APIs
-- **Pytest markers**: Use `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`
+- **Pytest markers**: Use `@pytest.mark.unit`, `pytest.mark.integration`, `pytest.mark.e2e`
 - **Test organization**: Structure tests in separate directories with clear purposes
 
 #### 7. Refactoring and Maintenance
@@ -705,6 +730,42 @@ Based on recurring patterns in code fixes, here are rules to prevent similar mis
   raise ValueError(f"Invalid value: {value}") from original_error
   ```
 
+#### 9. API Design for Production vs Testing
+- **Don't add features just for tests**: API design should reflect real-world usage, not test requirements
+- **Tests should adapt to production code**: Update tests to match production patterns rather than modifying production to support tests
+- **Example**: When tests require optional parameters, consider whether the test data structure can be adjusted instead
+- **Refactoring approach**: If tests need special handling, first try to make tests reflect real usage before adding complexity to production code
+
+#### 10. Test Path and Fixture Management
+- **Avoid fragile path construction**: Never use `Path(__file__).parent.parent` in tests - these break when test files move
+- **Use pytest fixtures**: Always use `tmp_path`, `tmp_path_factory`, or other provided fixtures for test file operations
+- **Test data isolation**: Keep test data separate from production data and use proper fixture setup
+- **Pattern**:
+  ```python
+  # ✅ GOOD - Use pytest fixtures
+  @pytest.fixture
+  def test_file(tmp_path: Path) -> Path:
+      test_file = tmp_path / "test.csv"
+      test_file.write_text("test,data")
+      return test_file
+  
+  # ❌ AVOID - Fragile path construction
+  def test_something():
+      test_file = Path(__file__).parent.parent / "resources" / "test.csv"
+  ```
+
+#### 11. Simplify Unnecessary Complexity
+- **Remove unused parameters**: If a parameter is always the same value (e.g., always `True`), remove it entirely
+- **YAGNI principle**: You Aren't Gonna Need It - don't add features "just in case"
+- **Constant parameters**: Parameters with constant values add unnecessary complexity and make the API harder to understand
+- **Example**: `require_trades_section=True` parameter that's always `True` should be removed and the behavior hardcoded
+
+#### 12. Test Real Behavior, Not Implementation Details
+- **Test functionality, not return values**: Verify that the feature actually works as expected, not just that it returns certain values
+- **Use meaningful test data**: Test with realistic data that represents actual usage scenarios
+- **Integration verification**: Ensure that components work together correctly, not just in isolation
+- **Example**: When testing leftover data integration, verify that the integrated data actually contains more trades than without integration
+
 ### Pre-Commit Checklist
 
 Enhanced checklist based on recent fixes:
@@ -714,8 +775,11 @@ Enhanced checklist based on recent fixes:
 3. **Type checking**: `uv run basedpyright src/ tests/`
 4. **Line length check**: `uv run ruff check . --select=E501`
 5. **Import verification**: Ensure all imports have corresponding dependencies
-6. **Clean up**: Remove any temporary files or scripts
-7. **Documentation**: Update relevant documentation if API changes were made
+6. **Path construction check**: `grep -r "Path(__file__)" tests/` - ensure no fragile test paths
+7. **Parameter usage check**: Review new parameters - are they always constant?
+8. **Test behavior verification**: Do tests verify actual functionality vs just return values?
+9. **Clean up**: Remove any temporary files or scripts
+10. **Documentation**: Update relevant documentation if API changes were made
 
 ### Quality Assurance Commands
 
@@ -725,8 +789,17 @@ uv run ruff check . --select=E501  # Line length
 uv run ruff check . --select=F401  # Unused imports
 uv run ruff check . --select=PL  # Pylint rules
 
+# Check for fragile path construction in tests
+grep -r "Path(__file__)" tests/ || echo "✅ No fragile test paths found"
+
+# Check for parameters that might always be constant
+grep -r "= True" src/ --include="*.py" | grep -v "def " | head -10
+
 # Run tests by marker during development
 uv run pytest -m unit       # Fast feedback during development
 uv run pytest -m integration  # Before committing
 uv run pytest -m e2e         # Before release
+
+# Check for duplicate test methods
+grep -n "def test_" tests/ | cut -d: -f3 | sort | uniq -d
 ```

@@ -20,6 +20,7 @@ class TestDividendExtraction:
     and validation logic that would be difficult to trigger through the public API alone.
     This is appropriate for unit tests where we need to isolate specific business logic.
     """
+
     def test_parse_dividend_income_with_simple_dividends(self, tmp_path):
         """Test extracting dividend income from simple dividend entries."""
         csv_content = (

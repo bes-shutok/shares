@@ -1,0 +1,14 @@
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code,
+Trades,Data,Order,Stocks,USD,TESTA,"2024-01-15, 10:30:00",10,150.00,,1500.00,1.00,,,,,
+Trades,Data,Order,Stocks,USD,TESTB,"2024-02-20, 14:45:00",5,200.00,,1000.00,1.50,,,,,
+Trades,Data,Order,Stocks,USD,TESTA,"2024-03-10, 11:15:00",-8,155.00,,1240.00,0.80,,,,,
+Trades,Data,Order,Stocks,USD,TESTC,"2024-04-05, 09:30:00",12,75.00,,900.00,1.20,,,,,
+Dividends,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Description,Amount
+Dividends,Data,Order,Stocks,USD,TESTA,"2024-06-15, 16:00:00","TESTA(US1234567890) Quarterly Dividend (Ordinary Dividend)",50.00
+Dividends,Data,Order,Stocks,USD,TESTB,"2024-09-15, 16:00:00","TESTB(US0987654321) Semi-Annual Dividend (Ordinary Dividend)",25.00
+Withholding Tax,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Description,Amount
+Withholding Tax,Data,Order,Stocks,USD,TESTA,"2024-06-15, 16:00:00","Withholding Tax for TESTA Dividend",-7.50
+Financial Instrument Information,Header,Asset Category,Symbol,Description,ConID,Security ID,Security ID Type,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,TESTA,Test Company A,1234567,US1234567890,ISIN,,,STK,,,
+Financial Instrument Information,Data,Stocks,TESTB,Test Company B,1234567,US0987654321,ISIN,,,STK,,,
+Financial Instrument Information,Data,Stocks,TESTC,Test Company C,1234567,US1122334455,ISIN,,,STK,,,

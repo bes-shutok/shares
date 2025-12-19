@@ -145,23 +145,20 @@ class TradesContext(BaseSectionContext):
     """Context for processing Trades section."""
 
     raw_trade_data: list[dict[str, str]]
-    require_trades_section: bool
     trades_headers: list[str] | None
     trades_col_mapping: dict[str, int | None] | None
     invalid_trades: int
     processed_count: int
     headers_found: bool
 
-    def __init__(self, raw_trade_data: list[dict[str, str]], require_trades_section: bool = True):
+    def __init__(self, raw_trade_data: list[dict[str, str]]):
         """Initialize the Trades context.
 
         Args:
             raw_trade_data: List to store extracted trade data.
-            require_trades_section: Whether to enforce presence of Trades section.
         """
         super().__init__()
         self.raw_trade_data = raw_trade_data
-        self.require_trades_section = require_trades_section
         self.trades_headers = None
         self.trades_col_mapping = None
         self.invalid_trades = ZERO_QUANTITY  # Only count data quality issues (missing symbol/datetime)
@@ -196,15 +193,7 @@ class TradesContext(BaseSectionContext):
                 self.headers_found = True
                 self.logger.debug("Column mapping: %s", self.trades_col_mapping)
             except ValueError as e:
-                if self.require_trades_section:
-                    raise FileProcessingError(
-                        "Row %d: Missing required column in Trades section: %s", row_number, e
-                    ) from e
-                else:
-                    # If trades section is not required, just skip it
-                    self.logger.debug("Row %d: Skipping Trades section due to missing columns: %s", row_number, e)
-                    self.trades_headers = None
-                    self.trades_col_mapping = None
+                raise FileProcessingError("Row %d: Missing required column in Trades section: %s", row_number, e) from e
         else:
             raise FileProcessingError("Row %d: Invalid Trades header format", row_number)
 
@@ -214,11 +203,14 @@ class TradesContext(BaseSectionContext):
         if not self.can_process_row(row) or not self.trades_col_mapping or not self.trades_headers:
             return
 
-        # Validate row format - fail fast on invalid data with full context
+        # Validate row format - ensure we have at least the minimum required columns
+        # Rows can have additional columns (e.g., Basis, Realized P/L in leftover files)
         if len(row) < len(self.trades_headers):
+            missing_cols = len(self.trades_headers) - len(row)
             error_msg = (
                 f"Invalid trade data format detected at CSV row {row_number}!\n"
-                f"Expected {len(self.trades_headers)} columns but found {len(row)}.\n"
+                f"Missing {missing_cols} required columns. Expected at least {len(self.trades_headers)} "
+                f"columns but found {len(row)}.\n"
                 f"Header: {self.trades_headers}\n"
                 f"Actual data: {row}\n"
                 f"This indicates corrupted or incomplete IB export data. "
@@ -228,8 +220,10 @@ class TradesContext(BaseSectionContext):
             raise FileProcessingError(error_msg)
 
         # Filter 2: Non-stock orders (options, forex, etc.) - filter out asset types
+        # Accept both "Stock" (from legacy leftover files) and "Stocks" (from IB export)
         if len(row) > MIN_HEADER_LENGTH and (
-            row[DATA_DISCRIMINATOR_COLUMN_INDEX] != "Order" or row[ASSET_CATEGORY_COLUMN_INDEX] != "Stocks"
+            row[DATA_DISCRIMINATOR_COLUMN_INDEX] != "Order"
+            or row[ASSET_CATEGORY_COLUMN_INDEX] not in ("Stock", "Stocks")
         ):
             return
 

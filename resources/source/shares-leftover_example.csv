@@ -1,2 +1,2 @@
-Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code,,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L
 Trades,Data,Order,Stock,USD,MRNA,"2021-11-04, 10:57:20",2,286.06,572.12,0.34455725

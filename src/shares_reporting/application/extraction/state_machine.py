@@ -24,18 +24,17 @@ class IBCsvStateMachine:
     MIN_ROW_LENGTH: int = DATA_DISCRIMINATOR_COLUMN_INDEX
     logger: Logger
     current_section: IBCsvSection
-    require_trades_section: bool
     current_row_number: int
 
-    def __init__(self, require_trades_section: bool = True):
+    def __init__(self, require_financial_instrument_section: bool = True):
         """Initialize the CSV state machine.
 
         Args:
-            require_trades_section: Whether to enforce presence of Trades section.
+            require_financial_instrument_section: Whether to enforce presence of Financial Instrument section.
         """
         self.logger = create_module_logger(__name__)
         self.current_section = IBCsvSection.UNKNOWN
-        self.require_trades_section = require_trades_section
+        self.require_financial_instrument_section = require_financial_instrument_section
         self.current_row_number = 0
 
         # Initialize data containers
@@ -46,7 +45,7 @@ class IBCsvStateMachine:
 
         # Initialize contexts
         self.financial_context: FinancialInstrumentContext = FinancialInstrumentContext(self.security_info)
-        self.trades_context: TradesContext = TradesContext(self.raw_trade_data, require_trades_section)
+        self.trades_context: TradesContext = TradesContext(self.raw_trade_data)
         self.dividends_context: DividendsContext = DividendsContext(self.raw_dividend_data)
         self.withholding_tax_context: WithholdingTaxContext = WithholdingTaxContext(self.raw_withholding_tax_data)
 
@@ -157,10 +156,10 @@ class IBCsvStateMachine:
     def finalize(self) -> IBCsvData:
         """Finalize processing and return collected data."""
         # Validation
-        if not self.found_financial_instrument_header:
+        if not self.found_financial_instrument_header and self.require_financial_instrument_section:
             raise FileProcessingError("Missing 'Financial Instrument Information' header in CSV")
 
-        if self.require_trades_section and not self.trades_context.headers_found:
+        if not self.trades_context.headers_found:
             raise FileProcessingError("No Trades section found in the IB export file")
 
         metadata = {

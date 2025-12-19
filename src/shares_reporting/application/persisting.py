@@ -69,6 +69,8 @@ def export_rollover_file(leftover: str | PathLike[str], leftover_trades: TradeCy
                 "C. Price",
                 "Proceeds",
                 "Comm/Fee",
+                "Basis",
+                "Realized P/L",
             ],
         )
         writer.writeheader()
@@ -97,6 +99,8 @@ def export_rollover_file(leftover: str | PathLike[str], leftover_trades: TradeCy
                     row["T. Price"] = str(action.price)
                     row["Proceeds"] = str(action.price * bought_trade.quantity)
                     row["Comm/Fee"] = str(action.fee)
+                    row["Basis"] = ""  # Empty for unmatched trades
+                    row["Realized P/L"] = ""  # Empty for unmatched trades
                     writer.writerow(row)
 
     logger.info("Generated unmatched securities rollover file for %s companies", processed_companies)

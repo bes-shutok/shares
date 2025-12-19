@@ -31,7 +31,7 @@ from .models import IBCsvData
 from .state_machine import IBCsvStateMachine
 
 
-def _extract_csv_data(path: str | Path, require_trades_section: bool = True) -> IBCsvData:
+def _extract_csv_data(path: str | Path, require_financial_instrument_section: bool = True) -> IBCsvData:
     """Collect all raw data from IB export CSV file using a state machine approach.
 
     This function reads the file once and extracts security information,
@@ -40,14 +40,14 @@ def _extract_csv_data(path: str | Path, require_trades_section: bool = True) -> 
 
     Args:
         path: Path to the raw IB export CSV file
-        require_trades_section: If True, requires Trades section to be present (default True)
+        require_financial_instrument_section: If True, requires Financial Instrument section (default True)
 
     Returns:
         IBCsvData container with all collected information
     """
     try:
         # Initialize state machine
-        state_machine = IBCsvStateMachine(require_trades_section)
+        state_machine = IBCsvStateMachine(require_financial_instrument_section)
 
         # Process CSV file row by row using state machine
         with Path(path).open(encoding="utf-8") as read_obj:
@@ -228,31 +228,47 @@ def _process_dividends(csv_data: IBCsvData) -> DividendIncomePerCompany:  # noqa
 def parse_ib_export_all(file_path: str | Path) -> IBExportData:
     """Parse IB export file and return all extracted data.
 
+    Automatically integrates leftover trades if shares-leftover.csv exists
+    in the same directory as the export file.
+
     Args:
         file_path: Path to the IB export CSV file.
 
     Returns:
         IBExportData object containing collected trade cycles and dividend income.
     """
+    # Check if leftover file exists in the same directory
+    export_path = Path(file_path)
+    leftover_path = export_path.parent / "shares-leftover.csv"
+
+    # Extract dividend data (only from current export)
     csv_data = _extract_csv_data(file_path)
+    dividend_income = _process_dividends(csv_data)
+
+    # Extract trade data with optional leftover integration
+    if leftover_path.exists():
+        logger = create_module_logger(__name__)
+        logger.info("Found leftover file, integrating with export data")
+        trade_cycles = parse_leftover_and_export_data(leftover_path, file_path)
+    else:
+        trade_cycles = _process_trades(csv_data)
 
     return IBExportData(
-        trade_cycles=_process_trades(csv_data),
-        dividend_income=_process_dividends(csv_data),
+        trade_cycles=trade_cycles,
+        dividend_income=dividend_income,
     )
 
 
-def parse_ib_export(file_path: str | Path, require_trades_section: bool = True) -> TradeCyclePerCompany:
+def parse_ib_export(file_path: str | Path) -> TradeCyclePerCompany:
     """Parse IB export and return trades (backward compatibility).
 
     Args:
         file_path: Path to the IB export CSV file.
-        require_trades_section: Whether to require trades section.
 
     Returns:
         TradeCyclePerCompany object containing collected trade cycles.
     """
-    csv_data = _extract_csv_data(file_path, require_trades_section)
+    csv_data = _extract_csv_data(file_path)
     return _process_trades(csv_data)
 
 
@@ -265,5 +281,64 @@ def parse_dividend_income(file_path: str | Path) -> DividendIncomePerCompany:
     Returns:
         DividendIncomePerCompany object containing collected dividend income.
     """
-    csv_data = _extract_csv_data(file_path, require_trades_section=False)
+    csv_data = _extract_csv_data(file_path, require_financial_instrument_section=True)
     return _process_dividends(csv_data)
+
+
+def parse_leftover_and_export_data(leftover_file: str | Path, export_file: str | Path) -> TradeCyclePerCompany:
+    """Parse leftover trades and export data, integrating them with enhanced security info.
+
+    This function:
+    1. Checks if shares-leftover.csv exists
+    2. If exists: loads leftover trades + export data, merges with security info
+    3. If not exists: processes only export file (backward compatibility)
+    4. Returns TradeCyclePerCompany with complete cycles ready for FIFO calculation
+
+    Args:
+        leftover_file: Path to the shares-leftover.csv file containing leftover trades
+        export_file: Path to the ib_export.csv file with current trades and security info
+
+    Returns:
+        TradeCyclePerCompany with integrated trades from both sources or just export
+    """
+    logger = create_module_logger(__name__)
+
+    # Check if leftover file exists
+    leftover_path = Path(leftover_file)
+
+    if not leftover_path.exists():
+        # No leftover file - process only export file (original workflow)
+        logger.info("No leftover file found, processing only export file")
+        csv_data = _extract_csv_data(export_file)
+        return _process_trades(csv_data)
+
+    # Leftover file exists - merge workflow
+    logger.info("Found leftover file, integrating with export data")
+
+    # Extract security info from export file (state machine handles Trades section)
+    export_csv_data = _extract_csv_data(export_file)
+
+    # Extract trades from leftover file using state machine (without requiring Financial Instruments)
+    leftover_csv_data = _extract_csv_data(leftover_file, require_financial_instrument_section=False)
+
+    # Combine trades from both sources
+    # Leftover trades come first for FIFO ordering
+    combined_trades_data = IBCsvData(
+        security_info=export_csv_data.security_info,  # Use security info from export
+        raw_trade_data=leftover_csv_data.raw_trade_data + export_csv_data.raw_trade_data,  # Combine trades
+        raw_dividend_data=[],  # Not needed for trade cycles
+        raw_withholding_tax_data=[],
+        metadata={},  # Empty metadata for combined data
+    )
+
+    # Process all trades in one pass with security info from export
+    merged_trade_cycles = _process_trades(combined_trades_data)
+
+    logger.info(
+        "Integrated %d leftover trades and %d export trades for %d currency-company pairs",
+        len(leftover_csv_data.raw_trade_data),
+        len(export_csv_data.raw_trade_data),
+        len(merged_trade_cycles),
+    )
+
+    return merged_trade_cycles

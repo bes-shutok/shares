@@ -47,6 +47,11 @@ This will create a `.venv` folder in your project root that editors can detect a
 ### **Source Files Configuration**
 - **Input Data**: Add your Interactive Brokers CSV export to the `/resources/source` folder. See `/resources/shares_example.csv` for an example of the file format.
   - *Note*: Future updates will support additional data sources (crypto exchanges, DeFi platforms, etc.)
+- **Automatic Leftover Integration**: The tool automatically integrates data from previous tax cycles:
+  - If `shares-leftover.csv` exists in `/resources/source`, it will be automatically merged with the current year's export data
+  - Leftover trades (older) are placed before current year trades to maintain FIFO order
+  - Security information (ISIN, country) from the export file enriches the leftover data
+  - If no leftover file exists, only the current export file is processed (backward compatible)
 - **Currency Rates**: Update `config.ini` with all required currency exchange pairs.
   - E.g. you can use the exchange rates from the last day of the year from your national central bank or financial institution.
   - The config file also includes security validation settings (file size limits, allowed extensions, etc.)

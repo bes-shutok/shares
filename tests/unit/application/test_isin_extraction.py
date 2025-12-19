@@ -95,7 +95,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            csv_data = _extract_csv_data(temp_path, require_trades_section=False)
+            csv_data = _extract_csv_data(temp_path)
             result = csv_data.security_info
 
             # Then
@@ -139,6 +139,19 @@ class TestExtractIsinMapping:
                 "76792991",
                 "US88160R1014",
             ],
+            [
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "Comm/Fee",
+            ],
+            # No trade data - just header to satisfy Trades section requirement
         ]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
@@ -148,7 +161,7 @@ class TestExtractIsinMapping:
 
         try:
             # When
-            csv_data = _extract_csv_data(temp_path, require_trades_section=False)
+            csv_data = _extract_csv_data(temp_path)
             result = csv_data.security_info
 
             # Then
@@ -162,7 +175,18 @@ class TestExtractIsinMapping:
     def test_extract_isin_mapping_should_handle_missing_financial_instrument_section(self):
         # Given
         csv_content = [
-            ["Trades", "Header", "DataDiscriminator", "Asset Category", "Currency", "Symbol"],
+            [
+                "Trades",
+                "Header",
+                "DataDiscriminator",
+                "Asset Category",
+                "Currency",
+                "Symbol",
+                "Date/Time",
+                "Quantity",
+                "T. Price",
+                "Comm/Fee",
+            ],
             [
                 "Trades",
                 "Data",
@@ -183,12 +207,17 @@ class TestExtractIsinMapping:
             temp_path = temp_file.name
 
         try:
-            # When / Then
+            # When / Then - should raise error by default (Financial Instrument section required)
             with pytest.raises(
                 FileProcessingError,
                 match="Missing 'Financial Instrument Information' header in CSV",
             ):
-                _extract_csv_data(temp_path, require_trades_section=False)
+                _extract_csv_data(temp_path)
+
+            # When / Then - should work with trades but no Financial Instrument section (leftover files)
+            result = _extract_csv_data(temp_path, require_financial_instrument_section=False)
+            assert result.raw_trade_data  # Should have trades
+            assert not result.security_info  # No security info expected
         finally:
             Path(temp_path).unlink()
 

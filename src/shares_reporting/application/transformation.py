@@ -205,13 +205,19 @@ def redistribute_unmatched_trades(buy_actions: QuantitatedTradeActions, trade_pa
         buy_actions: List to append redistributed QuantitatedTradeAction objects
         trade_part: TradePartsWithinDay containing unmatched trades to redistribute
     """
+    logger = create_module_logger(__name__)
     total: Decimal = trade_part.quantity()
+
+    # Skip redistribution if there are no remaining quantities
+    if total == DECIMAL_ZERO:
+        logger.debug("Skipping redistribution for empty trade part")
+        return
+
     for trade in trade_part.get_trades():
-        if total == DECIMAL_ZERO:
-            raise DataValidationError("Total quantity is 0!")
         if trade.quantity > total:
             buy_actions.append(QuantitatedTradeAction(total, trade))
             total = DECIMAL_ZERO
+            break  # No more quantity left to distribute
         else:
             total -= trade.quantity
             buy_actions.append(QuantitatedTradeAction(trade.quantity, trade))
